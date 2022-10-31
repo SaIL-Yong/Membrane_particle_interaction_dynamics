@@ -1,15 +1,38 @@
 cmake_minimum_required(VERSION 3.16)
-project(example)
+
+set(CMAKE_DEBUG_POSTFIX d)
+set(CMAKE_C_FLAGS_DEBUG "-DDEBUG -O0 -g")
+set(CMAKE_CXX_FLAGS_DEBUG "-DDEBUG -O0 -g")
+#message("CMAKE_C_FLAGS_DEBUG is ${CMAKE_C_FLAGS_DEBUG}")
+#message("CMAKE_C_FLAGS_RELEASE is ${CMAKE_C_FLAGS_RELEASE}")
+
+#message("CMAKE_CXX_FLAGS_DEBUG is ${CMAKE_CXX_FLAGS_DEBUG}")
+#message("CMAKE_CXX_FLAGS_RELEASE is ${CMAKE_CXX_FLAGS_RELEASE}")
+
+#message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
+
+project(BDManifold VERSION 0.1)
+
+# configure a header file to pass some of the CMake settings
+# to the source code
+configure_file(VersionConfig.h.in VersionConfig.h)
 
 list(PREPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 # Libigl
+option(LIBIGL_GLFW "Build target igl::glfw" OFF)
 include(libigl)
 
-# Enable the target igl::glfw
-igl_include(glfw)
-
 # Add your project files
-file(GLOB SRC_FILES *.cpp)
-add_executable(${PROJECT_NAME} ${SRC_FILES})
-target_link_libraries(${PROJECT_NAME} PUBLIC igl::glfw)
+file(GLOB INC_FILES "${PROJECT_SOURCE_DIR}/src/*.h")
+file(GLOB SRC_FILES "${PROJECT_SOURCE_DIR}/src/*.cpp")
+add_executable(${PROJECT_NAME} ${INC_FILES} ${SRC_FILES})
+set_target_properties(${PROJECT_NAME} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+target_link_libraries(${PROJECT_NAME} PUBLIC igl::core)
+if (LIBIGL_GLFW)
+  target_link_libraries(${PROJECT_NAME} PUBLIC igl::glfw)
+endif()
+
+# add the binary tree to the search path for include files
+# so that we will find VersionConfig.h
+target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}")

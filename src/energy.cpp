@@ -9,7 +9,7 @@
 #include <igl/massmatrix.h>
 #include <igl/invert_diag.h>
 #include "energy.h"
-
+//#include "constant.h"
 
 double Energy::BendingEnergy(Eigen::MatrixXd V,Eigen::MatrixXi F){ 
            Eigen::MatrixXd HN,H,H_squared;
@@ -32,6 +32,20 @@ double Energy::BendingEnergy(Eigen::MatrixXd V,Eigen::MatrixXi F){
 
 
 }
+
+double Energy::AreaEnergy(Eigen::MatrixXd V,Eigen::MatrixXi F){ 
+        double radious=1.0; 
+        double area_target=4*PI*radious*radious;
+        Eigen::VectorXd dblA;                                   // store face edge information
+        igl::doublearea(V,F,dblA);                  
+    
+        double area_total = dblA.sum()/2;
+       // std::cout << "total area " << area_total << std::endl;        
+        double area_energy=2*(pow((area_total-area_target),2)/area_target);
+        return area_energy;
+
+}
+
 
 
 /*double Energy::BendingEnergy(){

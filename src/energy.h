@@ -8,8 +8,8 @@
 #include <igl/cotmatrix.h>
 #include <igl/massmatrix.h>
 #include <igl/invert_diag.h>
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
+#ifndef PI
+#define PI 3.14159265358979323846
 #endif
 
 
@@ -28,6 +28,7 @@ class Energy {
            Eigen::VectorXd EB;
            double total_EB;*/
            double BendingEnergy(Eigen::MatrixXd V,Eigen::MatrixXi F);
+           double AreaEnergy(Eigen::MatrixXd V,Eigen::MatrixXi F);
  
 };   
 

@@ -23,7 +23,6 @@
 
 int numV;                                               // number of vertices
 int numF;                                               // number of faces
-double area_total;                                      // total area of triangle mesh
 double area_avg;                                        // average area of each triangle mesh
 Eigen::MatrixXd V;                                      // matrix storing vertice coordinates
 Eigen::MatrixXi F;                                      // matrix storing face information, every face is one row with three integers
@@ -36,7 +35,7 @@ Eigen::SparseMatrix<double> L,M,Minv;
 Eigen::VectorXd EB;
 
 
-double total_bending_energy;
+//double total_bending_energy;
 
 //double totalEB;
 
@@ -50,76 +49,22 @@ int main(){
     numF = F.rows();
     numV = V.rows();
     igl::doublearea(V,F,dblA);
-    std::cout << "average double area " << dblA.mean() << std::endl;
-    std::cout << "total area " << dblA.sum() << std::endl;
-    area_total = dblA.sum();
+    double area_total = dblA.sum();
     area_avg = dblA.mean();
-/*    Eigen::VectorXd area_voronoi;
-    Eigen::VectorXd EB;
-    double total_EB;
-    igl::cotmatrix(V,F,L);
-    igl::massmatrix(V,F,igl::MASSMATRIX_TYPE_VORONOI,M);
-    igl::invert_diag(M,Minv);
-    HN= -Minv*(L*V);
-    H = HN.rowwise().norm(); //up to sign
-    area_voronoi=M.diagonal();
-    EB = 0.01*(H.transpose() * area_voronoi).diagonal();
-    //EB=2*0.01*H.dot(area_voronoi);
-    total_EB=EB.sum();
-*/
+    std::cout << "average double area " << dblA.mean() << std::endl;
+    std::cout << "total area " << dblA.sum()/2 << std::endl;
     Energy E1;
-    total_bending_energy=E1.BendingEnergy(V,F);
+    double total_bending_energy=E1.BendingEnergy(V,F);
      //Model m;
     std::cout << "total_bending_energy" <<total_bending_energy<< std::endl;
-    //std::cout << "total_bending_energy" <<area_voronoi<< std::endl;
+    double area_energy=E1.AreaEnergy(V,F);
+    std::cout << "area_energy" <<area_energy<< std::endl;
      
   // Save the mesh in OBJ format
   //igl::writeOBJ("cube.obj",V,F);
 }
-/*double BendingEnergy();
-
-double BendingEnergy(Eigen::MatrixXd V1,Eigen::MatrixXi F1){
-	Eigen::VectorXd area_voronoi;
-        Eigen::VectorXd EB;
-        double total_EB;
-	igl::cotmatrix(V1,F1,L);
-	igl::massmatrix(V1,F1,igl::MASSMATRIX_TYPE_VORONOI,M);
-	igl::invert_diag(M,Minv);
-	HN= -Minv*(L*V1);
-	H = HN.rowwise().norm(); //up to sign
-	area_voronoi=M.diagonal();
-	EB=2*0.01*H*area_voronoi;
-	total_EB=EB.sum();
-	return total_EB;
-}
-*/
 
      
-/*Eigen::VectorXd area_voronoi;
-Eigen::VectorXd EB;
-double total_EB;
-//BE=BendingEnergy->BE;
-/*void BE(Eigen::MatrixXd V,Eigen::MatrixXi F){
-//	V= BendingEnergy->V;
-//	F=BendingEnergy->F;
-//	L= BendingEnergy->L;
-//	M= BendingEnergy->M;
-//	Minv=BendingEnergy->Minv;
-//	EB=BendingEnergy->EB;
-//	total_EB=BendingEnergy->totalEB;
-//	area_voronoi=BendignEnergy->area-voronoi;
-//	
-	igl::cotmatrix(V,F,L);
-	igl::massmatrix(V,F,igl::MASSMATRIX_TYPE_VORONOI,M);
-	igl::invert_diag(M,Minv);
-	HN = -Minv*(L*V);
-	H = HN.rowwise().norm(); //up to sign
-	area_voronoi=M.diagonal();
-	EB=2*0.01*H;  //*area_voronoi
-	total_EB=EB.sum();
-	
-	 std::cout << "TEB " <<total_EB<< std::endl;
-}
-*/
+
 
 

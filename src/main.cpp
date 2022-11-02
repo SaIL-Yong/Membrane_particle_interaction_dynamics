@@ -20,6 +20,7 @@
 #include <igl/invert_diag.h>
 
 #include "energy.h" 
+#include "meshops.h"
 
 int numV;                                               // number of vertices
 int numF;                                               // number of faces
@@ -46,7 +47,8 @@ int main(){
   //Print the vertices and faces matrices
   //std::cout << "Vertices: " << std::endl << V << std::endl;
   //std::cout << "Faces:    " << std::endl << F << std::endl;
-    numF = F.rows();
+//   numF = F.rows();
+    float reduced_volume=0.7;
     numV = V.rows();
     igl::doublearea(V,F,dblA);
     double area_total = dblA.sum();
@@ -59,6 +61,12 @@ int main(){
     std::cout << "total_bending_energy" <<total_bending_energy<< std::endl;
     double area_energy=E1.AreaEnergy(V,F);
     std::cout << "area_energy" <<area_energy<< std::endl;
+    double volume_energy=E1.VolumeEnergy(V,F,reduced_volume);
+    std::cout << "volume_energy" <<volume_energy<< std::endl;
+    
+    Mesh M1;
+    double volume= M1.cal_volume(V,F);
+    std::cout << "total_volume" <<volume<< std::endl;
      
   // Save the mesh in OBJ format
   //igl::writeOBJ("cube.obj",V,F);

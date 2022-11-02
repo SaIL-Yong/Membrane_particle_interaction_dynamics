@@ -13,22 +13,13 @@
 #endif
 
 
-//void BendingEnergy(Eigen::MatrixXd V,Eigen::MatrixXi F);
-
-
-
 
 class Energy {
            public:
-           /*Eigen::MatrixXd V;
-           Eigen::MatrixXi F;
-           Eigen::MatrixXd HN;
-           Eigen::SparseMatrix<double> L,M,Minv;
-           Eigen::VectorXd area_voronoi;
-           Eigen::VectorXd EB;
-           double total_EB;*/
+
            double BendingEnergy(Eigen::MatrixXd V,Eigen::MatrixXi F);
            double AreaEnergy(Eigen::MatrixXd V,Eigen::MatrixXi F);
+           double VolumeEnergy(Eigen::MatrixXd V,Eigen::MatrixXi F,double reduced_volume);
  
 };   
 

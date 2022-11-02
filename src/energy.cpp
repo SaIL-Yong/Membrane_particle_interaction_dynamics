@@ -9,6 +9,7 @@
 #include <igl/massmatrix.h>
 #include <igl/invert_diag.h>
 #include "energy.h"
+#include "meshops.h"
 //#include "constant.h"
 
 double Energy::BendingEnergy(Eigen::MatrixXd V,Eigen::MatrixXi F){ 
@@ -45,35 +46,18 @@ double Energy::AreaEnergy(Eigen::MatrixXd V,Eigen::MatrixXi F){
         return area_energy;
 
 }
-
-
-
-/*double Energy::BendingEnergy(){
-    igl::cotmatrix(V,F,L);
-    igl::massmatrix(V,F,igl::MASSMATRIX_TYPE_VORONOI,M);
-    igl::invert_diag(M,Minv);
-    HN= -Minv*(L*V);
-    H = HN.rowwise().norm(); //up to sign
-    area_voronoi=M.diagonal();
-    EB = 0.01*(H.transpose() * area_voronoi).diagonal();
-    total_EB=EB.sum();
-    
-    return total_Eb;
-    //std::cout << "total_bending_energy" <<total_EB<< std::endl;
-
+double Energy::VolumeEnergy(Eigen::MatrixXd V,Eigen::MatrixXi F,double reduced_volume){ 
+        double radious=1.0; 
+        double volume_target=reduced_volume*(4/3)*PI*pow(radious,3);
+        Mesh M1;
+        double volume_total= M1.cal_volume(V,F);
+        double volume_energy=1*(pow((volume_total-volume_target),2)/volume_target);
+        return volume_energy;
 
 }
 
 
-/*
-Eigen::MatrixXd V;
-Eigen::MatrixXi F;
-Eigen::MatrixXd HN,H;
-Eigen::SparseMatrix<double> L,M,Minv;
-Eigen::VectorXd area_voronoi;
-Eigen::VectorXd EB;
-double total_EB;
-*/
+
 
 /*void BendingEnergy(Eigen::MatrixXd V,Eigen::MatrixXi F){
 	igl::cotmatrix(V,F,L);

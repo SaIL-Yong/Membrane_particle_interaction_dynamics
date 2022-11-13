@@ -19,7 +19,7 @@
 #include <igl/massmatrix.h>
 #include <igl/invert_diag.h>
 
-#include "energy.h" 
+#include "energy.h"
 #include "meshops.h"
 
 int numV;                                               // number of vertices
@@ -55,7 +55,7 @@ int main(){
     area_avg = dblA.mean();
     std::cout << "average double area " << dblA.mean() << std::endl;
     std::cout << "total area " << dblA.sum()/2 << std::endl;
-    Energy E1;
+/*    Energy E1;
     double total_bending_energy=E1.BendingEnergy(V,F);
      //Model m;
     std::cout << "total_bending_energy" <<total_bending_energy<< std::endl;
@@ -63,16 +63,18 @@ int main(){
     std::cout << "area_energy" <<area_energy<< std::endl;
     double volume_energy=E1.VolumeEnergy(V,F,reduced_volume);
     std::cout << "volume_energy" <<volume_energy<< std::endl;
-    
+
     Mesh M1;
     double volume= M1.cal_volume(V,F);
     std::cout << "total_volume" <<volume<< std::endl;
-     
+    Eigen::MatrixXd Area_Grad=M1.area_grad(V,F);
+    std::cout << "Area_Grad_Matrix:" <<Area_Grad<< std::endl;
+*/
+     Mesh M1;
+     Eigen::MatrixXd Volume_Grad=M1.volume_grad(V,F);
+     std::cout << "Volume_Grad_Matrix:" <<Volume_Grad<< std::endl;
   // Save the mesh in OBJ format
   //igl::writeOBJ("cube.obj",V,F);
+
+
 }
-
-     
-
-
-

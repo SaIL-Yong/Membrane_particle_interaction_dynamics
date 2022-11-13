@@ -15,12 +15,17 @@
 
 
 class Energy {
-           public:
-
+public:
            double BendingEnergy(Eigen::MatrixXd V,Eigen::MatrixXi F);
            double AreaEnergy(Eigen::MatrixXd V,Eigen::MatrixXi F);
            double VolumeEnergy(Eigen::MatrixXd V,Eigen::MatrixXi F,double reduced_volume);
- 
-};   
+           struct calculated_values{
+             Eigen::MatrixXd HN,H,H_squared;
+             Eigen::SparseMatrix<double> L,M,Minv;
+             Eigen::VectorXd area_voronoi;
+             Eigen::VectorXd EB;
+             double total_EB;
 
+           };
 
+};

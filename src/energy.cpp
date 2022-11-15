@@ -1,18 +1,61 @@
-
 #include <iostream>
 #include <cmath>
-#include <igl/readOFF.h>
-#include <igl/per_face_normals.h>
-#include "igl/doublearea.h"
-#include "igl/edges.h"
-#include <igl/cotmatrix.h>
-#include <igl/massmatrix.h>
-#include <igl/invert_diag.h>
 #include "energy.h"
 #include "meshops.h"
 //#include "constant.h"
 
-double Energy::BendingEnergy(Eigen::MatrixXd V,Eigen::MatrixXi F){
+void Energy::compute_bendingenergy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,Eigen::MatrixXd& Force_Bending,double& total_EB){
+  Eigen::MatrixXd H,HN,H_squared;
+  Eigen::SparseMatrix<double> L,M,Minv;
+  Eigen::VectorXd area_voronoi,Lap_H,force_density,K;
+  Eigen::VectorXd EB;
+  igl::cotmatrix(V,F,L);
+  igl::massmatrix(V,F,igl::MASSMATRIX_TYPE_VORONOI,M);
+  igl::invert_diag(M,Minv);
+  igl::gaussian_curvature(V,F,K);
+  K = (Minv*K).eval();
+  HN= -Minv*(L*V)/2.0;
+  H = HN.rowwise().norm(); //up to sign
+  Eigen::MatrixXd V_normals;
+  igl::per_vertex_normals(V,F,V_normals);
+  Eigen::MatrixXd H_X_N= (HN.array()*V_normals.array());
+  Eigen::VectorXd abc=H_X_N.rowwise().sum();
+  Eigen::VectorXd sign_of_H= abc.array().sign();
+  Eigen::VectorXd H_signed=H.array()*sign_of_H.array();
+  H_squared=H.array().square();
+  area_voronoi=M.diagonal();
+  EB = 2.0*0.01*(H_squared.transpose() * area_voronoi).diagonal();
+  total_EB=EB.sum();
+  Lap_H=Minv*(L*H_signed);
+  force_density=(2.0*H_signed.array()*(H_squared-K).array() )+ Lap_H.array();
+  Eigen::VectorXd vector_term=force_density.array()*area_voronoi.array();
+  Force_Bending=(2*0.01)*(V_normals.array().colwise()*vector_term.array());
+}
+
+void Energy::compute_areaenergy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,Eigen::MatrixXd& Force_Area,double& area_energy){
+  float radious=1.0;
+  double area_target=4.0*PI*radious*radious;
+  Eigen::VectorXd dblA;                                   // store face edge information
+  igl::doublearea(V,F,dblA);
+  double area_current = dblA.sum()/2;
+  area_energy=2.0*(pow((area_current-area_target),2)/area_target);
+  double scalar_term=-2.0*2.0*((area_current-area_target)/area_target);
+  Mesh m;
+  Eigen::MatrixXd AG =m.area_grad(V,F);
+  Force_Area=scalar_term*AG;
+}
+void Energy::compute_volumeenergy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,float reduced_volume,Eigen::MatrixXd& Force_Volume,double& volume_energy){
+  float radious=1.0;
+  double volume_target=reduced_volume*(4.0/3.0)*PI*pow(radious,3);
+  Mesh m;
+  double volume_current= m.cal_volume(V,F);
+  Eigen::MatrixXd VG =m.volume_grad(V,F);
+  volume_energy=5.0*(pow((volume_current-volume_target),2)/volume_target);
+  double scalar_term=-2.0*5.0*((volume_current-volume_target)/volume_target);
+  Force_Volume=scalar_term*VG;
+}
+
+/*double Energy::BendingEnergy(Eigen::MatrixXd V,Eigen::MatrixXi F){
            Eigen::MatrixXd HN,H,H_squared;
            Eigen::SparseMatrix<double> L,M,Minv;
            Eigen::VectorXd area_voronoi;
@@ -30,8 +73,8 @@ double Energy::BendingEnergy(Eigen::MatrixXd V,Eigen::MatrixXi F){
           total_EB=EB.sum();
           return total_EB;
 }
-
-double Energy::AreaEnergy(Eigen::MatrixXd V,Eigen::MatrixXi F){
+*/
+/*double Energy::AreaEnergy(Eigen::MatrixXd V,Eigen::MatrixXi F){
         float radious=1.0;
         double area_target=4.0*PI*radious*radious;
         Eigen::VectorXd dblA;                                   // store face edge information

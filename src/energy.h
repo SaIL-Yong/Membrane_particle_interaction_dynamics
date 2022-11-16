@@ -3,8 +3,8 @@
 #include <cmath>
 #include <igl/readOFF.h>
 #include <igl/per_vertex_normals.h>
-#include "igl/doublearea.h"
-#include "igl/edges.h"
+#include <igl/doublearea.h>
+#include <igl/edges.h>
 #include <igl/cotmatrix.h>
 #include <igl/massmatrix.h>
 #include <igl/invert_diag.h>

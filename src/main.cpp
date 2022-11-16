@@ -7,13 +7,13 @@
 #include <igl/per_vertex_normals.h>
 #include <igl/writeOBJ.h>
 #include <igl/adjacency_list.h>
-#include "igl/unique_edge_map.h"
-#include "igl/doublearea.h"
-#include "igl/oriented_facets.h"
-#include "igl/edge_flaps.h"
-#include "igl/edges.h"
-#include "igl/triangle_triangle_adjacency.h"
-#include "Eigen/Geometry"
+#include <igl/unique_edge_map.h>
+#include <igl/doublearea.h>
+#include <igl/oriented_facets.h>
+#include <igl/edge_flaps.h>
+#include <igl/edges.h>
+#include <igl/triangle_triangle_adjacency.h>
+#include <Eigen/Geometry>
 #include <igl/cotmatrix.h>
 #include <igl/massmatrix.h>
 #include <igl/invert_diag.h>
@@ -21,7 +21,7 @@
 #include <igl/adjacency_matrix.h>
 #include <igl/vertex_triangle_adjacency.h>
 #include <igl/gaussian_curvature.h>
-//#include <igl/intrinsic_delaunay_triangulation.h>
+#include <igl/intrinsic_delaunay_triangulation.h>
 #include "meshops.h"
 #include "energy.h"
 int numV;                                               // number of vertices

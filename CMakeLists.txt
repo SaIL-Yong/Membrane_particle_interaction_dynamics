@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_DEBUG_POSTFIX d)
 set(CMAKE_C_FLAGS_DEBUG "-DDEBUG -O0 -g")
 set(CMAKE_CXX_FLAGS_DEBUG "-DDEBUG -O0 -g")
@@ -11,7 +13,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "-DDEBUG -O0 -g")
 
 #message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
 
-project(BDManifold VERSION 0.1)
+project(MemDynamics VERSION 0.1)
 
 # configure a header file to pass some of the CMake settings
 # to the source code
@@ -26,6 +28,7 @@ include(libigl)
 # Add your project files
 file(GLOB INC_FILES "${PROJECT_SOURCE_DIR}/src/*.h")
 file(GLOB SRC_FILES "${PROJECT_SOURCE_DIR}/src/*.cpp")
+list(REMOVE_ITEM SRC_FILES "${PROJECT_SOURCE_DIR}/src/test.cpp")
 add_executable(${PROJECT_NAME} ${INC_FILES} ${SRC_FILES})
 set_target_properties(${PROJECT_NAME} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 target_link_libraries(${PROJECT_NAME} PUBLIC igl::core)

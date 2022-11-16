@@ -51,7 +51,8 @@ Eigen::MatrixXd Mesh::volume_grad(Eigen::MatrixXd V,Eigen::MatrixXi F){
            igl::doublearea(V,F,dblA);
            Eigen::MatrixXd vol_grad(numV,3);
            for (int i=0; i<numV; i++){
-             Eigen::RowVectorXd vol_ij {{0.0, 0.0, 0.0}};
+             Eigen::RowVectorXd vol_ij(3);
+	     vol_ij << 0, 0, 0;
 
              for (int j=0;j<VF[i].size();j++){
                int k=VF[i][j];

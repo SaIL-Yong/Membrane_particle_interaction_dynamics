@@ -62,3 +62,40 @@ Eigen::MatrixXd Mesh::volume_grad(Eigen::MatrixXd V,Eigen::MatrixXi F){
            //std::cout<<"vol_grad \n"<<vol_grad<<std::endl;
           return vol_grad;
 }
+Eigen::MatrixXd Mesh::vertex_smoothing(Eigen::MatrixXd V,Eigen::MatrixXi F){
+        int numV = V.rows();
+        Eigen::MatrixXd V_b,F_normals;
+        Eigen::MatrixXd V_new(numV,3);
+        Eigen::VectorXd dblA;
+        std::vector<std::vector<double> > VF;
+        std::vector<std::vector<double> > VFi;
+        igl::vertex_triangle_adjacency(V,F,VF, VFi);
+        igl::doublearea(V,F,dblA);
+        igl::barycenter(V,F,V_b);
+        igl::per_face_normals(V,F,F_normals);  //Eigen::ArrayXf V_b = Eigen::ArrayXf::Zero(VF[0].size());
+        double area_avg;
+        for (int i=0; i<numV; i++){
+          Eigen::MatrixXd f_norm(VF[i].size(),3);
+          Eigen::MatrixXd V_centroid(VF[i].size(),3);
+          Eigen::VectorXd face_area(VF[i].size());
+          double face_area_sum=0;
+          for (int j=0;j<VF[i].size();j++){
+            int k=VF[i][j];
+            //std::cout<<"facearea \n "<< dblA(k)<<std::endl;
+            face_area_sum += (dblA(k));
+            face_area(j)= dblA(k);
+            f_norm.row(j)=F_normals.row(k);
+            V_centroid.row(j)=V_b.row(k);
+          }
+          Eigen::VectorXd sum_of_area_centroid=face_area.transpose()*V_centroid;
+          Eigen::VectorXd V_avg= sum_of_area_centroid/face_area_sum;
+          Eigen::VectorXd f_norm_sum=f_norm.colwise().sum();//fsum in python
+          //std::cout<<"f_sum \n "<< V.row(i).dot(f_norm_sum)<<std::endl;
+          double lamda=((V_avg.dot(f_norm_sum))-(V.row(i).dot(f_norm_sum)))/(f_norm_sum.dot(f_norm_sum));
+
+          V_new.row(i)=V_avg-lamda*f_norm_sum;
+
+        }
+        return V_new;
+
+}

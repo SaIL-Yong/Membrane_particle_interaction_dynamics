@@ -10,6 +10,7 @@
 #include <igl/per_face_normals.h>
 #include <igl/vertex_triangle_adjacency.h>
 #include <igl/cotmatrix.h>
+#include <igl/barycenter.h>
 
 
 class Mesh {
@@ -20,5 +21,6 @@ class Mesh {
            //Eigen::Eigen::MatrixXd V
            Eigen::MatrixXd area_grad(Eigen::MatrixXd V,Eigen::MatrixXi F);
            Eigen::MatrixXd volume_grad(Eigen::MatrixXd V,Eigen::MatrixXi F);
+           Eigen::MatrixXd vertex_smoothing(Eigen::MatrixXd V,Eigen::MatrixXi F);
 
 };

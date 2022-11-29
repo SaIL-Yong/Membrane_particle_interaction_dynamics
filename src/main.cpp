@@ -37,14 +37,16 @@ Parameter parameter;
 int main(){
     readParameter();
     std::string filename = parameter.meshFile;
+    std::string resfilename = parameter.resFile;
+    std::string outfilename = parameter.outFile;
     igl::readOFF(filename, V, F);
     numF = F.rows();
     numV = V.rows();
-    int iterations=parameter.iteration;
+    int iterations=parameter.iterations;
     int logfrequency=100;
     Eigen::MatrixXd ForceArea,ForceVolume,ForceBending,velocity,ForceTotal; //forces
 
-    double dt=parameter.dt; //time step
+    double dt=parameter.dt,time=0.0; //time step
     double gamma=parameter.gamma;
     double tolerance=parameter.tolerance;
     float reduced_volume=parameter.reduced_volume;
@@ -62,11 +64,11 @@ int main(){
     V_new=V;
   auto start = high_resolution_clock::now();
   for (int i=0; i< iterations; i++){
-         velocity=ForceTotal/gamma;
+         velocity = ForceTotal/gamma;
          V_new += velocity*dt;
          Eigen::MatrixXd l;
          igl::edge_lengths(V_new,F,l);
-         V_new=M1.vertex_smoothing(V_new,F);
+         //V_new=M1.vertex_smoothing(V_new,F);
          igl::intrinsic_delaunay_triangulation(l,F,l,F);
          E1.compute_bendingenergy_force(V_new,F,ForceBending,EnergyBending);
          E1.compute_areaenergy_force(V_new,F,ForceArea,EnergyArea);
@@ -76,7 +78,7 @@ int main(){
          EnergyChange=abs(EnergyTotal_new-EnergyTotal);
          EnergyTotal=EnergyTotal_new;
 
-         time +=dt;
+         time += dt;
          //std::cout<<"time \n "<< time<<"\n iteration \n"<<i<<std::endl;
          //std::cout<<"EnergyChange \n "<<EnergyChange<<std::endl;
 
@@ -99,14 +101,14 @@ int main(){
           std::cout<<"\n Area Energy: "<< EnergyArea<<std::endl;
           std::cout<<"\n Volume Energy: "<< EnergyVolume<<std::endl;
           std::cout<<"\n Total Energy: "<< EnergyTotal<<std::endl;
-          igl::writeOFF("final_icosahedron5.off",V_new,F);
+          igl::writeOFF(outfilename,V_new,F);
           break;
         }
     }
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<microseconds>(stop - start);
     std::cout << duration.count() << std::endl;
-    //igl::writeOFF("restart.off",V_new,F);
+    igl::writeOFF(resfilename,V_new,F);
 }
 void readParameter(){
     std::string line;

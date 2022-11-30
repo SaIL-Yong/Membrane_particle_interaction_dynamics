@@ -47,28 +47,18 @@ void Energy::compute_areaenergy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,Eigen:
   double scalar_term=-2.0*area_modulus*((area_current-area_target)/area_target);
   Mesh m;
   Eigen::MatrixXd AG =m.area_grad(V,F);
-  Eigen::VectorXd area_voronoi,area_term(V.rows());
-  Eigen::SparseMatrix<double> M;
-  igl::massmatrix(V,F,igl::MASSMATRIX_TYPE_VORONOI,M);
-  area_voronoi=M.diagonal();
-  double area_voronoi_target=area_voronoi.mean();
-  for (int i=0; i < V.rows();i++){
-     area_term(i)= (area_voronoi(i)-area_voronoi_target)/(area_voronoi_target) ;
-  }
-  Eigen::MatrixXd force_area_local=-area_modulus*2*(AG.array().colwise()*area_term.array());
-
-  Force_Area=(scalar_term*AG)+force_area_local;
-  
-  // Eigen::VectorXd area_voronoi,area_term;
-  // Eigen::SparseMatrix<double> M;
-  // igl::massmatrix(V,F,igl::MASSMATRIX_TYPE_VORONOI,M);
-  // area_voronoi=M.diagonal();
-  // double area_voronoi_target=area_voronoi.mean();
-  // for (int i=0; i < V.rows();i++){
-  //   area_term(i)=(area_voronoi(i)-area_voronoi_target)/area_voronoi_target
-  //
+  //Eigen::VectorXd area_voronoi,area_term(V.rows());
+  //Eigen::SparseMatrix<double> M;
+  //igl::massmatrix(V,F,igl::MASSMATRIX_TYPE_VORONOI,M);
+  //area_voronoi=M.diagonal();
+  //double area_voronoi_target=area_voronoi.mean();
+  //for (int i=0; i < V.rows();i++){
+  //   area_term(i)= (area_voronoi(i)-area_voronoi_target)/(area_voronoi_target) ;
   //}
-  //for i
+  //Eigen::MatrixXd force_area_local=-area_modulus*2*(AG.array().colwise()*area_term.array());
+
+  Force_Area=(scalar_term*AG);
+  
 
 }
 void Energy::compute_volumeenergy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,float reduced_volume,Eigen::MatrixXd& Force_Volume,double& volume_energy){

@@ -1,28 +1,7 @@
-#include <igl/readOFF.h>
-#include <igl/writeOBJ.h>
 #include <iostream>
+#include <fstream>
 #include <chrono>
 #include <cmath>
-#include <igl/readOFF.h>
-#include <igl/writeOFF.h>
-#include <igl/per_vertex_normals.h>
-#include <igl/adjacency_list.h>
-#include <igl/unique_edge_map.h>
-#include <igl/doublearea.h>
-#include <igl/oriented_facets.h>
-#include <igl/edge_flaps.h>
-#include <igl/edges.h>
-#include <igl/triangle_triangle_adjacency.h>
-#include <Eigen/Geometry>
-#include <igl/cotmatrix.h>
-#include <igl/massmatrix.h>
-#include <igl/invert_diag.h>
-#include <vector>
-#include <igl/adjacency_matrix.h>
-#include <igl/vertex_triangle_adjacency.h>
-#include <igl/gaussian_curvature.h>
-#include <igl/intrinsic_delaunay_triangulation.h>
-#include <igl/barycenter.h>
 #include "meshops.h"
 #include "energy.h"
 #include "parameters.h"
@@ -62,6 +41,19 @@ int main(){
     std::cout<<"Bending Energy \n"<< EnergyBending<<std::endl;
     std::cout<<"\n reduced_volume "<< reduced_volume<<std::endl;
     V_new=V;
+    std::fstream logfile;
+    logfile.open("logfile.txt",std::ios::out);
+    if(logfile.is_open()){
+
+      logfile<<"This is logfile for simulation"<<std::endl;
+      logfile<<"timestep: "<< dt<<std::endl;
+      logfile<<"\n reduced_volume:  "<<reduced_volume<<std::endl;
+      logfile<<"\n Bending Energy: "<< EnergyBending<<std::endl;
+      logfile<<"\n Area Energy: "<< EnergyArea<<std::endl;
+      logfile<<"\n Volume Energy: "<< EnergyVolume<<std::endl;
+      logfile<<"\n number of vertices: "<< numV<<std::endl;
+      logfile.close();
+    }
   auto start = high_resolution_clock::now();
   for (int i=0; i< iterations; i++){
          velocity = ForceTotal/gamma;
@@ -90,7 +82,20 @@ int main(){
           std::cout<<"\n Volume Energy: "<< EnergyVolume<<std::endl;
           std::cout<<"\n Total Energy: "<< EnergyTotal<<std::endl;
           std::cout<<"\n number of vertices: "<< numV<<std::endl;
-
+          //std::fstream logfile;
+          logfile.open("logfile.txt",std::ios::app);
+          if(logfile.is_open()){
+            logfile<<"######"<<std::endl;
+            logfile<<"time: "<< time<<std::endl;
+            logfile<<"iteration: "<<i<<std::endl;
+            logfile<<"\n EnergyChange:  "<<EnergyChange<<std::endl;
+            logfile<<"\n Bending Energy: "<< EnergyBending<<std::endl;
+            logfile<<"\n Area Energy: "<< EnergyArea<<std::endl;
+            logfile<<"\n Volume Energy: "<< EnergyVolume<<std::endl;
+            logfile<<"\n Total Energy: "<< EnergyTotal<<std::endl;
+            logfile<<"\n number of vertices: "<< numV<<std::endl;
+            logfile.close();
+          }
         }
 
 
@@ -146,3 +151,4 @@ void readParameter(){
     getline(runfile, parameter.resFile);
     getline(runfile, line);
 }
+

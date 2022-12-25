@@ -23,21 +23,31 @@ int main(){
     numV = V.rows();
     int iterations=parameter.iterations;
     int logfrequency=100;
-    Eigen::MatrixXd ForceArea,ForceVolume,ForceBending,velocity,ForceTotal; //forces
+    Eigen::MatrixXd Force_Area,Force_Volume,Force_Bending,Force_Adhesion,velocity,ForceTotal; //forces
 
     double dt=parameter.dt,time=0.0; //time step
     double gamma=parameter.gamma;
     double tolerance=parameter.tolerance;
     float reduced_volume=parameter.reduced_volume;
-    double EnergyVolume,EnergyArea,EnergyBending,EnergyTotal,EnergyTotal_new, EnergyChange;  //energies
+    double EnergyVolume,EnergyArea,EnergyBending,EnergyTotal,EnergyAdhesion,EnergyTotal_new, EnergyChange;  //energies
+//parameters for particle adhesion
+    float bending_modulus=parameter.Kb;
+    float rp=parameter.particle_radious;
+    float u=parameter.adhesion_strength;
+    float rho=(parameter.potential_range)*rp;
+    float U=(bending_modulus*u)/(pow(rp,2)) ;
+    float X=1.0+rp+rho*1,Y=0.0,Z=0.0;
+
+//parameters for particle adhesion
 
     Mesh M1;
     Energy E1;
-    E1.compute_bendingenergy_force(V,F,ForceBending,EnergyBending);
-    E1.compute_areaenergy_force(V,F,ForceArea,EnergyArea);
-    E1.compute_volumeenergy_force(V,F,reduced_volume,ForceVolume,EnergyVolume);
-    EnergyTotal=EnergyBending+EnergyArea+EnergyVolume;
-    ForceTotal=ForceBending+ForceArea+ForceVolume;
+    E1.compute_bendingenergy_force(V,F,Force_Bending,EnergyBending);
+    E1.compute_areaenergy_force(V,F,Force_Area,EnergyArea);
+    E1.compute_volumeenergy_force(V,F,reduced_volume,Force_Volume,EnergyVolume);
+    E1.compute_adhesion_energy_force(V,F,X,Y,Z,rp,rho,u,U,Force_Adhesion,EnergyAdhesion);
+    EnergyTotal=EnergyBending+EnergyArea+EnergyVolume+EnergyAdhesion;
+    ForceTotal=Force_Bending+Force_Area+Force_Volume+Force_Adhesion;
     std::cout<<"Bending Energy \n"<< EnergyBending<<std::endl;
     std::cout<<"\n reduced_volume "<< reduced_volume<<std::endl;
     V_new=V;
@@ -51,6 +61,7 @@ int main(){
       logfile<<"\n Bending Energy: "<< EnergyBending<<std::endl;
       logfile<<"\n Area Energy: "<< EnergyArea<<std::endl;
       logfile<<"\n Volume Energy: "<< EnergyVolume<<std::endl;
+      logfile<<"\n Adhesion Energy: "<< EnergyAdhesion<<std::endl;
       logfile<<"\n number of vertices: "<< numV<<std::endl;
       logfile.close();
     }
@@ -62,11 +73,12 @@ int main(){
          igl::edge_lengths(V_new,F,l);
          //V_new=M1.vertex_smoothing(V_new,F);
          igl::intrinsic_delaunay_triangulation(l,F,l,F);
-         E1.compute_bendingenergy_force(V_new,F,ForceBending,EnergyBending);
-         E1.compute_areaenergy_force(V_new,F,ForceArea,EnergyArea);
-         E1.compute_volumeenergy_force(V_new,F,reduced_volume,ForceVolume,EnergyVolume);
-         ForceTotal=ForceBending+ForceArea+ForceVolume;
-         EnergyTotal_new=EnergyBending+EnergyArea+EnergyVolume;
+         E1.compute_bendingenergy_force(V,F,Force_Bending,EnergyBending);
+         E1.compute_areaenergy_force(V,F,Force_Area,EnergyArea);
+         E1.compute_volumeenergy_force(V,F,reduced_volume,Force_Volume,EnergyVolume);
+         E1.compute_adhesion_energy_force(V,F,X,Y,Z,rp,rho,u,U,Force_Adhesion,EnergyAdhesion);
+         EnergyTotal=EnergyBending+EnergyArea+EnergyVolume+EnergyAdhesion;
+         ForceTotal=Force_Bending+Force_Area+Force_Volume+Force_Adhesion;
          EnergyChange=abs(EnergyTotal_new-EnergyTotal);
          EnergyTotal=EnergyTotal_new;
 
@@ -80,6 +92,7 @@ int main(){
           std::cout<<"\n Bending Energy: "<< EnergyBending<<std::endl;
           std::cout<<"\n Area Energy: "<< EnergyArea<<std::endl;
           std::cout<<"\n Volume Energy: "<< EnergyVolume<<std::endl;
+          std::cout<<"\n Adhesion Energy: "<< EnergyAdhesion<<std::endl;
           std::cout<<"\n Total Energy: "<< EnergyTotal<<std::endl;
           std::cout<<"\n number of vertices: "<< numV<<std::endl;
           //std::fstream logfile;
@@ -92,6 +105,7 @@ int main(){
             logfile<<"\n Bending Energy: "<< EnergyBending<<std::endl;
             logfile<<"\n Area Energy: "<< EnergyArea<<std::endl;
             logfile<<"\n Volume Energy: "<< EnergyVolume<<std::endl;
+            logfile<<"\n Adhesion Energy: "<< EnergyAdhesion<<std::endl;
             logfile<<"\n Total Energy: "<< EnergyTotal<<std::endl;
             logfile<<"\n number of vertices: "<< numV<<std::endl;
             logfile.close();
@@ -111,7 +125,7 @@ int main(){
         }
     }
     auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<microseconds>(stop - start);
+    auto duration = duration_cast<seconds>(stop - start);
     std::cout << duration.count() << std::endl;
     igl::writeOFF(resfilename,V_new,F);
 }
@@ -144,6 +158,15 @@ void readParameter(){
     runfile >> parameter.gamma;
     getline(runfile, line);
     getline(runfile, line);
+    runfile >> parameter.particle_radious;
+    getline(runfile, line);
+    getline(runfile, line);
+    runfile >> parameter.adhesion_strength;
+    getline(runfile, line);
+    getline(runfile, line);
+    runfile >> parameter.potential_range;
+    getline(runfile, line);
+    getline(runfile, line);
     getline(runfile, parameter.meshFile);
     getline(runfile, line);
     getline(runfile, parameter.outFile);
@@ -151,4 +174,3 @@ void readParameter(){
     getline(runfile, parameter.resFile);
     getline(runfile, line);
 }
-

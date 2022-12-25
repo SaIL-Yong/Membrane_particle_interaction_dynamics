@@ -1,0 +1,99 @@
+This is logfile for simulation
+timestep: 0.01
+
+ reduced_volume:  0.92
+
+ Bending Energy: 0.251054
+
+ Area Energy: 0.0468537
+
+ Volume Energy: 0.00110796
+
+ Adhesion Energy: -0.00137229
+
+ number of vertices: 2562
+######
+time: 0.01
+iteration: 0
+
+ EnergyChange:  0.297644
+
+ Bending Energy: 0.251054
+
+ Area Energy: 0.0468537
+
+ Volume Energy: 0.00110796
+
+ Adhesion Energy: -0.00137229
+
+ Total Energy: 6.9529e-310
+
+ number of vertices: 2562
+######
+time: 1.01
+iteration: 100
+
+ EnergyChange:  0.297644
+
+ Bending Energy: 0.251054
+
+ Area Energy: 0.0468537
+
+ Volume Energy: 0.00110796
+
+ Adhesion Energy: -0.00137229
+
+ Total Energy: 6.9529e-310
+
+ number of vertices: 2562
+######
+time: 2.01
+iteration: 200
+
+ EnergyChange:  0.297644
+
+ Bending Energy: 0.251054
+
+ Area Energy: 0.0468537
+
+ Volume Energy: 0.00110796
+
+ Adhesion Energy: -0.00137229
+
+ Total Energy: 6.9529e-310
+
+ number of vertices: 2562
+######
+time: 3.01
+iteration: 300
+
+ EnergyChange:  0.297644
+
+ Bending Energy: 0.251054
+
+ Area Energy: 0.0468537
+
+ Volume Energy: 0.00110796
+
+ Adhesion Energy: -0.00137229
+
+ Total Energy: 6.9529e-310
+
+ number of vertices: 2562
+######
+time: 4.01
+iteration: 400
+
+ EnergyChange:  0.297644
+
+ Bending Energy: 0.251054
+
+ Area Energy: 0.0468537
+
+ Volume Energy: 0.00110796
+
+ Adhesion Energy: -0.00137229
+
+ Total Energy: 6.9529e-310
+
+ number of vertices: 2562

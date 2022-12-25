@@ -14,8 +14,14 @@ tolerance
 1.0e-8
 gamma
 1.0
+particle_radious
+0.15
+adhesion_strength
+2.0
+potential_range
+0.001
 meshfile
-./oblate.off
+./equilibrated.off
 outfile
 ./equilibrioum.off
 resfile

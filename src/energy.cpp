@@ -7,10 +7,10 @@
 extern Parameter parameter;
 
 void Energy::compute_bendingenergy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,Eigen::MatrixXd& Force_Bending,double& total_EB){
-  double bending_modulus=parameter.Kb;
+  bending_modulus=parameter.Kb;
   Eigen::MatrixXd H,HN,H_squared;
   Eigen::SparseMatrix<double> L,M,Minv;
-  Eigen::VectorXd area_voronoi,Lap_H,force_density,K;
+  Eigen::VectorXd Lap_H,force_density,K;
   Eigen::VectorXd EB;
   igl::cotmatrix(V,F,L);
   igl::massmatrix(V,F,igl::MASSMATRIX_TYPE_VORONOI,M);
@@ -46,19 +46,9 @@ void Energy::compute_areaenergy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,Eigen:
   area_energy=area_modulus*(pow((area_current-area_target),2)/area_target);
   double scalar_term=-2.0*area_modulus*((area_current-area_target)/area_target);
   Mesh m;
-  Eigen::MatrixXd AG =m.area_grad(V,F);
-  //Eigen::VectorXd area_voronoi,area_term(V.rows());
-  //Eigen::SparseMatrix<double> M;
-  //igl::massmatrix(V,F,igl::MASSMATRIX_TYPE_VORONOI,M);
-  //area_voronoi=M.diagonal();
-  //double area_voronoi_target=area_voronoi.mean();
-  //for (int i=0; i < V.rows();i++){
-  //   area_term(i)= (area_voronoi(i)-area_voronoi_target)/(area_voronoi_target) ;
-  //}
-  //Eigen::MatrixXd force_area_local=-area_modulus*2*(AG.array().colwise()*area_term.array());
-
+  AG =m.area_grad(V,F);
   Force_Area=(scalar_term*AG);
-  
+
 
 }
 void Energy::compute_volumeenergy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,float reduced_volume,Eigen::MatrixXd& Force_Volume,double& volume_energy){
@@ -72,98 +62,40 @@ void Energy::compute_volumeenergy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,floa
   double scalar_term=-2.0*volume_modulus*((volume_current-volume_target)/volume_target);
   Force_Volume=scalar_term*VG;
 }
-//void Energy::compute_areaenergy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,Eigen::MatrixXd& Force_Area,double& area_energy){
-  //}
 
-/*double Energy::BendingEnergy(Eigen::MatrixXd V,Eigen::MatrixXi F){
-           Eigen::MatrixXd HN,H,H_squared;
-           Eigen::SparseMatrix<double> L,M,Minv;
-           Eigen::VectorXd area_voronoi;
-           Eigen::VectorXd EB;
-           double total_EB;
-
-          igl::cotmatrix(V,F,L);
-          igl::massmatrix(V,F,igl::MASSMATRIX_TYPE_VORONOI,M);
-          igl::invert_diag(M,Minv);
-          HN= -Minv*(L*V);
-          H = HN.rowwise().norm()/2.0; //up to sign
-          H_squared=H.array().square();
-          area_voronoi=M.diagonal();
-          EB = 2.0*0.01*(H_squared.transpose() * area_voronoi).diagonal();
-          total_EB=EB.sum();
-          return total_EB;
+void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,float X,float Y,float Z,float rp,float rho,float u,float U,
+    Eigen::MatrixXd& Force_Adhesion,double& EnergyAdhesion){
+    // float rp=parameter.particle_radious;
+    // float u=parameter.adhesion_strength;
+    // float rho=(parameter.potential_range)*rp;
+    // float U=(bending_modulus*u)/(pow(rp,2)) ;
+    //float X=1.0+rp+rho*1,Y=0.0,Z=0.0;
+    Eigen::VectorXd coefficient_derivative_x(V.rows()),coefficient_derivative_y(V.rows()),
+    coefficient_derivative_z(V.rows()),coefficient(V.rows()),distance(V.rows()),dc(V.rows());
+    for (int i=0; i<V.rows(); i++){
+      distance(i)=sqrt((V(i,0)-X)*(V(i,0)-X)+(V(i,1)-Y)*(V(i,1)-Y)+(V(i,2)-Z)*(V(i,2)-Z));
+      dc(i)=distance(i)-rp;
+      coefficient(i)=U*(exp(-(2.0*dc(i))/rho) - 2.0*exp(-dc(i)/rho));
+      coefficient_derivative_x(i)  = (U/(distance(i)*rho))
+      *(-exp(-(2.0*dc(i))/rho) +  exp(-dc(i)/rho)) * 2.0 * (V(i,0)-X);
+      coefficient_derivative_y(i)  = (U/(distance(i)*rho))
+      *(-exp(-(2.0*dc(i))/rho) +  exp(-dc(i)/rho)) * 2.0 * (V(i,1)-Y);
+      coefficient_derivative_z(i)  = (U/(distance(i)*rho))
+      *(-exp(-(2.0*dc(i))/rho) +  exp(-dc(i)/rho)) * 2.0 * (V(i,2)-Z);
+      //coefficient_derivative_x(i)=
 }
-*/
-/*double Energy::AreaEnergy(Eigen::MatrixXd V,Eigen::MatrixXi F){
-        float radious=1.0;
-        double area_target=4.0*PI*radious*radious;
-        Eigen::VectorXd dblA;                                   // store face edge information
-        igl::doublearea(V,F,dblA);
+    Eigen::MatrixXd coefficient_of_derivative(V.rows(),3);
+    coefficient_of_derivative.col(0)=coefficient_derivative_x.transpose();
+    coefficient_of_derivative.col(1)=coefficient_derivative_y.transpose();
+    coefficient_of_derivative.col(2)=coefficient_derivative_z.transpose();
+    Eigen::MatrixXd First_Term = -(AG.array().colwise()*coefficient.array());
+    Eigen::MatrixXd Second_Term= -(coefficient_of_derivative.array().colwise()*area_voronoi.array());
 
-        double area_total = dblA.sum()/2;
-       // std::cout << "total area " << area_total << std::endl;
-        double area_energy=2.0*(pow((area_total-area_target),2)/area_target);
-        return area_energy;
-
+    Force_Adhesion= First_Term +Second_Term;
+    //std::cout<<"coefficient :"<<Force_Adhesion<<std::endl;
+    Eigen::VectorXd Ead= coefficient.array()*area_voronoi.array();
+    EnergyAdhesion=Ead.sum();
+    // std::cout<<"Adhesion_Energy::"<<adhesion_energy<<std::endl;
+    // float max_1=V.maxCoeff();
+    // std::cout<<"Max::"<<max_1<<std::endl;
 }
-double Energy::VolumeEnergy(Eigen::MatrixXd V,Eigen::MatrixXi F,double reduced_volume){
-        float radious=1.0;
-        double volume_target=reduced_volume*(4/3)*PI*pow(radious,3);
-        Mesh M1;
-        double volume_total= M1.cal_volume(V,F);
-        double volume_energy=1*(pow((volume_total-volume_target),2)/volume_target);
-        return volume_energy;
-
-}
-
-
-
-
-/*void BendingEnergy(Eigen::MatrixXd V,Eigen::MatrixXi F){
-	igl::cotmatrix(V,F,L);
-	igl::massmatrix(V,F,igl::MASSMATRIX_TYPE_VORONOI,M);
-	igl::invert_diag(M,Minv);
-	HN= -Minv*(L*V);
-	H = HN.rowwise().norm(); //up to sign
-	area_voronoi=M1.diagonal();
-	EB=2*0.01*H*area_voronoi;
-	total_EB1=EB.sum();
-
-	return total_EB1;
-}
-//BE=BendingEnergy->BE;
-
-/*Energy En1;
-void BE(Eigen::MatrixXd V,Eigen::MatrixXi F){
-	V1= En1.V;
-	F1= En1.F;
-	L1=En1.L;
-	M1=En1.M;
-	Minv1=En1.Minv;
-	area_voronoi1=En1.area_voronoi;
-	EB1=En1.EB;
-	total_EB1=En1.total_EB;
-
-
-//	V= BendingEnergy->V;
-//	F=BendingEnergy->F;
-//	L= BendingEnergy->L;
-//	M= BendingEnergy->M;
-//	Minv=BendingEnergy->Minv;
-//	EB=BendingEnergy->EB;
-//	total_EB=BendingEnergy->totalEB;
-//	area_voronoi=BendignEnergy->area-voronoi;
-//
-
-	igl::cotmatrix(V1,F1,L1);
-	igl::massmatrix(V,F,igl::MASSMATRIX_TYPE_VORONOI,M1);
-	igl::invert_diag(M1,Minv1);
-	HN1 = -Minv1*(L1*V1);
-	H1 = HN1.rowwise().norm(); //up to sign
-	area_voronoi1=M1.diagonal();
-	EB1=2*0.01*H1*area_voronoi1;
-	total_EB1=EB1.sum();
-
-	return total_EB1;
-}
-*/

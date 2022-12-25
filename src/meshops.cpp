@@ -1,5 +1,6 @@
 #include "energy.h"
 #include "meshops.h"
+#include "parameters.h"
 
 double Mesh::cal_volume(Eigen::MatrixXd V,Eigen::MatrixXi F){
           double Volume_total;

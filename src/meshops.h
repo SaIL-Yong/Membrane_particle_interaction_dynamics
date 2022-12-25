@@ -27,7 +27,6 @@
 #include <igl/barycenter.h>
 
 
-
 class Mesh {
            public:
 

@@ -9,14 +9,14 @@ timestep: 0.01
 
  Volume Energy: 0.00110796
 
- Adhesion Energy: -0.00137229
+ Adhesion Energy: -0.00261999
 
  number of vertices: 2562
 ######
 time: 0.01
 iteration: 0
 
- EnergyChange:  0.297644
+ EnergyChange:  0.296396
 
  Bending Energy: 0.251054
 
@@ -24,16 +24,16 @@ iteration: 0
 
  Volume Energy: 0.00110796
 
- Adhesion Energy: -0.00137229
+ Adhesion Energy: -0.00261999
 
- Total Energy: 6.9529e-310
+ Total Energy: 6.95307e-310
 
  number of vertices: 2562
 ######
 time: 1.01
 iteration: 100
 
- EnergyChange:  0.297644
+ EnergyChange:  0.296396
 
  Bending Energy: 0.251054
 
@@ -41,16 +41,16 @@ iteration: 100
 
  Volume Energy: 0.00110796
 
- Adhesion Energy: -0.00137229
+ Adhesion Energy: -0.00261999
 
- Total Energy: 6.9529e-310
+ Total Energy: 6.95307e-310
 
  number of vertices: 2562
 ######
 time: 2.01
 iteration: 200
 
- EnergyChange:  0.297644
+ EnergyChange:  0.296396
 
  Bending Energy: 0.251054
 
@@ -58,16 +58,16 @@ iteration: 200
 
  Volume Energy: 0.00110796
 
- Adhesion Energy: -0.00137229
+ Adhesion Energy: -0.00261999
 
- Total Energy: 6.9529e-310
+ Total Energy: 6.95307e-310
 
  number of vertices: 2562
 ######
 time: 3.01
 iteration: 300
 
- EnergyChange:  0.297644
+ EnergyChange:  0.296396
 
  Bending Energy: 0.251054
 
@@ -75,16 +75,16 @@ iteration: 300
 
  Volume Energy: 0.00110796
 
- Adhesion Energy: -0.00137229
+ Adhesion Energy: -0.00261999
 
- Total Energy: 6.9529e-310
+ Total Energy: 6.95307e-310
 
  number of vertices: 2562
 ######
 time: 4.01
 iteration: 400
 
- EnergyChange:  0.297644
+ EnergyChange:  0.296396
 
  Bending Energy: 0.251054
 
@@ -92,8 +92,93 @@ iteration: 400
 
  Volume Energy: 0.00110796
 
- Adhesion Energy: -0.00137229
+ Adhesion Energy: -0.00261999
 
- Total Energy: 6.9529e-310
+ Total Energy: 6.95307e-310
+
+ number of vertices: 2562
+######
+time: 5.01
+iteration: 500
+
+ EnergyChange:  0.296396
+
+ Bending Energy: 0.251054
+
+ Area Energy: 0.0468537
+
+ Volume Energy: 0.00110796
+
+ Adhesion Energy: -0.00261999
+
+ Total Energy: 6.95307e-310
+
+ number of vertices: 2562
+######
+time: 6.01
+iteration: 600
+
+ EnergyChange:  0.296396
+
+ Bending Energy: 0.251054
+
+ Area Energy: 0.0468537
+
+ Volume Energy: 0.00110796
+
+ Adhesion Energy: -0.00261999
+
+ Total Energy: 6.95307e-310
+
+ number of vertices: 2562
+######
+time: 7.01
+iteration: 700
+
+ EnergyChange:  0.296396
+
+ Bending Energy: 0.251054
+
+ Area Energy: 0.0468537
+
+ Volume Energy: 0.00110796
+
+ Adhesion Energy: -0.00261999
+
+ Total Energy: 6.95307e-310
+
+ number of vertices: 2562
+######
+time: 8.01
+iteration: 800
+
+ EnergyChange:  0.296396
+
+ Bending Energy: 0.251054
+
+ Area Energy: 0.0468537
+
+ Volume Energy: 0.00110796
+
+ Adhesion Energy: -0.00261999
+
+ Total Energy: 6.95307e-310
+
+ number of vertices: 2562
+######
+time: 9.01
+iteration: 900
+
+ EnergyChange:  0.296396
+
+ Bending Energy: 0.251054
+
+ Area Energy: 0.0468537
+
+ Volume Energy: 0.00110796
+
+ Adhesion Energy: -0.00261999
+
+ Total Energy: 6.95307e-310
 
  number of vertices: 2562

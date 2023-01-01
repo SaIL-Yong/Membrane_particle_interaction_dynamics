@@ -36,7 +36,8 @@ int main(){
     float u=parameter.adhesion_strength;
     float rho=(parameter.potential_range)*rp;
     float U=(bending_modulus*u)/(pow(rp,2)) ;
-    float X=1.0+rp+rho*1,Y=0.0,Z=0.0;
+    float rc=5*rho;
+    float X=V.maxCoeff()+rp+rho*1,Y=0.0,Z=0.0;
 
 //parameters for particle adhesion
 
@@ -45,11 +46,15 @@ int main(){
     E1.compute_bendingenergy_force(V,F,Force_Bending,EnergyBending);
     E1.compute_areaenergy_force(V,F,Force_Area,EnergyArea);
     E1.compute_volumeenergy_force(V,F,reduced_volume,Force_Volume,EnergyVolume);
-    E1.compute_adhesion_energy_force(V,F,X,Y,Z,rp,rho,u,U,Force_Adhesion,EnergyAdhesion);
+    E1.compute_adhesion_energy_force(V,F,X,Y,Z,rp,rho,u,U,rc,Force_Adhesion,EnergyAdhesion);
     EnergyTotal=EnergyBending+EnergyArea+EnergyVolume+EnergyAdhesion;
     ForceTotal=Force_Bending+Force_Area+Force_Volume+Force_Adhesion;
     std::cout<<"Bending Energy \n"<< EnergyBending<<std::endl;
     std::cout<<"\n reduced_volume "<< reduced_volume<<std::endl;
+    std::cout<<"\n U "<< U<<std::endl;
+    std::cout<<"\n rho "<< parameter.potential_range<<std::endl;
+    std::cout<<"\n rp "<< rp<<std::endl;
+    std::cout<<"\n u "<< u <<std::endl;
     V_new=V;
     std::fstream logfile;
     logfile.open("logfile.txt",std::ios::out);
@@ -76,7 +81,7 @@ int main(){
          E1.compute_bendingenergy_force(V,F,Force_Bending,EnergyBending);
          E1.compute_areaenergy_force(V,F,Force_Area,EnergyArea);
          E1.compute_volumeenergy_force(V,F,reduced_volume,Force_Volume,EnergyVolume);
-         E1.compute_adhesion_energy_force(V,F,X,Y,Z,rp,rho,u,U,Force_Adhesion,EnergyAdhesion);
+         E1.compute_adhesion_energy_force(V,F,X,Y,Z,rp,rho,u,U,rc,Force_Adhesion,EnergyAdhesion);
          EnergyTotal=EnergyBending+EnergyArea+EnergyVolume+EnergyAdhesion;
          ForceTotal=Force_Bending+Force_Area+Force_Volume+Force_Adhesion;
          EnergyChange=abs(EnergyTotal_new-EnergyTotal);
@@ -110,6 +115,7 @@ int main(){
             logfile<<"\n number of vertices: "<< numV<<std::endl;
             logfile.close();
           }
+          igl::writeOFF(resfilename,V_new,F);
         }
 
 

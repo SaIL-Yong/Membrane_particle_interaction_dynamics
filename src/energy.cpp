@@ -63,8 +63,7 @@ void Energy::compute_volumeenergy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,floa
   Force_Volume=scalar_term*VG;
 }
 
-void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,float X,float Y,float Z,float rp,float rho,float u,float U,
-    Eigen::MatrixXd& Force_Adhesion,double& EnergyAdhesion){
+void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,float X,float Y,float Z,float rp,float rho,float u,float U,float rc,Eigen::MatrixXd& Force_Adhesion,double& EnergyAdhesion){
     // float rp=parameter.particle_radious;
     // float u=parameter.adhesion_strength;
     // float rho=(parameter.potential_range)*rp;
@@ -72,6 +71,7 @@ void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,f
     //float X=1.0+rp+rho*1,Y=0.0,Z=0.0;
     Eigen::VectorXd coefficient_derivative_x(V.rows()),coefficient_derivative_y(V.rows()),
     coefficient_derivative_z(V.rows()),coefficient(V.rows()),distance(V.rows()),dc(V.rows());
+    float tol=1e-10;
     for (int i=0; i<V.rows(); i++){
       distance(i)=sqrt((V(i,0)-X)*(V(i,0)-X)+(V(i,1)-Y)*(V(i,1)-Y)+(V(i,2)-Z)*(V(i,2)-Z));
       dc(i)=distance(i)-rp;
@@ -82,6 +82,25 @@ void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,f
       *(-exp(-(2.0*dc(i))/rho) +  exp(-dc(i)/rho)) * 2.0 * (V(i,1)-Y);
       coefficient_derivative_z(i)  = (U/(distance(i)*rho))
       *(-exp(-(2.0*dc(i))/rho) +  exp(-dc(i)/rho)) * 2.0 * (V(i,2)-Z);
+      if (abs(coefficient(i))<tol){
+        coefficient(i)=0;
+      }
+      if (abs(dc(i))>rc || abs(coefficient_derivative_x(i))<tol){
+        coefficient_derivative_x(i)  = 0;
+      }
+      if (abs(dc(i))>rc || abs(coefficient_derivative_y(i))<tol){
+        coefficient_derivative_y(i)  = 0;
+      }
+      if (abs(dc(i))>rc || abs(coefficient_derivative_z(i))<tol){
+        coefficient_derivative_z(i)  = 0;
+      }
+      // coefficient(i)=U*(exp(-(2.0*dc(i))/rho) - 2.0*exp(-dc(i)/rho));
+      // coefficient_derivative_x(i)  = (U/(distance(i)*rho))
+      // *(-exp(-(2.0*dc(i))/rho) +  exp(-dc(i)/rho)) * 2.0 * (V(i,0)-X);
+      // coefficient_derivative_y(i)  = (U/(distance(i)*rho))
+      // *(-exp(-(2.0*dc(i))/rho) +  exp(-dc(i)/rho)) * 2.0 * (V(i,1)-Y);
+      // coefficient_derivative_z(i)  = (U/(distance(i)*rho))
+      // *(-exp(-(2.0*dc(i))/rho) +  exp(-dc(i)/rho)) * 2.0 * (V(i,2)-Z);
       //coefficient_derivative_x(i)=
 }
     Eigen::MatrixXd coefficient_of_derivative(V.rows(),3);

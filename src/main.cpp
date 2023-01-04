@@ -47,14 +47,18 @@ int main(){
     E1.compute_areaenergy_force(V,F,Force_Area,EnergyArea);
     E1.compute_volumeenergy_force(V,F,reduced_volume,Force_Volume,EnergyVolume);
     E1.compute_adhesion_energy_force(V,F,X,Y,Z,rp,rho,u,U,rc,Force_Adhesion,EnergyAdhesion);
-    EnergyTotal=EnergyBending+EnergyArea+EnergyVolume+EnergyAdhesion;
+    EnergyTotal=EnergyBending + EnergyArea + EnergyVolume + EnergyAdhesion;
+
     ForceTotal=Force_Bending+Force_Area+Force_Volume+Force_Adhesion;
-    std::cout<<"Bending Energy \n"<< EnergyBending<<std::endl;
-    std::cout<<"\n reduced_volume "<< reduced_volume<<std::endl;
-    std::cout<<"\n U "<< U<<std::endl;
-    std::cout<<"\n rho "<< parameter.potential_range<<std::endl;
-    std::cout<<"\n rp "<< rp<<std::endl;
-    std::cout<<"\n u "<< u <<std::endl;
+
+    std::cout<<"Bending Energy: "<< EnergyBending<<std::endl;
+    std::cout<<"\n Total Energy: "<< EnergyTotal<<std::endl;
+    std::cout<<"\n reduced_volume: "<< reduced_volume<<std::endl;
+    std::cout<<"\n U: "<< U<<std::endl;
+    std::cout<<"\n rho: "<< parameter.potential_range<<std::endl;
+    std::cout<<"\n rp: "<< rp<<std::endl;
+    std::cout<<"\n u: "<< u <<std::endl;
+    std::cout<<"\n cut-off range: "<< rc <<std::endl;
     V_new=V;
     std::fstream logfile;
     logfile.open("logfile.txt",std::ios::out);
@@ -76,14 +80,16 @@ int main(){
          V_new += velocity*dt;
          Eigen::MatrixXd l;
          igl::edge_lengths(V_new,F,l);
-         //V_new=M1.vertex_smoothing(V_new,F);
+         V_new=M1.vertex_smoothing(V_new,F);
          igl::intrinsic_delaunay_triangulation(l,F,l,F);
-         E1.compute_bendingenergy_force(V,F,Force_Bending,EnergyBending);
-         E1.compute_areaenergy_force(V,F,Force_Area,EnergyArea);
-         E1.compute_volumeenergy_force(V,F,reduced_volume,Force_Volume,EnergyVolume);
-         E1.compute_adhesion_energy_force(V,F,X,Y,Z,rp,rho,u,U,rc,Force_Adhesion,EnergyAdhesion);
-         EnergyTotal=EnergyBending+EnergyArea+EnergyVolume+EnergyAdhesion;
+         E1.compute_bendingenergy_force(V_new,F,Force_Bending,EnergyBending);
+         E1.compute_areaenergy_force(V_new,F,Force_Area,EnergyArea);
+         E1.compute_volumeenergy_force(V_new,F,reduced_volume,Force_Volume,EnergyVolume);
+         E1.compute_adhesion_energy_force(V_new,F,X,Y,Z,rp,rho,u,U,rc,Force_Adhesion,EnergyAdhesion);
+
+         EnergyTotal_new=EnergyBending+EnergyArea+EnergyVolume+EnergyAdhesion;
          ForceTotal=Force_Bending+Force_Area+Force_Volume+Force_Adhesion;
+
          EnergyChange=abs(EnergyTotal_new-EnergyTotal);
          EnergyTotal=EnergyTotal_new;
 
@@ -98,7 +104,7 @@ int main(){
           std::cout<<"\n Area Energy: "<< EnergyArea<<std::endl;
           std::cout<<"\n Volume Energy: "<< EnergyVolume<<std::endl;
           std::cout<<"\n Adhesion Energy: "<< EnergyAdhesion<<std::endl;
-          std::cout<<"\n Total Energy: "<< EnergyTotal<<std::endl;
+          std::cout<<"\n Total Energy: "<< EnergyTotal_new<<std::endl;
           std::cout<<"\n number of vertices: "<< numV<<std::endl;
           //std::fstream logfile;
           logfile.open("logfile.txt",std::ios::app);
@@ -111,7 +117,7 @@ int main(){
             logfile<<"\n Area Energy: "<< EnergyArea<<std::endl;
             logfile<<"\n Volume Energy: "<< EnergyVolume<<std::endl;
             logfile<<"\n Adhesion Energy: "<< EnergyAdhesion<<std::endl;
-            logfile<<"\n Total Energy: "<< EnergyTotal<<std::endl;
+            logfile<<"\n Total Energy: "<< EnergyTotal_new<<std::endl;
             logfile<<"\n number of vertices: "<< numV<<std::endl;
             logfile.close();
           }

@@ -27,17 +27,50 @@ int main(){
     igl::readOFF(filename, V, F);
     numF = F.rows();
     numV = V.rows();
-    double rp=parameter.particle_radious;
+//
+    float bending_modulus=parameter.Kb;
+    float rp=parameter.particle_radious;
+    float u=parameter.adhesion_strength;
+    float rho=(parameter.potential_range)*rp;
+    float U=(bending_modulus*u)/(pow(rp,2)) ;
+    float rc=5*rho;
+    float X=V.maxCoeff()+rp+rho*1,Y=0.0,Z=0.0;
 
-    Energy EN;
-    Eigen::MatrixXd ForceArea,ForceVolume,ForceBending,velocity,ForceTotal;
-    double EnergyVolume,EnergyArea,EnergyBending,EnergyTotal,EnergyTotal_new, EnergyChange;
-    Eigen::MatrixXd Force_Adhesion;
-    double adhesion_energy;
-    EN.compute_bendingenergy_force(V,F,ForceBending,EnergyBending);
-    EN.compute_areaenergy_force(V,F,ForceArea,EnergyArea);
-    EN.compute_adhesion_energy_force(V,F,Force_Adhesion,adhesion_energy);
-    //std::cout<< V(0,2)<<std::endl;
+    float reduced_volume=parameter.reduced_volume;
+    Energy E1;
+    Eigen::MatrixXd Force_Area,Force_Volume,Force_Bending,Force_Adhesion,velocity,ForceTotal; //forces
+
+    double EnergyVolume,EnergyArea,EnergyBending,EnergyTotal,EnergyAdhesion,EnergyTotal_new, EnergyChange;  //energies
+    //
+    E1.compute_bendingenergy_force(V,F,Force_Bending,EnergyBending);
+    E1.compute_areaenergy_force(V,F,Force_Area,EnergyArea);
+    E1.compute_volumeenergy_force(V,F,reduced_volume,Force_Volume,EnergyVolume);
+    E1.compute_adhesion_energy_force(V,F,X,Y,Z,rp,rho,u,U,rc,Force_Adhesion,EnergyAdhesion);
+
+    EnergyTotal=EnergyBending+EnergyArea+EnergyVolume+EnergyAdhesion;
+    std::cout<<"Adhesion_Froce::"<<Force_Adhesion.row(2008)<<std::endl;
+    std::cout<<"Total_Energy::"<<EnergyTotal<<std::endl;
+    std::cout<<"Adhesion_Energy::"<<EnergyAdhesion<<std::endl;
+    std::vector<std::vector<double> > VF;
+    std::vector<std::vector<double> > VFi;
+    igl::vertex_triangle_adjacency(V,F,VF, VFi);
+    for (int i = 0; i < 2; i++){
+    for (int j = 0; j < VF[i].size(); j++){
+        std::cout << "Adjacent Faces::"<<VF[i][j]<< " " ;}
+    std::cout <<std::endl;}
+    for (int i = 0; i < 2; i++){
+    for (int j = 0; j < VFi[i].size(); j++){
+        std::cout << VFi[i][j]<< " " ;}
+    std::cout <<std::endl;}
+    std::vector<std::vector<double> > A;
+    igl::adjacency_list(F,A);
+    for (int i = 0; i < 2; i++){
+    for (int j = 0; j < A[i].size(); j++){
+        std::cout << "Adjacent Vertices:"<<A[i][j]<< " " ;}
+    std::cout <<std::endl;}
+
+
+    //std::cout<<"Vertices::"<<VFi[0][1]<<std::endl;
 }
 void readParameter(){
     std::string line;

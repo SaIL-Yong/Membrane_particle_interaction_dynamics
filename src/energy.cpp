@@ -94,14 +94,6 @@ void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,f
       if (abs(dc(i))>rc || abs(coefficient_derivative_z(i))<tol){
         coefficient_derivative_z(i)  = 0;
       }
-      // coefficient(i)=U*(exp(-(2.0*dc(i))/rho) - 2.0*exp(-dc(i)/rho));
-      // coefficient_derivative_x(i)  = (U/(distance(i)*rho))
-      // *(-exp(-(2.0*dc(i))/rho) +  exp(-dc(i)/rho)) * 2.0 * (V(i,0)-X);
-      // coefficient_derivative_y(i)  = (U/(distance(i)*rho))
-      // *(-exp(-(2.0*dc(i))/rho) +  exp(-dc(i)/rho)) * 2.0 * (V(i,1)-Y);
-      // coefficient_derivative_z(i)  = (U/(distance(i)*rho))
-      // *(-exp(-(2.0*dc(i))/rho) +  exp(-dc(i)/rho)) * 2.0 * (V(i,2)-Z);
-      //coefficient_derivative_x(i)=
 }
     Eigen::MatrixXd coefficient_of_derivative(V.rows(),3);
     coefficient_of_derivative.col(0)=coefficient_derivative_x.transpose();
@@ -114,7 +106,7 @@ void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,f
     //std::cout<<"coefficient :"<<Force_Adhesion<<std::endl;
     Eigen::VectorXd Ead= coefficient.array()*area_voronoi.array();
     EnergyAdhesion=Ead.sum();
-    // std::cout<<"Adhesion_Energy::"<<adhesion_energy<<std::endl;
-    // float max_1=V.maxCoeff();
-    // std::cout<<"Max::"<<max_1<<std::endl;
+    // std::cout<<"Adhesion_Energy::"<<EnergyAdhesion<<std::endl;
+    // std::cout<<"Adhesion_Energy::"<<Force_Adhesion<<std::endl;
+
 }

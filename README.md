@@ -6,4 +6,4 @@ cmake ..
 make .
 
 ###Two existing branch : 1) For membrane dynamics/energy minimization only.
-###                      2) For membrane dynamics/energy minimization only.
+###                      2) For Particle Interaction.

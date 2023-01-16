@@ -36,8 +36,12 @@ int main(){
     float u=parameter.adhesion_strength;
     float rho=(parameter.potential_range)*rp;
     float U=(bending_modulus*u)/(pow(rp,2)) ;
-    float rc=5*rho;
+    float rc=20*rho;
     float X=V.maxCoeff()+rp+rho*1,Y=0.0,Z=0.0;
+    float chi=parameter.wrapping_fraction;
+    float Area_w_t=chi*4.0*PI*(pow(rp,2));
+    float Ew_t=-U*Area_w_t;
+    float K_bias=10;
 
 //parameters for particle adhesion
 
@@ -46,7 +50,7 @@ int main(){
     E1.compute_bendingenergy_force(V,F,Force_Bending,EnergyBending);
     E1.compute_areaenergy_force(V,F,Force_Area,EnergyArea);
     E1.compute_volumeenergy_force(V,F,reduced_volume,Force_Volume,EnergyVolume);
-    E1.compute_adhesion_energy_force(V,F,X,Y,Z,rp,rho,u,U,rc,Force_Adhesion,EnergyAdhesion);
+    E1.compute_adhesion_energy_force(V,F,X,Y,Z,rp,rho,u,U,rc,Ew_t,K_bias,Force_Adhesion,EnergyAdhesion);
     EnergyTotal=EnergyBending + EnergyArea + EnergyVolume + EnergyAdhesion;
 
     ForceTotal=Force_Bending+Force_Area+Force_Volume+Force_Adhesion;
@@ -85,7 +89,7 @@ int main(){
          E1.compute_bendingenergy_force(V_new,F,Force_Bending,EnergyBending);
          E1.compute_areaenergy_force(V_new,F,Force_Area,EnergyArea);
          E1.compute_volumeenergy_force(V_new,F,reduced_volume,Force_Volume,EnergyVolume);
-         E1.compute_adhesion_energy_force(V_new,F,X,Y,Z,rp,rho,u,U,rc,Force_Adhesion,EnergyAdhesion);
+         E1.compute_adhesion_energy_force(V_new,F,X,Y,Z,rp,rho,u,U,rc,Ew_t,K_bias,Force_Adhesion,EnergyAdhesion);
 
          EnergyTotal_new=EnergyBending+EnergyArea+EnergyVolume+EnergyAdhesion;
          ForceTotal=Force_Bending+Force_Area+Force_Volume+Force_Adhesion;
@@ -177,6 +181,9 @@ void readParameter(){
     getline(runfile, line);
     getline(runfile, line);
     runfile >> parameter.potential_range;
+    getline(runfile, line);
+    getline(runfile, line);
+    runfile >> parameter.wrapping_fraction;
     getline(runfile, line);
     getline(runfile, line);
     getline(runfile, parameter.meshFile);

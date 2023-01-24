@@ -80,7 +80,7 @@ void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,f
       *(-exp(-(2.0*dc(i))/rho) +  exp(-dc(i)/rho)) * 2.0 * (V(i,1)-Y);
       coefficient_derivative_z(i)  = (U/(distance(i)*rho))
       *(-exp(-(2.0*dc(i))/rho) +  exp(-dc(i)/rho)) * 2.0 * (V(i,2)-Z);
-      if (abs(coefficient(i))<tol){
+      if (abs(dc(i))>rc || abs(coefficient(i))<tol){
         coefficient(i)=0;
       }
       if (abs(dc(i))>rc || abs(coefficient_derivative_x(i))<tol){

@@ -28,20 +28,21 @@ int main(){
     double dt=parameter.dt,time=0.0; //time step
     double gamma=parameter.gamma;
     double tolerance=parameter.tolerance;
+    int tolerance_flag=parameter.tolerance_flag;
     float reduced_volume=parameter.reduced_volume;
-    double EnergyVolume,EnergyArea,EnergyBending,EnergyTotal,EnergyAdhesion,EnergyTotal_new, EnergyChange;  //energies
+    double EnergyVolume,EnergyArea,EnergyBending,EnergyTotal,EnergyAdhesion,EnergyTotal_new, EnergyChange,E_bias;  //energies
 //parameters for particle adhesion
     float bending_modulus=parameter.Kb;
     float rp=parameter.particle_radious;
     float u=parameter.adhesion_strength;
     float rho=(parameter.potential_range)*rp;
     float U=(bending_modulus*u)/(pow(rp,2)) ;
-    float rc=20*rho;
-    float X=V.maxCoeff()+rp+rho*1,Y=0.0,Z=0.0;
+    float rc=5*rho;
+    float X=V.maxCoeff()-rp-rho*1,Y=0.0,Z=0.0;
     float chi=parameter.wrapping_fraction;
     float Area_w_t=chi*4.0*PI*(pow(rp,2));
     float Ew_t=-U*Area_w_t;
-    float K_bias=10;
+    float K_bias=10.0;
 
 //parameters for particle adhesion
 
@@ -50,8 +51,8 @@ int main(){
     E1.compute_bendingenergy_force(V,F,Force_Bending,EnergyBending);
     E1.compute_areaenergy_force(V,F,Force_Area,EnergyArea);
     E1.compute_volumeenergy_force(V,F,reduced_volume,Force_Volume,EnergyVolume);
-    E1.compute_adhesion_energy_force(V,F,X,Y,Z,rp,rho,u,U,rc,Ew_t,K_bias,Force_Adhesion,EnergyAdhesion);
-    EnergyTotal=EnergyBending + EnergyArea + EnergyVolume + EnergyAdhesion;
+    E1.compute_adhesion_energy_force(V,F,X,Y,Z,rp,rho,u,U,rc,Ew_t,K_bias,Force_Adhesion,EnergyAdhesion,E_bias);
+    EnergyTotal=EnergyBending + EnergyArea + EnergyVolume + EnergyAdhesion+E_bias;
 
     ForceTotal=Force_Bending+Force_Area+Force_Volume+Force_Adhesion;
 
@@ -75,6 +76,8 @@ int main(){
       logfile<<"\n Area Energy: "<< EnergyArea<<std::endl;
       logfile<<"\n Volume Energy: "<< EnergyVolume<<std::endl;
       logfile<<"\n Adhesion Energy: "<< EnergyAdhesion<<std::endl;
+      logfile<<"\n Biased Energy: "<< E_bias<<std::endl;
+      logfile<<"\n Total Energy: "<< EnergyTotal_new<<std::endl;
       logfile<<"\n number of vertices: "<< numV<<std::endl;
       logfile.close();
     }
@@ -89,9 +92,9 @@ int main(){
          E1.compute_bendingenergy_force(V_new,F,Force_Bending,EnergyBending);
          E1.compute_areaenergy_force(V_new,F,Force_Area,EnergyArea);
          E1.compute_volumeenergy_force(V_new,F,reduced_volume,Force_Volume,EnergyVolume);
-         E1.compute_adhesion_energy_force(V_new,F,X,Y,Z,rp,rho,u,U,rc,Ew_t,K_bias,Force_Adhesion,EnergyAdhesion);
+         E1.compute_adhesion_energy_force(V_new,F,X,Y,Z,rp,rho,u,U,rc,Ew_t,K_bias,Force_Adhesion,EnergyAdhesion,E_bias);
 
-         EnergyTotal_new=EnergyBending+EnergyArea+EnergyVolume+EnergyAdhesion;
+         EnergyTotal_new=EnergyBending+EnergyArea+EnergyVolume+EnergyAdhesion+E_bias;
          ForceTotal=Force_Bending+Force_Area+Force_Volume+Force_Adhesion;
 
          EnergyChange=abs(EnergyTotal_new-EnergyTotal);
@@ -108,6 +111,7 @@ int main(){
           std::cout<<"\n Area Energy: "<< EnergyArea<<std::endl;
           std::cout<<"\n Volume Energy: "<< EnergyVolume<<std::endl;
           std::cout<<"\n Adhesion Energy: "<< EnergyAdhesion<<std::endl;
+          std::cout<<"\n Biased Energy: "<< E_bias<<std::endl;
           std::cout<<"\n Total Energy: "<< EnergyTotal_new<<std::endl;
           std::cout<<"\n number of vertices: "<< numV<<std::endl;
           //std::fstream logfile;
@@ -121,6 +125,7 @@ int main(){
             logfile<<"\n Area Energy: "<< EnergyArea<<std::endl;
             logfile<<"\n Volume Energy: "<< EnergyVolume<<std::endl;
             logfile<<"\n Adhesion Energy: "<< EnergyAdhesion<<std::endl;
+            logfile<<"\n Biased Energy: "<< E_bias<<std::endl;
             logfile<<"\n Total Energy: "<< EnergyTotal_new<<std::endl;
             logfile<<"\n number of vertices: "<< numV<<std::endl;
             logfile.close();
@@ -129,7 +134,7 @@ int main(){
         }
 
 
-        if (EnergyChange<tolerance){
+        if (EnergyChange<tolerance && tolerance_flag != 0){//1 means con
           std::cout<<"Change of Energy is very small \n Reached Equilibrioum Shape"<<std::endl;
           std::cout<<"\n EnergyChange:  "<<EnergyChange<<std::endl;
           std::cout<<"\n Bending Energy: "<< EnergyBending<<std::endl;
@@ -169,6 +174,9 @@ void readParameter(){
     getline(runfile, line);
     getline(runfile, line);
     runfile >> parameter.tolerance;
+    getline(runfile, line);
+    getline(runfile, line);
+    runfile >> parameter.tolerance_flag;
     getline(runfile, line);
     getline(runfile, line);
     runfile >> parameter.gamma;

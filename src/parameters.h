@@ -8,7 +8,7 @@
 
 void readParameter();
 struct Parameter {
-    int iterations;
+    int iterations,tolerance_flag;
     double  dt, Kb, Kv, Ka,gamma,tolerance,wrapping_fraction;
     float reduced_volume,particle_radious,adhesion_strength,potential_range;
     std::string meshFile,outFile,resFile;

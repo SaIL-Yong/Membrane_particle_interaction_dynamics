@@ -32,5 +32,5 @@ public:
       //void compute_localareaenergy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,Eigen::MatrixXd& Force_Local_Area,double& local_area_energy);
       //void dosomething();
       void compute_adhesion_energy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,float X,float Y,float Z,float rp,float rho,float u,float U, float rc,double Ew_t,float K_bias,
-      Eigen::MatrixXd& Force_Adhesion,double& EnergyAdhesion);
+      Eigen::MatrixXd& Force_Adhesion,double& EnergyAdhesion,double& E_bias);
 };

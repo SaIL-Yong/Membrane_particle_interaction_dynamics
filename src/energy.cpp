@@ -19,7 +19,7 @@ void Energy::compute_bendingenergy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,Eig
   K = (Minv*K).eval();
   HN= -Minv*(L*V)/2.0;
   H = HN.rowwise().norm(); //up to sign
-  Eigen::MatrixXd V_normals;
+  //Eigen::MatrixXd V_normals;
   igl::per_vertex_normals(V,F,V_normals);
   Eigen::MatrixXd H_X_N= (HN.array()*V_normals.array());
   Eigen::VectorXd abc=H_X_N.rowwise().sum();
@@ -38,8 +38,8 @@ void Energy::compute_bendingenergy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,Eig
 
 void Energy::compute_areaenergy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,Eigen::MatrixXd& Force_Area,double& area_energy){
   double area_modulus=parameter.Ka;
-  float radious=1.0;
-  double area_target=4.0*PI*radious*radious;
+  float radius=1.0;
+  double area_target=4.0*PI*radius*radius;
   Eigen::VectorXd dblA;                                   // store face edge information
   igl::doublearea(V,F,dblA);
   double area_current = dblA.sum()/2;
@@ -48,7 +48,6 @@ void Energy::compute_areaenergy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,Eigen:
   Mesh m;
   AG =m.area_grad(V,F);
   Force_Area=(scalar_term*AG);
-
 
 }
 void Energy::compute_volumeenergy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,float reduced_volume,Eigen::MatrixXd& Force_Volume,double& volume_energy){
@@ -70,6 +69,11 @@ void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,f
     coefficient_derivative_z(V.rows()),coefficient(V.rows()),distance(V.rows()),dc(V.rows());
     Eigen::VectorXd Mod_Bias= Eigen::VectorXd::Zero(V.rows());
     float tol=1e-10;
+    Eigen::RowVector3d particle_center(X,Y,Z);
+    //Vectors consisting cencter of the particle and vertices
+    Eigen::MatrixXd m= (-V).rowwise() + particle_center ; 
+    //double angle=acos((m.row(i)).dot(V_normals.row(i))/m.row(i).norm()*V_normals.row(i).norm());
+    //std::cout<<"Angle: " << angle*(180.0/PI) <<std::endl;
     for (int i=0; i<V.rows(); i++){
       distance(i)=sqrt((V(i,0)-X)*(V(i,0)-X)+(V(i,1)-Y)*(V(i,1)-Y)+(V(i,2)-Z)*(V(i,2)-Z));
       dc(i)=distance(i)-rp;
@@ -80,16 +84,19 @@ void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,f
       *(-exp(-(2.0*dc(i))/rho) +  exp(-dc(i)/rho)) * 2.0 * (V(i,1)-Y);
       coefficient_derivative_z(i)  = (U/(distance(i)*rho))
       *(-exp(-(2.0*dc(i))/rho) +  exp(-dc(i)/rho)) * 2.0 * (V(i,2)-Z);
-      if (abs(dc(i))>rc || abs(coefficient(i))<tol){
+      //angle between connenting vector and face normal
+      double angle=acos((m.row(i)).dot(V_normals.row(i))/m.row(i).norm()*V_normals.row(i).norm());
+      //angle condition set to turn of the force conditions
+      if (abs(dc(i))>rc || abs(coefficient(i))<tol || angle*(180.0/PI) <= 90.0 ){
         coefficient(i)=0;
       }
-      if (abs(dc(i))>rc || abs(coefficient_derivative_x(i))<tol){
+      if (abs(dc(i))>rc || abs(coefficient_derivative_x(i))<tol || angle*(180.0/PI) <= 90.0){
         coefficient_derivative_x(i)  = 0;
       }
-      if (abs(dc(i))>rc || abs(coefficient_derivative_y(i))<tol){
+      if (abs(dc(i))>rc || abs(coefficient_derivative_y(i))<tol || angle*(180.0/PI) <= 90.0){
         coefficient_derivative_y(i)  = 0;
       }
-      if (abs(dc(i))>rc || abs(coefficient_derivative_z(i))<tol){
+      if (abs(dc(i))>rc || abs(coefficient_derivative_z(i))<tol || angle*(180.0/PI) <= 90.0){
         coefficient_derivative_z(i)  = 0;
       }
       if (dc(i)>0.0){
@@ -109,11 +116,11 @@ void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,f
     E_bias = 0.5*K_bias*pow((EnergyAdhesion - Ew_t),2);
     Eigen::MatrixXd Force_Biased=K_bias*(EnergyAdhesion-Ew_t)*(Sum.array().colwise()*Mod_Bias.array());
     Force_Adhesion= First_Term +Second_Term+Force_Biased;
-    //std::cout<<"coefficient :"<<Force_Adhesion<<std::endl;
-    // std::cout<<"Force_Adhesion::"<<Force_Biased<<std::endl;
-    // std::cout<<"Adhesion_Energy::"<<EnergyAdhesion<<std::endl;
-    //std::cout<<"Adhesion_Energy::"<<Force_Adhesion<<std::endl;
-    // std::cout<<"Mod_Bias::"<<Sum<<std::endl;
+
+    // Eigen::RowVector3d v(X,Y,Z);
+    // Eigen::MatrixXd m= V.rowwise() - v;
+    // double angle=acos((m.row(0)).dot(V_normals.row(0))/m.row(0).norm()*V_normals.row(0).norm());
+    // std::cout<<"coefficient :" << angle*(180.0/PI) <<std::endl;
 }
 
 

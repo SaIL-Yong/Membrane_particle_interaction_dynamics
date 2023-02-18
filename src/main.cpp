@@ -42,7 +42,7 @@ int main(){
     float chi=parameter.wrapping_fraction;
     float Area_w_t=chi*4.0*PI*(pow(rp,2));
     float Ew_t=-U*Area_w_t;
-    float K_bias=10.0;
+    float K_bias=0.0;
 
 //parameters for particle adhesion
 
@@ -142,6 +142,39 @@ int main(){
           std::cout<<"\n Volume Energy: "<< EnergyVolume<<std::endl;
           std::cout<<"\n Total Energy: "<< EnergyTotal<<std::endl;
           igl::writeOFF(outfilename,V_new,F);
+          //
+
+          //Sttoring Force Components to text file after equilibrium
+          std::ofstream file1("Adhesion_Force.txt");
+    // Check if the file was successfully opened
+          if (file1.is_open()){
+          file1 << Force_Adhesion << std::endl;
+          file1.close();
+           std::cout << "Matrix successfully saved to file." << std::endl;
+          }
+          else {
+          std::cout << "Error opening file." << std::endl;
+          }
+          std::ofstream file2("Bending_Force.txt");
+          if (file2.is_open()) {
+          file2 << Force_Bending << std::endl;
+          file2.close();
+           std::cout << "Matrix successfully saved to file." << std::endl;
+          }
+          else {
+          std::cout << "Error opening file." << std::endl;
+          }
+          std::ofstream file3("Area_Force.txt");
+    // Check if the file was successfully opened
+          if (file3.is_open()) {
+          file3<< Force_Area << std::endl;
+          file3.close();
+           std::cout << "Matrix successfully saved to file." << std::endl;
+          }
+          else {
+          std::cout << "Error opening file." << std::endl;
+          }
+
           break;
         }
     }

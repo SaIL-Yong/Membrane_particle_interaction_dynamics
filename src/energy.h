@@ -9,6 +9,7 @@
 #include <igl/massmatrix.h>
 #include <igl/invert_diag.h>
 #include <igl/gaussian_curvature.h>
+#include <Eigen/Dense>
 #ifndef PI
 #define PI 3.14159265358979323846
 #endif
@@ -25,6 +26,7 @@ public:
       float bending_modulus;
       Eigen::MatrixXd AG;
       Eigen::VectorXd area_voronoi;
+      Eigen::MatrixXd V_normals;
       void compute_bendingenergy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,Eigen::MatrixXd& Force_Bending,double& total_EB);
       void compute_areaenergy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,Eigen::MatrixXd& Force_Area,double& area_energy);
       void compute_volumeenergy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,float reduced_volume,Eigen::MatrixXd& Force_Volume,double& volume_energy);

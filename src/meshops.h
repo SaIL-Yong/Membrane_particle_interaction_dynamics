@@ -28,13 +28,11 @@
 
 
 class Mesh {
-           public:
-
-           double cal_volume(Eigen::MatrixXd V,Eigen::MatrixXi F);
-           //double AreaEnergy(Eigen::MatrixXd V,Eigen::MatrixXi F);
-           //Eigen::Eigen::MatrixXd V
-           Eigen::MatrixXd area_grad(Eigen::MatrixXd V,Eigen::MatrixXi F);
-           Eigen::MatrixXd volume_grad(Eigen::MatrixXd V,Eigen::MatrixXi F);
-           Eigen::MatrixXd vertex_smoothing(Eigen::MatrixXd V,Eigen::MatrixXi F);
-
+ public:
+  double cal_volume(Eigen::MatrixXd V, Eigen::MatrixXi F);
+  //double AreaEnergy(Eigen::MatrixXd V,Eigen::MatrixXi F);
+  //Eigen::Eigen::MatrixXd V
+  Eigen::MatrixXd area_grad(Eigen::MatrixXd V, Eigen::MatrixXi F);
+  Eigen::MatrixXd volume_grad(Eigen::MatrixXd V, Eigen::MatrixXi F);
+  Eigen::MatrixXd vertex_smoothing(Eigen::MatrixXd V, Eigen::MatrixXi F);
 };

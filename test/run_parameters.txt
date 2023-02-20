@@ -1,7 +1,7 @@
 iterations
-1000000
+2000
 dt
-0.01
+0.04
 Kb
 0.01
 Ka
@@ -11,26 +11,34 @@ Kv
 reduced_volume
 0.92
 tolerance
-1.0e-8
-tolerance_flag
+1.0e-4
+tolerance_flag // 1 ON 0 OFF
 1
 gamma
 1.0
+particle_position // -1 inside 1 outside
+-1
 particle_radius
 0.31
 adhesion_strength
 5.0
 potential_range
-0.1 
+0.1
+forced_wrapping // 1 ON 0 OFF
+0 
 wrapping_fraction
 0.5
+forced_wrapping_constant
+10
 meshfile
-./equilibrated.off
+./start.off
 outfile
-./equilibrioum.off
+./equilibrium.off
 resfile
 ./restart.off
 logfrequency
-100
+10
 dumpfrequency
-1000
+100
+resfrequency
+100000

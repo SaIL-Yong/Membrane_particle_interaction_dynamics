@@ -28,6 +28,8 @@ int main() {
   double tolerance = parameter.tolerance;
   double force_residual;
   int tolerance_flag = parameter.tolerance_flag;
+  double tolfrequency = parameter.tolfrequency;
+  int tolsteps = floor(tolfrequency / dt);
   std::cout<<"Mesh info:"<<std::endl;
   std::cout<<"Number of vertices: "<<numV<<" Number of faces: "<<numF<<"\n"<<std::endl;
   std::cout<<"Max number of iterations: "<<iterations<<std::endl;
@@ -35,7 +37,10 @@ int main() {
   std::cout<<"Mesh dump frequency: "<<dumpfrequency<<std::endl;
   std::cout<<"Restart save frequency: "<<resfrequency<<std::endl;
   std::cout<<"Time step: "<<dt<<std::endl;
-  if (tolerance_flag) std::cout<<"Convergence: ON, Tolerance: "<<tolerance<<"\n"<<std::endl;
+  if (tolerance_flag) {
+    std::cout<<"Convergence: ON, Tolerance: "<<tolerance<<std::endl;
+    std::cout<<"Tolerance check frequency: "<<tolfrequency<<" time units\n"<<std::endl;
+  }
   else std::cout<<"Convergence: OFF\n"<<std::endl;
   
   // paraemters for membrane properties
@@ -110,7 +115,8 @@ int main() {
 
   Eigen::MatrixXd Force_Area(numV, 3), Force_Volume(numV, 3), Force_Bending(numV, 3), Force_Adhesion(numV, 3), velocity(numV, 3), Force_Total(numV, 3); //force components
   velocity.setZero();
-  double EnergyVolume = 0.0, EnergyArea = 0.0, EnergyBending = 0.0, EnergyTotal = 0.0, EnergyTotal_old = 0.0, EnergyAdhesion = 0.0, EnergyChangeRate = 0.0, EnergyBias = 0.0;  //energy components
+  double EnergyVolume = 0.0, EnergyArea = 0.0, EnergyBending = 0.0, EnergyAdhesion = 0.0,  EnergyBias = 0.0,
+         EnergyTotal = 0.0, EnergyTotalold_log = 0.0, EnergyTotalold_tol, EnergyChangeRate_log = 0.0, EnergyChangeRate_tol = 1.0;  //energy components
   Eigen::MatrixXd l;
   std::cout<<"Simulation Start:\n"<<std::endl;
   auto start = system_clock::now();
@@ -169,20 +175,14 @@ int main() {
     time += dt;
 
     if ((i+1) % logfrequency == 0) {
-      EnergyChangeRate = (EnergyTotal - EnergyTotal_old) / (logfrequency * dt);
-      EnergyTotal_old = EnergyTotal;
+      EnergyChangeRate_log = (EnergyTotal - EnergyTotalold_log) / (logfrequency * dt);
+      EnergyTotalold_log = EnergyTotal;
 
-      if (std::abs(EnergyChangeRate) < tolerance && tolerance_flag) {
-        std::cout<<"Energy change rate reaches the threshold."<<std::endl;
-        std::cout<<"Simulation reaches equilibrium state."<<std::endl;
-        break;
-      }
-      
       // screen output
       if (particle_flag)
-        std::cout<<i+1<<"  "<<rVol<<"  "<<EnergyBending<<"  "<<EnergyAdhesion<<"  "<<EnergyTotal<<"  "<<EnergyChangeRate<<"  "<<force_residual<<"  "<<std::endl;
+        std::cout<<i+1<<"  "<<rVol<<"  "<<EnergyBending<<"  "<<EnergyAdhesion<<"  "<<EnergyTotal<<"  "<<EnergyChangeRate_log<<"  "<<force_residual<<"  "<<std::endl;
       else
-        std::cout<<i+1<<"  "<<rVol<<"  "<<EnergyBending<<"  "<<EnergyTotal<<"  "<<EnergyChangeRate<<"  "<<force_residual<<"  "<<std::endl;
+        std::cout<<i+1<<"  "<<rVol<<"  "<<EnergyBending<<"  "<<EnergyTotal<<"  "<<EnergyChangeRate_log<<"  "<<force_residual<<"  "<<std::endl;
       // logfile output
       logfile<<i+1<<"  ";
       logfile<<time<<"  ";
@@ -197,8 +197,19 @@ int main() {
         if (parameter.forced_wrapping_flag) logfile<<EnergyBias<<"  ";
       }
       logfile<<EnergyTotal<<"  ";
-      logfile<<EnergyChangeRate<<"  ";
+      logfile<<EnergyChangeRate_log<<"  ";
       logfile<<force_residual<<std::endl;
+    }
+
+    if ((i+1) % tolsteps == 0) {
+      EnergyChangeRate_tol = (EnergyTotal - EnergyTotalold_tol) / tolfrequency;
+      EnergyTotalold_tol = EnergyTotal;
+
+      if (std::abs(EnergyChangeRate_tol) < tolerance && tolerance_flag) {
+        std::cout<<"Energy change rate reaches the threshold."<<std::endl;
+        std::cout<<"Simulation reaches equilibrium state."<<std::endl;
+        break;
+      }
     }
 
     if ((i+1) % dumpfrequency == 0) {
@@ -295,6 +306,9 @@ void readParameter()
   getline(runfile, line);
   getline(runfile, line);
   runfile >> parameter.tolerance_flag;
+  getline(runfile, line);
+  getline(runfile, line);
+  runfile >> parameter.tolfrequency;  // in units of sim. time (iteration * timestep)
   getline(runfile, line);
   getline(runfile, line);
   runfile >> parameter.gamma;

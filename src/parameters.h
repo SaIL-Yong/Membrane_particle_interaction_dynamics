@@ -10,7 +10,7 @@ void readParameter();
 struct Parameter {
     int iterations, tolerance_flag, forced_wrapping_flag;
     int logfrequency, dumpfrequency, resfrequency;
-    int particle_position;
+    int particle_flag, particle_position;
     double dt, Kb, Kv, Ka, gamma, tolerance, wrapping_fraction, wrapping_bias_strength;
     double reduced_volume, particle_radius, adhesion_strength, potential_range;
     std::string meshFile, outFile, resFile;

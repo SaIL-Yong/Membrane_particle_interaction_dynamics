@@ -76,7 +76,8 @@ void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V, Eigen::MatrixXi F,
     // angle between connecting vector and vertex normal
     angle = acos((comvec.row(i)).dot(m.V_normals.row(i)) / (comvec.row(i).norm() * m.V_normals.row(i).norm()));
     
-    if (std::abs(dc(i)) > rc || angle >= 0.5*PI) continue;
+    if (std::abs(dc(i)) > rc) continue;
+    if (angle_flag && angle >= 0.5*PI) continue;
 
     coefficient(i) = U * (exp(-(2.0*dc(i))/rho) - 2.0*exp(-dc(i)/rho));
     coefficient_derivative_x(i) = (U/(distance(i)*rho))

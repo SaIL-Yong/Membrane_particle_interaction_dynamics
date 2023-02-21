@@ -3,7 +3,7 @@ clear all
 close all
 
 
-fid=fopen('dump01000000.off');
+fid=fopen('dump00100000.off');
 
 while feof(fid)==0
     temp=fgetl(fid);

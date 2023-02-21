@@ -60,36 +60,41 @@ int main() {
   }
 
   // parameters for particle adhesion
-  double Rp = parameter.particle_radius;
-  double u = parameter.adhesion_strength;
-  double U = (Kb * u) / (Rp * Rp);
-  double rho =  parameter.potential_range * Rp;
-  double rc = 5.0*rho;
-  int angle_flag = parameter.angle_condition_flag;
-  if (parameter.particle_position > 0) std::cout<<"Particle position: outside"<<std::endl;
-  else std::cout<<"Particle position: inside"<<std::endl;
-  std::cout<<"Particle radius: "<<Rp<<std::endl;
-  std::cout<<"Particle adhesion strength: "<<U<<std::endl;
-  std::cout<<"Particle adhesion range: "<<rho<<std::endl;   
-  std::cout<<"Particle adhesion cutoff: "<<rc<<std::endl;
-  if (angle_flag) std::cout<<"Angle criterion: ON\n"<<std::endl;
-  else std::cout<<"Angle criterion: OFF\n"<<std::endl;
+  int particle_flag = parameter.particle_flag;
+  double Rp, u, U, rho, rc, X0, Y0, Z0, Ew_t, Kw;
+  int angle_flag;
+  if (particle_flag) {
+    Rp = parameter.particle_radius;
+    u = parameter.adhesion_strength;
+    U = (Kb * u) / (Rp * Rp);
+    rho =  parameter.potential_range * Rp;
+    rc = 5.0*rho;
+    angle_flag = parameter.angle_condition_flag;
+    if (parameter.particle_position > 0) std::cout<<"Particle position: outside"<<std::endl;
+    else std::cout<<"Particle position: inside"<<std::endl;
+    // position of the particle
+    X0 = 0.0, Y0 = 0.0, Z0 = V.col(2).maxCoeff() + parameter.particle_position * (Rp + 1.0*rho);
+    std::cout<<"Particle position: "<<X0<<", "<<Y0<<", "<<Z0<<std::endl;
+    std::cout<<"Particle radius: "<<Rp<<std::endl;
+    std::cout<<"Particle adhesion strength: "<<U<<std::endl;
+    std::cout<<"Particle adhesion range: "<<rho<<std::endl;   
+    std::cout<<"Particle adhesion cutoff: "<<rc<<std::endl;
+    if (angle_flag) std::cout<<"Angle criterion: ON\n"<<std::endl;
+    else std::cout<<"Angle criterion: OFF\n"<<std::endl;
 
-  // position of the particle
-  double X0 = 0.0, Y0 = 0.0, Z0 = V.col(2).maxCoeff() + parameter.particle_position*Rp - 1.0*rho;
-
-  // parameters for forced wrapping
-  double Ew_t = 0.0;
-  double Kw = 0.0;
-  if (parameter.forced_wrapping_flag) {
-      double chi = parameter.wrapping_fraction;
-      Kw = parameter.wrapping_bias_strength;
-      double Area_w_t = chi*4.0*PI*Rp*Rp;
-      Ew_t = -U*Area_w_t;
-      std::cout<<"Forced wrapping fraction: "<<chi<<std::endl;
-      std::cout<<"Forced wrapping strength constant: "<<Kw<<"\n"<<std::endl;
+    // parameters for forced wrapping
+    Ew_t = 0.0;
+    Kw = 0.0;
+    if (parameter.forced_wrapping_flag) {
+        double chi = parameter.wrapping_fraction;
+        Kw = parameter.wrapping_bias_strength;
+        double Area_w_t = chi*4.0*PI*Rp*Rp;
+        Ew_t = -U*Area_w_t;
+        std::cout<<"Forced wrapping fraction: "<<chi<<std::endl;
+        std::cout<<"Forced wrapping strength constant: "<<Kw<<"\n"<<std::endl;
+    }
   }
-  
+
   // mesh regularization flag
   int v_smooth_flag = parameter.vertex_smoothing_flag;
   int delaunay_tri_flag = parameter.delaunay_triangulation_flag;
@@ -105,9 +110,8 @@ int main() {
 
   Eigen::MatrixXd Force_Area(numV, 3), Force_Volume(numV, 3), Force_Bending(numV, 3), Force_Adhesion(numV, 3), velocity(numV, 3), Force_Total(numV, 3); //force components
   velocity.setZero();
-  double EnergyVolume, EnergyArea, EnergyBending, EnergyTotal, EnergyTotal_old, EnergyAdhesion, EnergyChange, EnergyBias;  //energy components
+  double EnergyVolume = 0.0, EnergyArea = 0.0, EnergyBending = 0.0, EnergyTotal = 0.0, EnergyTotal_old = 0.0, EnergyAdhesion = 0.0, EnergyChangeRate = 0.0, EnergyBias = 0.0;  //energy components
   Eigen::MatrixXd l;
-  EnergyTotal = 0.0, EnergyTotal_old = 0.0;
   std::cout<<"Simulation Start:\n"<<std::endl;
   auto start = system_clock::now();
 
@@ -117,16 +121,21 @@ int main() {
   if(logfile.is_open())
   {
     logfile<<"This is logfile for simulation"<<std::endl;
-    if (parameter.forced_wrapping_flag)
-      logfile<<"Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  AdhesionEnergy  BiasedWrappingEnergy  TotalEnergy  ForceResidual"<<std::endl;
-    else
-      logfile<<"Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  AdhesionEnergy  TotalEnergy  ForceResidual"<<std::endl;
+    if (particle_flag) {
+      if (parameter.forced_wrapping_flag)
+       logfile<<"Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  AdhesionEnergy  BiasedWrappingEnergy  TotalEnergy  EnergyChangeRate  ForceResidual"<<std::endl;
+      else
+       logfile<<"Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  AdhesionEnergy  TotalEnergy  EnergyChangeRate  ForceResidual"<<std::endl;
+    } else {logfile<<"Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  TotalEnergy  EnergyChangeRate  ForceResidual"<<std::endl;
+
+    }
   } else {
     std::cout<<"ERROR: cannot access logfile."<<std::endl;
   }
 
   // initiate screen output
-  std::cout<<"Iteration  ReducedVolume  BendingEnergy  AdhesionEnergy  TotalEnergy  EnergyChange  ForceResidual"<<std::endl;
+  if (particle_flag) std::cout<<"Iteration  ReducedVolume  BendingEnergy  AdhesionEnergy  TotalEnergy  EnergyChangeRate  ForceResidual"<<std::endl;
+  else std::cout<<"Iteration  ReducedVolume  BendingEnergy  TotalEnergy  EnergyChangeRate  ForceResidual"<<std::endl;
 
   // main loop
   int i;
@@ -136,7 +145,7 @@ int main() {
     E1.compute_bendingenergy_force(V, F, Kb, Force_Bending, EnergyBending, M1);
     E1.compute_areaenergy_force(V, F, Ka, area_target, Force_Area, EnergyArea, M1);
     E1.compute_volumeenergy_force(V, F, Kv, volume_target, Force_Volume, EnergyVolume, M1);
-    E1.compute_adhesion_energy_force(V, F, X0, Y0, Z0, Rp, rho, U, rc, angle_flag, Ew_t, Kw, Force_Adhesion, EnergyAdhesion, EnergyBias, M1);
+    if (particle_flag) E1.compute_adhesion_energy_force(V, F, X0, Y0, Z0, Rp, rho, U, rc, angle_flag, Ew_t, Kw, Force_Adhesion, EnergyAdhesion, EnergyBias, M1);
 
     EnergyTotal = EnergyBending + EnergyArea + EnergyVolume + EnergyAdhesion + EnergyBias;
     Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion;
@@ -155,16 +164,25 @@ int main() {
       }
     }
 
-    EnergyChange = EnergyTotal - EnergyTotal_old;
-    EnergyTotal_old = EnergyTotal;
     rVol = 6 * sqrt(PI) * M1.volume_total * pow(M1.area_total, -1.5);
 
     time += dt;
 
     if ((i+1) % logfrequency == 0) {
-      // screen output
-      std::cout<<i+1<<"  "<<rVol<<"  "<<EnergyBending<<"  "<<EnergyAdhesion<<"  "<<EnergyTotal<<"  "<<EnergyChange<<"  "<<force_residual<<"  "<<std::endl;
+      EnergyChangeRate = (EnergyTotal - EnergyTotal_old) / (logfrequency * dt);
+      EnergyTotal_old = EnergyTotal;
 
+      if (std::abs(EnergyChangeRate) < tolerance && tolerance_flag) {
+        std::cout<<"Energy change rate reaches the threshold."<<std::endl;
+        std::cout<<"Simulation reaches equilibrium state."<<std::endl;
+        break;
+      }
+      
+      // screen output
+      if (particle_flag)
+        std::cout<<i+1<<"  "<<rVol<<"  "<<EnergyBending<<"  "<<EnergyAdhesion<<"  "<<EnergyTotal<<"  "<<EnergyChangeRate<<"  "<<force_residual<<"  "<<std::endl;
+      else
+        std::cout<<i+1<<"  "<<rVol<<"  "<<EnergyBending<<"  "<<EnergyTotal<<"  "<<EnergyChangeRate<<"  "<<force_residual<<"  "<<std::endl;
       // logfile output
       logfile<<i+1<<"  ";
       logfile<<time<<"  ";
@@ -174,9 +192,12 @@ int main() {
       logfile<<EnergyBending<<"  ";
       logfile<<EnergyArea<<"  ";   
       logfile<<EnergyVolume<<"  ";
-      logfile<<EnergyAdhesion<<"  "; 
-      if (parameter.forced_wrapping_flag) logfile<<EnergyBias<<"  ";
+      if (particle_flag) {
+        logfile<<EnergyAdhesion<<"  "; 
+        if (parameter.forced_wrapping_flag) logfile<<EnergyBias<<"  ";
+      }
       logfile<<EnergyTotal<<"  ";
+      logfile<<EnergyChangeRate<<"  ";
       logfile<<force_residual<<std::endl;
     }
 
@@ -186,14 +207,10 @@ int main() {
 	    igl::writeOFF(dumpfilename, V, F);
 	  }
 
-    if ((i+1) % resfrequency == 0) igl::writeOFF(parameter.resFile, V, F);
-
-    if (force_residual < tolerance && tolerance_flag) {
-      std::cout<<"Force residual reaches the threshold."<<std::endl;
-      std::cout<<"Simulation reaches equilibrium state."<<std::endl;
-      break;
-    }
+    if ((i+1) % resfrequency == 0) igl::writeOFF(parameter.resFile, V, F);  
   }
+
+  if ((i+1) == iterations) std::cout<<"Simulation reaches max iterations."<<std::endl;
 
   auto end = system_clock::now();
   auto duration = duration_cast<minutes>(end - start);
@@ -207,8 +224,10 @@ int main() {
   logfile<<EnergyBending<<"  ";
   logfile<<EnergyArea<<"  ";   
   logfile<<EnergyVolume<<"  ";
-  logfile<<EnergyAdhesion<<"  "; 
-  if (parameter.forced_wrapping_flag) logfile<<EnergyBias<<"  ";
+  if (particle_flag) {
+    logfile<<EnergyAdhesion<<"  ";
+    if (parameter.forced_wrapping_flag) logfile<<EnergyBias<<"  ";
+  }
   logfile<<EnergyTotal<<"  ";
   logfile<<force_residual<<std::endl;
   logfile<<"Total run time: "<<duration.count()<<" mins"<<std::endl;
@@ -281,29 +300,34 @@ void readParameter()
   runfile >> parameter.gamma;
   getline(runfile, line);
   getline(runfile, line);
-  runfile >> parameter.particle_position;
+  runfile >> parameter.particle_flag;
   getline(runfile, line);
-  getline(runfile, line);
-  runfile >> parameter.particle_radius;
-  getline(runfile, line);
-  getline(runfile, line);
-  runfile >> parameter.adhesion_strength;
-  getline(runfile, line);
-  getline(runfile, line);
-  runfile >> parameter.potential_range;
-  getline(runfile, line);
-  getline(runfile, line);
-  runfile >> parameter.angle_condition_flag;
-  getline(runfile, line);
-  getline(runfile, line);
-  runfile >> parameter.forced_wrapping_flag;
-  getline(runfile, line);
-  getline(runfile, line);
-  runfile >> parameter.wrapping_fraction;
-  getline(runfile, line);
-  getline(runfile, line);
-  runfile >> parameter.wrapping_bias_strength;
-  getline(runfile, line);
+  if (parameter.particle_flag) {
+    getline(runfile, line);
+    runfile >> parameter.particle_position;
+    getline(runfile, line);
+    getline(runfile, line);
+    runfile >> parameter.particle_radius;
+    getline(runfile, line);
+    getline(runfile, line);
+    runfile >> parameter.adhesion_strength;
+    getline(runfile, line);
+    getline(runfile, line);
+    runfile >> parameter.potential_range;
+    getline(runfile, line);
+    getline(runfile, line);
+    runfile >> parameter.angle_condition_flag;
+    getline(runfile, line);
+    getline(runfile, line);
+    runfile >> parameter.forced_wrapping_flag;
+    getline(runfile, line);
+    getline(runfile, line);
+    runfile >> parameter.wrapping_fraction;
+    getline(runfile, line);
+    getline(runfile, line);
+    runfile >> parameter.wrapping_bias_strength;
+    getline(runfile, line);
+  }
   getline(runfile, line);
   getline(runfile, parameter.meshFile);
   getline(runfile, line);

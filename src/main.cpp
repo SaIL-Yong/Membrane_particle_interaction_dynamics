@@ -123,7 +123,7 @@ int main() {
   }
 
   // initiate screen output
-  std::cout<<"Iteration  ReducedVolume  BendingEnergy TotalEnergy  EnergyChange  ForceResidual"<<std::endl;
+  std::cout<<"Iteration  ReducedVolume  BendingEnergy  AdhesionEnergy  TotalEnergy  EnergyChange  ForceResidual"<<std::endl;
 
   // main loop
   for (int i = 0; i < iterations; i++)
@@ -159,7 +159,7 @@ int main() {
 
     if ((i+1) % logfrequency == 0) {
       // screen output
-      std::cout<<i+1<<"  "<<rVol<<"  "<<EnergyBending<<"  "<<EnergyTotal<<"  "<<EnergyChange<<"  "<<force_residual<<"  "<<std::endl;
+      std::cout<<i+1<<"  "<<rVol<<"  "<<EnergyBending<<"  "<<EnergyTotal<<"  "<<EnergyAdhesion<<"  "<<EnergyChange<<"  "<<force_residual<<"  "<<std::endl;
 
       // logfile output
       logfile<<i+1<<"  ";

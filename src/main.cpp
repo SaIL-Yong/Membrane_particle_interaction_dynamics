@@ -51,7 +51,7 @@ int main() {
   std::cout<<"Membrane drag coefficient: "<<gamma<<std::endl;
   std::cout<<"Membrane bending modulus: "<<Kb<<std::endl;
   std::cout<<"Membrane stretching modulus: "<<Ka<<std::endl;
-  if (fabs(parameter.Kv) > EPS) {
+  if (std::abs(parameter.Kv) > EPS) {
     double rVol_t = parameter.reduced_volume;
     Kv = parameter.Kv;
     volume_target = rVol_t*(4.0/3.0)*PI*pow(Rv,3);
@@ -87,6 +87,16 @@ int main() {
       std::cout<<"Forced wrapping strength constant: "<<Kw<<"\n"<<std::endl;
   }
   
+  // mesh regularization flag
+  int v_smooth_flag = parameter.vertex_smoothing_flag;
+  int delaunay_tri_flag = parameter.delaunay_triangulation_flag;
+  if (v_smooth_flag) std::cout<<"Vertex smoothing: ON"<<std::endl;
+  else std::cout<<"Vertex smoothing: OFF"<<std::endl;
+  if (delaunay_tri_flag) std::cout<<"Delaunay triangulation: ON"<<std::endl;
+  else std::cout<<"Delaunay triangulation: OFF"<<std::endl;
+  int mesh_reg_frequency = parameter.mesh_reg_frequency;
+  if (v_smooth_flag || delaunay_tri_flag) std::cout<<"Mesh regularization frequency: "<<mesh_reg_frequency<<"\n"<<std::endl;
+
   Mesh M1;
   Energy E1;
 
@@ -118,10 +128,11 @@ int main() {
   // main loop
   for (int i = 0; i < iterations; i++)
   {
-    E1.compute_bendingenergy_force(V, F, Kb, Force_Bending, EnergyBending);
-    E1.compute_areaenergy_force(V, F, Ka, area_target, Force_Area, EnergyArea);
-    E1.compute_volumeenergy_force(V, F, Kv, volume_target, Force_Volume, EnergyVolume);
-    E1.compute_adhesion_energy_force(V, F, X0, Y0, Z0, Rp, rho, U, rc, Ew_t, Kw, Force_Adhesion, EnergyAdhesion, EnergyBias);
+    M1.mesh_cal(V, F);
+    E1.compute_bendingenergy_force(V, F, Kb, Force_Bending, EnergyBending, M1);
+    E1.compute_areaenergy_force(V, F, Ka, area_target, Force_Area, EnergyArea, M1);
+    E1.compute_volumeenergy_force(V, F, Kv, volume_target, Force_Volume, EnergyVolume, M1);
+    E1.compute_adhesion_energy_force(V, F, X0, Y0, Z0, Rp, rho, U, rc, Ew_t, Kw, Force_Adhesion, EnergyAdhesion, EnergyBias, M1);
 
     EnergyTotal = EnergyBending + EnergyArea + EnergyVolume + EnergyAdhesion + EnergyBias;
     Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion;
@@ -130,13 +141,19 @@ int main() {
     velocity = Force_Total / gamma;
     V += velocity * dt;
 
-    V = M1.vertex_smoothing(V, F);
-    igl::edge_lengths(V, F, l);
-    igl::intrinsic_delaunay_triangulation(l, F, l, F);
+    if (v_smooth_flag || delaunay_tri_flag) {
+      if ((i+1) % mesh_reg_frequency == 0) {
+        if (v_smooth_flag) V = M1.vertex_smoothing(V, F);
+        if (delaunay_tri_flag) {
+          igl::edge_lengths(V, F, l);
+          igl::intrinsic_delaunay_triangulation(l, F, l, F);
+        }
+      }
+    }
 
     EnergyChange = EnergyTotal - EnergyTotal_old;
     EnergyTotal_old = EnergyTotal;
-    rVol = 6 * sqrt(PI) * E1.volume_current * pow(E1.area_current, -1.5);
+    rVol = 6 * sqrt(PI) * M1.volume_total * pow(M1.area_total, -1.5);
 
     time += dt;
 
@@ -147,8 +164,8 @@ int main() {
       // logfile output
       logfile<<i+1<<"  ";
       logfile<<time<<"  ";
-      logfile<<E1.area_current<<"  ";
-      logfile<<E1.volume_current<<"  ";
+      logfile<<M1.area_total<<"  ";
+      logfile<<M1.volume_total<<"  ";
       logfile<<rVol<<"  ";
       logfile<<EnergyBending<<"  ";
       logfile<<EnergyArea<<"  ";   
@@ -177,8 +194,8 @@ int main() {
       // logfile output
       logfile<<i+1<<"  ";
       logfile<<time<<"  ";
-      logfile<<E1.area_current<<"  ";
-      logfile<<E1.volume_current<<"  ";
+      logfile<<M1.area_total<<"  ";
+      logfile<<M1.volume_total<<"  ";
       logfile<<rVol<<"  ";
       logfile<<EnergyBending<<"  ";
       logfile<<EnergyArea<<"  ";   
@@ -298,5 +315,14 @@ void readParameter()
   getline(runfile, line);
   getline(runfile, line);
   runfile >> parameter.resfrequency;
+  getline(runfile, line);
+  getline(runfile, line);
+  runfile >> parameter.mesh_reg_frequency;
+  getline(runfile, line);
+  getline(runfile, line);
+  runfile >> parameter.vertex_smoothing_flag;
+  getline(runfile, line);
+  getline(runfile, line);
+  runfile >> parameter.delaunay_triangulation_flag;
   runfile.close();
 }

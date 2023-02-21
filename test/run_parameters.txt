@@ -1,7 +1,7 @@
 iterations
-2000
+1000000
 dt
-0.04
+0.03
 Kb
 0.01
 Ka
@@ -9,9 +9,9 @@ Ka
 Kv
 0.0
 reduced_volume
-0.92
+1.0
 tolerance
-1.0e-4
+1.0e-2
 tolerance_flag // 1 ON 0 OFF
 1
 gamma
@@ -21,9 +21,9 @@ particle_position // -1 inside 1 outside
 particle_radius
 0.31
 adhesion_strength
-5.0
+3.0
 potential_range
-0.1
+0.05
 forced_wrapping // 1 ON 0 OFF
 0 
 wrapping_fraction
@@ -37,8 +37,14 @@ outfile
 resfile
 ./restart.off
 logfrequency
-10
-dumpfrequency
 100
+dumpfrequency
+10000
 resfrequency
 100000
+mesh_reg_frequency
+10
+vertex_smoothing_flag
+1
+delaunay_triangulation_flag
+1

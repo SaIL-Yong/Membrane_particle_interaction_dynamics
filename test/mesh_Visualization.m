@@ -3,7 +3,7 @@ clear all
 close all
 
 
-fid=fopen('dump00010000.off');
+fid=fopen('dump01000000.off');
 
 while feof(fid)==0
     temp=fgetl(fid);
@@ -39,5 +39,6 @@ axis equal
 hold on
 pp= patch('Faces',tri,'Vertices',[x,y,z],'FaceColor','y','FaceAlpha',0.8,'EdgeColor','k');
 axis equal;
-axis([-1.5 1.5 -1.5 1.5 -1.5 1.5]);
+axis([-1.5 1.5 -1.5 1.5 -2.0 1.5]);
 view(90,0);
+title("dt = 0.01, Rp = 0.31, u = 5.0, rho = 0.1, w/ angle condition");

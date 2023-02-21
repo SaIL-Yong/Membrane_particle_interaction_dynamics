@@ -129,7 +129,8 @@ int main() {
   std::cout<<"Iteration  ReducedVolume  BendingEnergy  AdhesionEnergy  TotalEnergy  EnergyChange  ForceResidual"<<std::endl;
 
   // main loop
-  for (int i = 0; i < iterations; i++)
+  int i;
+  for (i = 0; i < iterations; i++)
   {
     M1.mesh_cal(V, F);
     E1.compute_bendingenergy_force(V, F, Kb, Force_Bending, EnergyBending, M1);
@@ -190,64 +191,60 @@ int main() {
     if (force_residual < tolerance && tolerance_flag) {
       std::cout<<"Force residual reaches the threshold."<<std::endl;
       std::cout<<"Simulation reaches equilibrium state."<<std::endl;
-
-      auto end = system_clock::now();
-      auto duration = duration_cast<minutes>(end - start);
-
-      // logfile output
-      logfile<<i+1<<"  ";
-      logfile<<time<<"  ";
-      logfile<<M1.area_total<<"  ";
-      logfile<<M1.volume_total<<"  ";
-      logfile<<rVol<<"  ";
-      logfile<<EnergyBending<<"  ";
-      logfile<<EnergyArea<<"  ";   
-      logfile<<EnergyVolume<<"  ";
-      logfile<<EnergyAdhesion<<"  "; 
-      if (parameter.forced_wrapping_flag) logfile<<EnergyBias<<"  ";
-      logfile<<EnergyTotal<<"  ";
-      logfile<<force_residual<<std::endl;
-      logfile<<"Total run time: "<<duration.count()<<" mins"<<std::endl;
-          
-      igl::writeOFF(parameter.outFile, V, F);
-  
-      //Storing force components to text file after equilibrium
-      std::ofstream file1("Adhesion_Force.txt");
-      // Check if the file was successfully opened
-      if (file1.is_open()) {
-        file1 << Force_Adhesion << std::endl;
-        file1.close();
-        std::cout << "Adhesion force successfully saved to file." << std::endl;
-      }
-      else {
-        std::cout << "Error: cannot open adhesion force file." <<std::endl;
-      }
-      std::ofstream file2("Bending_Force.txt");
-      if (file2.is_open()) {
-        file2 << Force_Bending << std::endl;
-        file2.close();
-        std::cout << "Bending force successfully saved to file." << std::endl;
-      }
-      else {
-        std::cout << "Error: cannot open bending force file." << std::endl;
-      }
-      std::ofstream file3("Area_Force.txt");
-      if (file3.is_open()) {
-        file3<< Force_Area << std::endl;
-        file3.close();
-        std::cout << "Area force successfully saved to file." << std::endl;
-      }
-      else {
-        std::cout << "Error: cannot open area force file." << std::endl;
-      }
       break;
     }
   }
 
   auto end = system_clock::now();
   auto duration = duration_cast<minutes>(end - start);
-  std::cout<<"Run time: "<<duration.count()<<" mins"<<std::endl;
+
+  // logfile output
+  logfile<<i+1<<"  ";
+  logfile<<time<<"  ";
+  logfile<<M1.area_total<<"  ";
+  logfile<<M1.volume_total<<"  ";
+  logfile<<rVol<<"  ";
+  logfile<<EnergyBending<<"  ";
+  logfile<<EnergyArea<<"  ";   
+  logfile<<EnergyVolume<<"  ";
+  logfile<<EnergyAdhesion<<"  "; 
+  if (parameter.forced_wrapping_flag) logfile<<EnergyBias<<"  ";
+  logfile<<EnergyTotal<<"  ";
+  logfile<<force_residual<<std::endl;
+  logfile<<"Total run time: "<<duration.count()<<" mins"<<std::endl;
   logfile.close();
+      
+  igl::writeOFF(parameter.outFile, V, F);
+
+  //Storing force components to text file after equilibrium
+  std::ofstream file1("Adhesion_Force.txt");
+  // Check if the file was successfully opened
+  if (file1.is_open()) {
+    file1 << Force_Adhesion << std::endl;
+    file1.close();
+    std::cout << "Adhesion force successfully saved to file." << std::endl;
+  }
+  else {
+    std::cout << "Error: cannot open adhesion force file." <<std::endl;
+  }
+  std::ofstream file2("Bending_Force.txt");
+  if (file2.is_open()) {
+    file2 << Force_Bending << std::endl;
+    file2.close();
+    std::cout << "Bending force successfully saved to file." << std::endl;
+  }
+  else {
+    std::cout << "Error: cannot open bending force file." << std::endl;
+  }
+  std::ofstream file3("Area_Force.txt");
+  if (file3.is_open()) {
+    file3<< Force_Area << std::endl;
+    file3.close();
+    std::cout << "Area force successfully saved to file." << std::endl;
+  }
+  else {
+    std::cout << "Error: cannot open area force file." << std::endl;
+  }
 }
 
 void readParameter()

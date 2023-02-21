@@ -65,12 +65,15 @@ int main() {
   double U = (Kb * u) / (Rp * Rp);
   double rho =  parameter.potential_range * Rp;
   double rc = 5.0*rho;
+  int angle_flag = parameter.angle_condition_flag;
   if (parameter.particle_position > 0) std::cout<<"Particle position: outside"<<std::endl;
   else std::cout<<"Particle position: inside"<<std::endl;
   std::cout<<"Particle radius: "<<Rp<<std::endl;
   std::cout<<"Particle adhesion strength: "<<U<<std::endl;
   std::cout<<"Particle adhesion range: "<<rho<<std::endl;   
-  std::cout<<"Particle adhesion cutoff: "<<rc<<"\n"<<std::endl;  
+  std::cout<<"Particle adhesion cutoff: "<<rc<<std::endl;
+  if (angle_flag) std::cout<<"Angle criterion: ON\n"<<std::endl;
+  else std::cout<<"Angle criterion: OFF\n"<<std::endl;
 
   // position of the particle
   double X0 = 0.0, Y0 = 0.0, Z0 = V.col(2).maxCoeff() + parameter.particle_position*Rp - 1.0*rho;
@@ -132,7 +135,7 @@ int main() {
     E1.compute_bendingenergy_force(V, F, Kb, Force_Bending, EnergyBending, M1);
     E1.compute_areaenergy_force(V, F, Ka, area_target, Force_Area, EnergyArea, M1);
     E1.compute_volumeenergy_force(V, F, Kv, volume_target, Force_Volume, EnergyVolume, M1);
-    E1.compute_adhesion_energy_force(V, F, X0, Y0, Z0, Rp, rho, U, rc, Ew_t, Kw, Force_Adhesion, EnergyAdhesion, EnergyBias, M1);
+    E1.compute_adhesion_energy_force(V, F, X0, Y0, Z0, Rp, rho, U, rc, angle_flag, Ew_t, Kw, Force_Adhesion, EnergyAdhesion, EnergyBias, M1);
 
     EnergyTotal = EnergyBending + EnergyArea + EnergyVolume + EnergyAdhesion + EnergyBias;
     Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion;
@@ -159,7 +162,7 @@ int main() {
 
     if ((i+1) % logfrequency == 0) {
       // screen output
-      std::cout<<i+1<<"  "<<rVol<<"  "<<EnergyBending<<"  "<<EnergyTotal<<"  "<<EnergyAdhesion<<"  "<<EnergyChange<<"  "<<force_residual<<"  "<<std::endl;
+      std::cout<<i+1<<"  "<<rVol<<"  "<<EnergyBending<<"  "<<EnergyAdhesion<<"  "<<EnergyTotal<<"  "<<EnergyChange<<"  "<<force_residual<<"  "<<std::endl;
 
       // logfile output
       logfile<<i+1<<"  ";
@@ -291,6 +294,9 @@ void readParameter()
   getline(runfile, line);
   getline(runfile, line);
   runfile >> parameter.potential_range;
+  getline(runfile, line);
+  getline(runfile, line);
+  runfile >> parameter.angle_condition_flag;
   getline(runfile, line);
   getline(runfile, line);
   runfile >> parameter.forced_wrapping_flag;

@@ -1,7 +1,7 @@
 iterations
 1000000
 dt
-0.03
+0.01
 Kb
 0.01
 Ka
@@ -21,9 +21,11 @@ particle_position // -1 inside 1 outside
 particle_radius
 0.31
 adhesion_strength
-3.0
+5.0
 potential_range
-0.05
+0.1
+angle_condition_flag
+1
 forced_wrapping // 1 ON 0 OFF
 0 
 wrapping_fraction
@@ -43,7 +45,7 @@ dumpfrequency
 resfrequency
 100000
 mesh_reg_frequency
-10
+1
 vertex_smoothing_flag
 1
 delaunay_triangulation_flag

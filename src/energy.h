@@ -32,7 +32,7 @@ class Energy {
   //void compute_localareaenergy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,Eigen::MatrixXd& Force_Local_Area,double& local_area_energy);
   //void dosomething();
   void compute_adhesion_energy_force(Eigen::MatrixXd V,Eigen::MatrixXi F, double X, double Y, double Z,
-                                     double rp, double rho, double U, double rc, double Ew_t, double Kw,
+                                     double rp, double rho, double U, double rc, int angle_flag, double Ew_t, double Kw,
                                      Eigen::MatrixXd& Force_Adhesion, double& EnergyAdhesion, double& E_bias, Mesh m);
 
  private:
@@ -51,5 +51,7 @@ class Energy {
   Eigen::MatrixXd coefficient_of_derivative;
   Eigen::MatrixXd First_Term, Second_Term, Sum, Ead;
   Eigen::MatrixXd Force_Biased;
-  double dEw;
+  Eigen::MatrixXd comvec;
+  Eigen::RowVector3d particle_center;
+  double angle, dEw;
 };

@@ -43,7 +43,7 @@ void Energy::compute_volumeenergy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, do
 
 
 void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, double X, double Y, double Z,
-                                           double Rp, double rho, double U, double rc, double Ew_t, double Kw,
+                                           double Rp, double rho, double U, double rc, int angle_flag, double Ew_t, double Kw,
                                            Eigen::MatrixXd& Force_Adhesion, double& EnergyAdhesion, double& EnergyBias, Mesh m)
 {
   Force_Adhesion.setZero();
@@ -64,12 +64,19 @@ void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V, Eigen::MatrixXi F,
   EnergyAdhesion = 0.0;
   EnergyBias = 0.0;
 
+  particle_center<<X, Y, Z;
+  // vector connecting cetner of the particle and to the vertices;
+  comvec = V.rowwise() - particle_center;
+
   // can this loop be replaced by the eigen operation?
   for (int i = 0; i < V.rows(); i++) {
     distance(i) = sqrt((V(i,0)-X)*(V(i,0)-X)+(V(i,1)-Y)*(V(i,1)-Y)+(V(i,2)-Z)*(V(i,2)-Z));
     dc(i) = distance(i) - Rp;
 
-    if (std::abs(dc(i)) > rc) continue;
+    // angle between connecting vector and vertex normal
+    angle = acos((comvec.row(i)).dot(m.V_normals.row(i)) / (comvec.row(i).norm() * m.V_normals.row(i).norm()));
+    
+    if (std::abs(dc(i)) > rc || angle >= 0.5*PI) continue;
 
     coefficient(i) = U * (exp(-(2.0*dc(i))/rho) - 2.0*exp(-dc(i)/rho));
     coefficient_derivative_x(i) = (U/(distance(i)*rho))

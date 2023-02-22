@@ -43,7 +43,7 @@ void Energy::compute_volumeenergy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, do
 
 
 void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, double X, double Y, double Z,
-                                           double Rp, double rho, double U, double rc, int angle_flag, double Ew_t, double Kw,
+                                           double Rp, double rho, double U, double rc, int angle_flag, double Ew_t, double Kw, int particle_position,
                                            Eigen::MatrixXd& Force_Adhesion, double& EnergyAdhesion, double& EnergyBias, Mesh m)
 {
   Force_Adhesion.setZero();
@@ -77,7 +77,10 @@ void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V, Eigen::MatrixXi F,
     angle = acos((comvec.row(i)).dot(m.V_normals.row(i)) / (comvec.row(i).norm() * m.V_normals.row(i).norm()));
     
     if (std::abs(dc(i)) > rc) continue;
-    if (angle_flag && angle >= 0.5*PI) continue;
+    if (angle_flag) {
+      if (particle_position > 0 && angle <= 0.5*PI) continue;
+      if (particle_position < 0 && angle >= 0.5*PI) continue;
+    }
 
     coefficient(i) = U * (exp(-(2.0*dc(i))/rho) - 2.0*exp(-dc(i)/rho));
     coefficient_derivative_x(i) = (U/(distance(i)*rho))

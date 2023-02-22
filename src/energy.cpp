@@ -43,7 +43,7 @@ void Energy::compute_volumeenergy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, do
 
 
 void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, double X, double Y, double Z,
-                                           double Rp, double rho, double U, double rc, int angle_flag, double Ew_t, double Kw, int particle_position,
+                                           double Rp, double rho, double U, double rc, int angle_flag, int particle_position, double Ew_t, double Kw,
                                            Eigen::MatrixXd& Force_Adhesion, double& EnergyAdhesion, double& EnergyBias, Mesh m)
 {
   Force_Adhesion.setZero();

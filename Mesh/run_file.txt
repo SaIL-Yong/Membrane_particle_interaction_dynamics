@@ -16,8 +16,8 @@ tolerance_flag
 1
 gamma
 1.0
-particle_radious
-0.20
+particle_radius
+0.31
 adhesion_strength
 5.0
 potential_range
@@ -30,3 +30,7 @@ outfile
 ./equilibrioum.off
 resfile
 ./restart.off
+logfrequency
+100
+dumpfrequency
+1000

@@ -1,127 +1,115 @@
 #include <iostream>
 #include <cmath>
 #include "energy.h"
-#include "meshops.h"
-#include "parameters.h"
 
-extern Parameter parameter;
+void Energy::compute_bendingenergy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, double Kb, Eigen::MatrixXd& Force_Bending, double& bending_energy, Mesh m)
+{
+  bending_energy = 0.0;
+  Force_Bending.setZero();
+  EB = 2.0 * Kb * (m.H_squared.transpose() * m.area_voronoi).diagonal();
+  bending_energy = EB.sum();
 
-void Energy::compute_bendingenergy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,Eigen::MatrixXd& Force_Bending,double& total_EB){
-  bending_modulus=parameter.Kb;
-  Eigen::MatrixXd H,HN,H_squared;
-  Eigen::SparseMatrix<double> L,M,Minv;
-  Eigen::VectorXd Lap_H,force_density,K;
-  Eigen::VectorXd EB;
-  igl::cotmatrix(V,F,L);
-  igl::massmatrix(V,F,igl::MASSMATRIX_TYPE_VORONOI,M);
-  igl::invert_diag(M,Minv);
-  igl::gaussian_curvature(V,F,K);
-  K = (Minv*K).eval();
-  HN= -Minv*(L*V)/2.0;
-  H = HN.rowwise().norm(); //up to sign
-  //Eigen::MatrixXd V_normals;
-  igl::per_vertex_normals(V,F,V_normals);
-  Eigen::MatrixXd H_X_N= (HN.array()*V_normals.array());
-  Eigen::VectorXd abc=H_X_N.rowwise().sum();
-  Eigen::VectorXd sign_of_H= abc.array().sign();
-  Eigen::VectorXd H_signed=H.array()*sign_of_H.array();
-  H_squared=H.array().square();
-  area_voronoi=M.diagonal();
-
-  EB = 2.0*bending_modulus*(H_squared.transpose() * area_voronoi).diagonal();
-  total_EB=EB.sum();
-  Lap_H=Minv*(L*H_signed);
-  force_density=(2.0*H_signed.array()*(H_squared-K).array() )+ Lap_H.array();
-  Eigen::VectorXd vector_term=force_density.array()*area_voronoi.array();
-  Force_Bending=(2*bending_modulus)*(V_normals.array().colwise()*vector_term.array());
-}
-
-void Energy::compute_areaenergy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,Eigen::MatrixXd& Force_Area,double& area_energy){
-  double area_modulus=parameter.Ka;
-  float radius=1.0;
-  double area_target=4.0*PI*radius*radius;
-  Eigen::VectorXd dblA;                                   // store face edge information
-  igl::doublearea(V,F,dblA);
-  double area_current = dblA.sum()/2;
-  area_energy=area_modulus*(pow((area_current-area_target),2)/area_target);
-  double scalar_term=-2.0*area_modulus*((area_current-area_target)/area_target);
-  Mesh m;
-  AG =m.area_grad(V,F);
-  Force_Area=(scalar_term*AG);
-
-}
-void Energy::compute_volumeenergy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,float reduced_volume,Eigen::MatrixXd& Force_Volume,double& volume_energy){
-  double volume_modulus=parameter.Kv;
-  float radious=1.0;
-  double volume_target=reduced_volume*(4.0/3.0)*PI*pow(radious,3);
-  Mesh m;
-  double volume_current= m.cal_volume(V,F);
-  Eigen::MatrixXd VG =m.volume_grad(V,F);
-  volume_energy=volume_modulus*(pow((volume_current-volume_target),2)/volume_target);
-  double scalar_term=-2.0*volume_modulus*((volume_current-volume_target)/volume_target);
-  Force_Volume=scalar_term*VG;
+  Lap_H = m.Minv * (m.L * m.H_signed);
+  force_density = (2.0 * m.H_signed.array() * (m.H_squared - m.K).array()) + Lap_H.array();
+  vector_term = force_density.array() * m.area_voronoi.array();
+  Force_Bending = (2.0 *Kb)*(m.V_normals.array().colwise() * vector_term.array());
 }
 
 
-void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,float X,float Y,float Z,float rp,float rho,float u,float U,float rc,double Ew_t,float K_bias,Eigen::MatrixXd& Force_Adhesion,double& EnergyAdhesion,double& E_bias){
-
-    Eigen::VectorXd coefficient_derivative_x(V.rows()),coefficient_derivative_y(V.rows()),
-    coefficient_derivative_z(V.rows()),coefficient(V.rows()),distance(V.rows()),dc(V.rows());
-    Eigen::VectorXd Mod_Bias= Eigen::VectorXd::Zero(V.rows());
-    float tol=1e-10;
-    Eigen::RowVector3d particle_center(X,Y,Z);
-    //Vectors consisting cencter of the particle and vertices
-    Eigen::MatrixXd m= (-V).rowwise() + particle_center ; 
-    //double angle=acos((m.row(i)).dot(V_normals.row(i))/m.row(i).norm()*V_normals.row(i).norm());
-    //std::cout<<"Angle: " << angle*(180.0/PI) <<std::endl;
-    for (int i=0; i<V.rows(); i++){
-      distance(i)=sqrt((V(i,0)-X)*(V(i,0)-X)+(V(i,1)-Y)*(V(i,1)-Y)+(V(i,2)-Z)*(V(i,2)-Z));
-      dc(i)=distance(i)-rp;
-      coefficient(i)=U*(exp(-(2.0*dc(i))/rho) - 2.0*exp(-dc(i)/rho));
-      coefficient_derivative_x(i)  = (U/(distance(i)*rho))
-      *(-exp(-(2.0*dc(i))/rho) +  exp(-dc(i)/rho)) * 2.0 * (V(i,0)-X);
-      coefficient_derivative_y(i)  = (U/(distance(i)*rho))
-      *(-exp(-(2.0*dc(i))/rho) +  exp(-dc(i)/rho)) * 2.0 * (V(i,1)-Y);
-      coefficient_derivative_z(i)  = (U/(distance(i)*rho))
-      *(-exp(-(2.0*dc(i))/rho) +  exp(-dc(i)/rho)) * 2.0 * (V(i,2)-Z);
-      //angle between connenting vector and face normal
-      double angle=acos((m.row(i)).dot(V_normals.row(i))/m.row(i).norm()*V_normals.row(i).norm());
-      //angle condition set to turn of the force conditions
-      if (abs(dc(i))>rc || abs(coefficient(i))<tol || angle*(180.0/PI) <= 90.0 ){
-        coefficient(i)=0;
-      }
-      if (abs(dc(i))>rc || abs(coefficient_derivative_x(i))<tol || angle*(180.0/PI) <= 90.0){
-        coefficient_derivative_x(i)  = 0;
-      }
-      if (abs(dc(i))>rc || abs(coefficient_derivative_y(i))<tol || angle*(180.0/PI) <= 90.0){
-        coefficient_derivative_y(i)  = 0;
-      }
-      if (abs(dc(i))>rc || abs(coefficient_derivative_z(i))<tol || angle*(180.0/PI) <= 90.0){
-        coefficient_derivative_z(i)  = 0;
-      }
-      if (dc(i)>0.0){
-          Mod_Bias(i)=1.0;
-      }
-   }
-    Eigen::MatrixXd coefficient_of_derivative(V.rows(),3);
-    coefficient_of_derivative.col(0)=coefficient_derivative_x.transpose();
-    coefficient_of_derivative.col(1)=coefficient_derivative_y.transpose();
-    coefficient_of_derivative.col(2)=coefficient_derivative_z.transpose();
-    Eigen::MatrixXd First_Term = -(AG.array().colwise()*coefficient.array());
-    Eigen::MatrixXd Second_Term= -(coefficient_of_derivative.array().colwise()*area_voronoi.array());
-
-    Eigen::MatrixXd Sum= First_Term +Second_Term;
-    Eigen::VectorXd Ead= coefficient.array()*area_voronoi.array();
-    EnergyAdhesion=Ead.sum() ;
-    E_bias = 0.5*K_bias*pow((EnergyAdhesion - Ew_t),2);
-    Eigen::MatrixXd Force_Biased=K_bias*(EnergyAdhesion-Ew_t)*(Sum.array().colwise()*Mod_Bias.array());
-    Force_Adhesion= First_Term +Second_Term+Force_Biased;
-
-    // Eigen::RowVector3d v(X,Y,Z);
-    // Eigen::MatrixXd m= V.rowwise() - v;
-    // double angle=acos((m.row(0)).dot(V_normals.row(0))/m.row(0).norm()*V_normals.row(0).norm());
-    // std::cout<<"coefficient :" << angle*(180.0/PI) <<std::endl;
+void Energy::compute_areaenergy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, double Ka, double area_target, Eigen::MatrixXd& Force_Area, double& area_energy, Mesh m)
+{
+  area_energy = 0.0;
+  Force_Area.setZero();
+  da = m.area_total - area_target;
+  area_energy = Ka * da * da / area_target;
+  scalar_term = -2.0 * Ka * da / area_target;
+  AG = m.area_grad(V, F);
+  Force_Area = scalar_term * AG;
 }
 
 
+void Energy::compute_volumeenergy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, double Kv, double volume_target, Eigen::MatrixXd& Force_Volume, double& volume_energy, Mesh m)
+{
+  volume_energy = 0.0;
+  Force_Volume.setZero();
+  if (std::abs(Kv) > EPS) {
+    VG = m.volume_grad(V, F);
+    dv = m.volume_total - volume_target;
+    volume_energy = Kv * dv * dv / volume_target;
+    scalar_term = -2.0 * Kv * dv / volume_target;
+    Force_Volume = scalar_term * VG;
+  }
+}
 
+
+void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, double X, double Y, double Z,
+                                           double Rp, double rho, double U, double rc, int angle_flag, int particle_position, double Ew_t, double Kw,
+                                           Eigen::MatrixXd& Force_Adhesion, double& EnergyAdhesion, double& EnergyBias, Mesh m)
+{
+  Force_Adhesion.setZero();
+  coefficient.resize(V.rows());
+  coefficient_derivative_x.resize(V.rows());
+  coefficient_derivative_y.resize(V.rows());
+  coefficient_derivative_z.resize(V.rows());
+  distance.resize(V.rows());
+  dc.resize(V.rows());
+  Mod_Bias.resize(V.rows());
+  coefficient.setZero();
+  coefficient_derivative_x.setZero();
+  coefficient_derivative_y.setZero();
+  coefficient_derivative_z.setZero();
+  distance.setZero();
+  dc.setZero();
+  Mod_Bias.setZero();
+  EnergyAdhesion = 0.0;
+  EnergyBias = 0.0;
+
+  particle_center<<X, Y, Z;
+  // vector connecting cetner of the particle and to the vertices;
+  comvec = V.rowwise() - particle_center;
+
+  // can this loop be replaced by the eigen operation?
+  for (int i = 0; i < V.rows(); i++) {
+    distance(i) = sqrt((V(i,0)-X)*(V(i,0)-X)+(V(i,1)-Y)*(V(i,1)-Y)+(V(i,2)-Z)*(V(i,2)-Z));
+    dc(i) = distance(i) - Rp;
+
+    // angle between connecting vector and vertex normal
+    angle = acos((comvec.row(i)).dot(m.V_normals.row(i)) / (comvec.row(i).norm() * m.V_normals.row(i).norm()));
+    
+    if (std::abs(dc(i)) > rc) continue;
+    if (angle_flag) {
+      if (particle_position > 0 && angle <= 0.5*PI) continue;
+      if (particle_position < 0 && angle >= 0.5*PI) continue;
+    }
+
+    coefficient(i) = U * (exp(-(2.0*dc(i))/rho) - 2.0*exp(-dc(i)/rho));
+    coefficient_derivative_x(i) = (U/(distance(i)*rho))
+                                *(-exp(-(2.0*dc(i))/rho) + exp(-dc(i)/rho)) * 2.0 * (V(i,0)-X);
+    coefficient_derivative_y(i) = (U/(distance(i)*rho))
+                                *(-exp(-(2.0*dc(i))/rho) + exp(-dc(i)/rho)) * 2.0 * (V(i,1)-Y);
+    coefficient_derivative_z(i) = (U/(distance(i)*rho))
+                                *(-exp(-(2.0*dc(i))/rho) + exp(-dc(i)/rho)) * 2.0 * (V(i,2)-Z);
+
+    if (dc(i) > EPS && std::abs(Kw) > EPS) Mod_Bias(i) = 1.0;
+  }
+
+  coefficient_of_derivative.resize(V.rows(), 3);
+  coefficient_of_derivative.col(0)=coefficient_derivative_x.transpose();
+  coefficient_of_derivative.col(1)=coefficient_derivative_y.transpose();
+  coefficient_of_derivative.col(2)=coefficient_derivative_z.transpose();
+  
+  First_Term = -(AG.array().colwise()*coefficient.array());
+  Second_Term = -(coefficient_of_derivative.array().colwise()*m.area_voronoi.array());
+
+  Sum = First_Term + Second_Term;
+  Ead = coefficient.array()*m.area_voronoi.array();
+
+  EnergyAdhesion = Ead.sum();
+
+  if (std::abs(Kw) > EPS) {
+    dEw = EnergyAdhesion - Ew_t;
+    EnergyBias = 0.5 * Kw * dEw * dEw;
+    Force_Biased = Kw * dEw * (Sum.array().colwise() * Mod_Bias.array());
+    Force_Adhesion = First_Term + Second_Term + Force_Biased;
+  } else Force_Adhesion = First_Term + Second_Term; 
+}

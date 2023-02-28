@@ -2,7 +2,7 @@ clc
 clear all
 close all
 
-fid1=fopen('equilibrium.off');
+fid1=fopen('dump00010000.off');
 
 while feof(fid1)==0
     temp=fgetl(fid1);
@@ -68,8 +68,8 @@ if (particle_position > 0)
     X1(Rz>-1+h) = NaN; Y1(Rz>-1+h) = NaN; Z1(Rz>-1+h) = NaN;
     X2(Rz<=-1+h) = NaN; Y2(Rz<=-1+h) = NaN; Z2(Rz<=-1+h) = NaN;
 else
-    X1(Rz>1-h) = NaN; Y1(Rz>1-h) = NaN; Z1(Rz>1-h) = NaN;
-    X2(Rz<=1-h) = NaN; Y2(Rz<=1-h) = NaN; Z2(Rz<=1-h) = NaN;
+    X1(Rz<1-h) = NaN; Y1(Rz<1-h) = NaN; Z1(Rz<1-h) = NaN;
+    X2(Rz>=1-h) = NaN; Y2(Rz>=1-h) = NaN; Z2(Rz>=1-h) = NaN;
 end
 
 S1=surf(X1+R0(1),Y1+R0(2),Z1+R0(3));
@@ -78,9 +78,9 @@ set(S1,'FaceColor',"#A2142F", ...
 S2=surf(X2+R0(1),Y2+R0(2),Z2+R0(3));
 set(S2,'FaceColor',"#0072BD", ...
   'FaceAlpha',1.0,'FaceLighting','gouraud','EdgeColor','none');
-pp = patch('Faces',tri,'Vertices',[x,y,z],'FaceColor',"#EDB120",'FaceLighting','gouraud','FaceAlpha',0.2,'EdgeColor','k');
+pp = patch('Faces',tri,'Vertices',[x,y,z],'FaceColor',"#EDB120",'FaceLighting','gouraud','FaceAlpha',1.0,'EdgeColor','k');
 axis equal;
-axis([-1.5 1.5 -1.5 1.5 -2.0 2.0]);
+axis([-1.5 0 -1.5 1.5 -2.0 2.0]);
 view(90,0);
 %lightangle(45,30);
 title(['R_p = ', num2str(Rp), ' \chi = ', num2str(chi)]);

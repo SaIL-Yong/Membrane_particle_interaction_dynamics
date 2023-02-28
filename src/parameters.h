@@ -18,4 +18,5 @@ struct Parameter {
     int mesh_reg_frequency, vertex_smoothing_flag, delaunay_triangulation_flag;
     int angle_condition_flag;
     double X0, Y0, Z0;
+    int particle_coord_flag;
 };

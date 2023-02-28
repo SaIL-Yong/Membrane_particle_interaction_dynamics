@@ -20,8 +20,8 @@ gamma
 1.0
 particle_flag
 1
-particle_position // -1 inside 1 outside 0 manually input
-0
+particle_position // -1 inside 1 outside
+1
 particle_coordinate
 0 0 1.30853
 particle_radius

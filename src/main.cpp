@@ -116,12 +116,9 @@ int main() {
       std::cout<<"Particle position: inside"<<std::endl;
       logfile<<"Particle position: inside"<<std::endl;
     }
-    else {
-      std::cout<<"Particle position: manually input"<<std::endl;
-      logfile<<"Particle position: manually input"<<std::endl; 
-    }
+    
     // position of the particle
-    if (parameter.particle_position != 0) {
+    if (!parameter.particle_coord_flag) {
       X0 = 0.0, Y0 = 0.0, Z0 = V.col(2).maxCoeff() + parameter.particle_position * (Rp + 1.0*rho);
     }
     else {
@@ -390,14 +387,15 @@ void readParameter()
   if (parameter.particle_flag) {
     getline(runfile, line);
     runfile >> parameter.particle_position;
-    if (parameter.particle_position == 0)
-    {
+    getline(runfile, line);
+    getline(runfile, line);
+    if (line.compare("particle_coordinate") == 0) {
+      runfile >> parameter.X0 >> parameter.Y0 >> parameter.Z0;
+      parameter.particle_coord_flag = 1;
       getline(runfile, line);
       getline(runfile, line);
-      runfile >> parameter.X0 >> parameter.Y0 >> parameter.Z0; 
     }
-    getline(runfile, line);
-    getline(runfile, line);
+    else parameter.particle_coord_flag = 0;
     runfile >> parameter.particle_radius;
     getline(runfile, line);
     getline(runfile, line);

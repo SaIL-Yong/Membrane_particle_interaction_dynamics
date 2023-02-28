@@ -158,34 +158,19 @@ int main() {
     Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion;
     force_residual = Force_Total.norm();
 
-    velocity = Force_Total / gamma;
-    V += velocity * dt;
-
-    if (v_smooth_flag || delaunay_tri_flag) {
-      if ((i+1) % mesh_reg_frequency == 0) {
-        if (v_smooth_flag) V = M1.vertex_smoothing(V, F);
-        if (delaunay_tri_flag) {
-          igl::edge_lengths(V, F, l);
-          igl::intrinsic_delaunay_triangulation(l, F, l, F);
-        }
-      }
-    }
-
     rVol = 6 * sqrt(PI) * M1.volume_total * pow(M1.area_total, -1.5);
 
-    time += dt;
-
-    if ((i+1) % logfrequency == 0) {
+    if (i % logfrequency == 0) {
       EnergyChangeRate_log = (EnergyTotal - EnergyTotalold_log) / (logfrequency * dt);
       EnergyTotalold_log = EnergyTotal;
 
       // screen output
       if (particle_flag)
-        std::cout<<i+1<<"  "<<rVol<<"  "<<EnergyBending<<"  "<<EnergyAdhesion<<"  "<<EnergyTotal<<"  "<<EnergyChangeRate_log<<"  "<<force_residual<<"  "<<std::endl;
+        std::cout<<i<<"  "<<rVol<<"  "<<EnergyBending<<"  "<<EnergyAdhesion<<"  "<<EnergyTotal<<"  "<<EnergyChangeRate_log<<"  "<<force_residual<<"  "<<std::endl;
       else
-        std::cout<<i+1<<"  "<<rVol<<"  "<<EnergyBending<<"  "<<EnergyTotal<<"  "<<EnergyChangeRate_log<<"  "<<force_residual<<"  "<<std::endl;
+        std::cout<<i<<"  "<<rVol<<"  "<<EnergyBending<<"  "<<EnergyTotal<<"  "<<EnergyChangeRate_log<<"  "<<force_residual<<"  "<<std::endl;
       // logfile output
-      logfile<<i+1<<"  ";
+      logfile<<i<<"  ";
       logfile<<time<<"  ";
       logfile<<M1.area_total<<"  ";
       logfile<<M1.volume_total<<"  ";
@@ -202,7 +187,7 @@ int main() {
       logfile<<force_residual<<std::endl;
     }
 
-    if ((i+1) % tolsteps == 0) {
+    if (i % tolsteps == 0) {
       EnergyChangeRate_tol = (EnergyTotal - EnergyTotalold_tol) / tolfrequency;
       EnergyTotalold_tol = EnergyTotal;
 
@@ -213,13 +198,29 @@ int main() {
       }
     }
 
-    if ((i+1) % dumpfrequency == 0) {
+    if (i % dumpfrequency == 0) {
       char dumpfilename[128];
-      sprintf(dumpfilename, "dump%08d.off", i+1);
+      sprintf(dumpfilename, "dump%08d.off", i);
 	    igl::writeOFF(dumpfilename, V, F);
 	  }
 
-    if ((i+1) % resfrequency == 0) igl::writeOFF(parameter.resFile, V, F);  
+    if (i % resfrequency == 0) igl::writeOFF(parameter.resFile, V, F);
+
+    velocity = Force_Total / gamma;
+    V += velocity * dt;
+
+    if (v_smooth_flag || delaunay_tri_flag) {
+      if ((i+1) % mesh_reg_frequency == 0) {
+        if (v_smooth_flag) V = M1.vertex_smoothing(V, F);
+        if (delaunay_tri_flag) {
+          igl::edge_lengths(V, F, l);
+          igl::intrinsic_delaunay_triangulation(l, F, l, F);
+        }
+      }
+    }
+
+    time += dt;
+
   }
 
   if ((i+1) == iterations) std::cout<<"Simulation reaches max iterations."<<std::endl;
@@ -228,7 +229,7 @@ int main() {
   auto duration = duration_cast<minutes>(end - start);
 
   // logfile output
-  logfile<<i+1<<"  ";
+  logfile<<i<<"  ";
   logfile<<time<<"  ";
   logfile<<M1.area_total<<"  ";
   logfile<<M1.volume_total<<"  ";

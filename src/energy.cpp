@@ -109,7 +109,8 @@ void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V, Eigen::MatrixXi F,
   if (std::abs(Kw) > EPS) {
     dEw = EnergyAdhesion - Ew_t;
     EnergyBias = 0.5 * Kw * dEw * dEw;
-    Force_Biased = Kw * dEw * (Sum.array().colwise() * Mod_Bias.array());
-    Force_Adhesion = First_Term + Second_Term + Force_Biased;
-  } else Force_Adhesion = First_Term + Second_Term; 
+    //Force_Biased = Kw * dEw * (Sum.array().colwise() * Mod_Bias.array());
+    Force_Biased = Kw * dEw * Sum;
+    Force_Adhesion = Sum + Force_Biased;
+  } else Force_Adhesion = Sum; 
 }

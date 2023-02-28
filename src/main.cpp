@@ -107,16 +107,25 @@ int main() {
     rho =  parameter.potential_range * Rp;
     rc = 5.0*rho;
     angle_flag = parameter.angle_condition_flag;
-    // position of the particle
-    X0 = 0.0, Y0 = 0.0, Z0 = V.col(2).maxCoeff() + parameter.particle_position * (Rp + 1.0*rho);
 
     if (parameter.particle_position > 0) {
       std::cout<<"Particle position: outside"<<std::endl;
       logfile<<"Particle position: outside"<<std::endl;
     } 
-    else {
+    else if (parameter.particle_position < 0){
       std::cout<<"Particle position: inside"<<std::endl;
       logfile<<"Particle position: inside"<<std::endl;
+    }
+    else {
+      std::cout<<"Particle position: manually input"<<std::endl;
+      logfile<<"Particle position: manually input"<<std::endl; 
+    }
+    // position of the particle
+    if (parameter.particle_position != 0) {
+      X0 = 0.0, Y0 = 0.0, Z0 = V.col(2).maxCoeff() + parameter.particle_position * (Rp + 1.0*rho);
+    }
+    else {
+      X0 = parameter.X0, Y0 = parameter.Y0, Z0 = parameter.Z0;
     }
 
     std::cout<<"Particle position: "<<X0<<", "<<Y0<<", "<<Z0<<std::endl;
@@ -381,6 +390,12 @@ void readParameter()
   if (parameter.particle_flag) {
     getline(runfile, line);
     runfile >> parameter.particle_position;
+    if (parameter.particle_position == 0)
+    {
+      getline(runfile, line);
+      getline(runfile, line);
+      runfile >> parameter.X0 >> parameter.Y0 >> parameter.Z0; 
+    }
     getline(runfile, line);
     getline(runfile, line);
     runfile >> parameter.particle_radius;

@@ -47,7 +47,8 @@ class Energy {
   double da, dv, scalar_term;
 
   // variables for adhesion energy force calculation
-  Eigen::VectorXd coefficient_derivative_x, coefficient_derivative_y, coefficient_derivative_z, coefficient, distance, dc, Mod_Bias;
+  Eigen::VectorXd coefficient_derivative_x, coefficient_derivative_y, coefficient_derivative_z, coefficient, distance, dc;
+  //Eigen::VectorXd Mod_Bias;
   Eigen::MatrixXd coefficient_of_derivative;
   Eigen::MatrixXd First_Term, Second_Term, Sum, Ead;
   Eigen::MatrixXd Force_Biased;

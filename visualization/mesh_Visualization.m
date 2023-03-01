@@ -9,8 +9,10 @@ while feof(fid1)==0
     temp=fgetl(fid1);
     [nV,nF,nE]=strread(temp, '%d %d %d');
     
-    FV.vertices=zeros(nV,3);
-    FV.faces=zeros(nF,3);
+    x = zeros(nV,1);
+    y = x;
+    z = x;
+    tri = zeros(nF,3);
     
     for i=1:nV
         temp=fgetl(fid1);
@@ -19,13 +21,10 @@ while feof(fid1)==0
         y(i)=vertex(2);
         z(i)=vertex(3);    
     end
-     x=x';
-     y=y';
-     z=z';
     
     for i=1:nF
         temp=fgetl(fid1);
-        tri(i,:)=sscanf(temp, '%*d %d %d %d %*d %*d');
+        tri(i,:)=sscanf(temp, '%*d %d %d %d');
     end
     tri=tri+1;
 
@@ -33,7 +32,6 @@ end
 fclose(fid1);
 
 fid2=fopen('logfile.txt');
-
 while feof(fid2)==0
     for i = 1:17
         temp=fgetl(fid2);
@@ -52,13 +50,27 @@ while feof(fid2)==0
         temp=fgetl(fid2);
     end
     chi = sscanf(temp,"%*s %*s %*s %f");
+    if (isempty(chi))
+        chi = 0.0;
+    end
     break;
 end
 fclose(fid2);
 
-F1=figure;
-set(gcf,'Position',[50 50 1000 600])
+F1=figure('color','w');
+set(gcf,'Position',[50 50 1000 1000])
 hold on;
+
+ax = gca;
+set(ax,'box','on');
+axis equal;
+set(ax,'Fontsize',26,'XMinorTick','on','YMinorTick','on','ZMinorTick','on');
+xlabel('x','Fontsize',30);
+ylabel('y','Fontsize',30);
+zlabel('z','Fontsize',30);
+axis([-2.0 2.0 0 2.0 -2.0 2.0]);
+view(0,0);
+
 h = 2*chi;
 Rpp = Rp - 0.01;
 [Rx,Ry,Rz] = sphere(200);
@@ -79,8 +91,5 @@ S2=surf(X2+R0(1),Y2+R0(2),Z2+R0(3));
 set(S2,'FaceColor',"#0072BD", ...
   'FaceAlpha',1.0,'FaceLighting','gouraud','EdgeColor','none');
 pp = patch('Faces',tri,'Vertices',[x,y,z],'FaceColor',"#EDB120",'FaceLighting','gouraud','FaceAlpha',1.0,'EdgeColor','k');
-axis equal;
-axis([-1.5 0 -1.5 1.5 -2.0 2.0]);
-view(90,0);
 %lightangle(45,30);
 title(['R_p = ', num2str(Rp), ' \chi = ', num2str(chi)]);

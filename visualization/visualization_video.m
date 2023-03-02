@@ -77,6 +77,7 @@ set(S2,'FaceColor',"#0072BD", ...
 title(['R_p = ', num2str(Rp), ' \chi = ', num2str(chi)]);
 
 fprintf('time step = ');
+kk = 1;
 for n = 0:dumpfrequency:maxiteration
     filename = sprintf("dump%08d.off",n);
     fid = fopen(filename);
@@ -115,7 +116,7 @@ for n = 0:dumpfrequency:maxiteration
     tx = annotation('textbox',[0.05 0.89 0.1 0.1],'String',sprintf('t = %.1f',n*dt),...
         'Fontsize',30,'EdgeColor','w','Color','k');
 
-    imgfname = sprintf('img%08d.jpg',n);
+    imgfname = sprintf('img%05d.jpg',kk);
     fullname = fullfile(pwd,'images',imgfname);
     print(fullname,'-djpeg','-r300');
 
@@ -123,5 +124,6 @@ for n = 0:dumpfrequency:maxiteration
     delete(tx);
 
     fprintf('%d ',n);
+    kk = kk + 1;
 end
 fprintf('\n');

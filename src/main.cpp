@@ -39,6 +39,10 @@ int main() {
   int tolerance_flag = parameter.tolerance_flag;
   double tolfrequency = parameter.tolfrequency;
   int tolsteps = floor(tolfrequency / dt);
+  int tolmean_steps = floor(tolsteps/logfrequency);
+  Eigen::VectorXd etol;
+  etol.resize(floor(iterations/logfrequency));
+  etol.setZero();
 
   std::cout<<"Mesh info:"<<std::endl;
   std::cout<<"Number of vertices: "<<numV<<" Number of faces: "<<numF<<"\n"<<std::endl;
@@ -190,7 +194,7 @@ int main() {
   Eigen::MatrixXd Force_Area(numV, 3), Force_Volume(numV, 3), Force_Bending(numV, 3), Force_Adhesion(numV, 3), velocity(numV, 3), Force_Total(numV, 3); //force components
   velocity.setZero();
   double EnergyVolume = 0.0, EnergyArea = 0.0, EnergyBending = 0.0, EnergyAdhesion = 0.0,  EnergyBias = 0.0,
-         EnergyTotal = 0.0, EnergyTotalold_log = 0.0, EnergyTotalold_tol, EnergyChangeRate_log = 0.0, EnergyChangeRate_tol = 1.0;  //energy components
+         EnergyTotal = 0.0, EnergyTotalold_log = 0.0, EnergyChangeRate_log = 0.0, EnergyChangeRate_avg = 0.0;  //energy components
   Eigen::MatrixXd l;
   std::cout<<"Simulation Start:\n"<<std::endl;
   logfile<<"Simulation Start:\n"<<std::endl;
@@ -212,6 +216,7 @@ int main() {
 
   // main loop
   int i;
+  int toln = 0;
   for (i = 0; i < iterations; i++)
   {
     M1.mesh_cal(V, F);
@@ -229,6 +234,7 @@ int main() {
     if (i % logfrequency == 0) {
       EnergyChangeRate_log = (EnergyTotal - EnergyTotalold_log) / (logfrequency * dt);
       EnergyTotalold_log = EnergyTotal;
+      etol(toln++) = EnergyChangeRate_log;
 
       // screen output
       if (particle_flag)
@@ -254,13 +260,14 @@ int main() {
     }
 
     if (i % tolsteps == 0) {
-      EnergyChangeRate_tol = (EnergyTotal - EnergyTotalold_tol) / tolfrequency;
-      EnergyTotalold_tol = EnergyTotal;
+      if (i != 0) {
+        EnergyChangeRate_avg = etol(Eigen::seq(toln-1-tolmean_steps,toln-1)).mean();
 
-      if (std::abs(EnergyChangeRate_tol) < tolerance && tolerance_flag) {
-        std::cout<<"Energy change rate reaches the threshold."<<std::endl;
-        std::cout<<"Simulation reaches equilibrium state."<<std::endl;
-        break;
+        if (std::abs(EnergyChangeRate_avg) < tolerance && tolerance_flag) {
+          std::cout<<"Energy change rate reaches the threshold."<<std::endl;
+          std::cout<<"Simulation reaches equilibrium state."<<std::endl;
+          break;
+        }
       }
     }
 

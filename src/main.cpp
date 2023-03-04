@@ -108,7 +108,7 @@ int main() {
     Rp = parameter.particle_radius;
     u = parameter.adhesion_strength;
     U = (Kb * u) / (Rp * Rp);
-    rho =  parameter.potential_range * Rp;
+    rho =  parameter.potential_range;
     rc = 5.0*rho;
     angle_flag = parameter.angle_condition_flag;
 

@@ -8,7 +8,7 @@
 using namespace std::chrono;
 int numV;                                               // number of vertices
 int numF;                                               // number of faces
-Eigen::MatrixXd V;                                      // matrix storing vertice coordinates
+Eigen::MatrixXd V,V_mid;                                      // matrix storing vertice coordinates
 Eigen::MatrixXi F;
 Parameter parameter;
 
@@ -29,6 +29,16 @@ int main() {
     std::cout<<"ERROR: cannot access logfile."<<std::endl;
   }
 
+  // output of particle position
+  std::fstream comfile;
+  comfile.open("comfile.txt",std::ios::out);
+  if (logfile.is_open())
+  {
+    logfile<<"Instantaneous position of the particle"<<std::endl;
+  } else {
+    std::cout<<"ERROR: cannot access comfile."<<std::endl;
+  }
+
   int iterations = parameter.iterations;
   int logfrequency = parameter.logfrequency;
   int dumpfrequency = parameter.dumpfrequency;
@@ -38,7 +48,7 @@ int main() {
   double force_residual;
   int tolerance_flag = parameter.tolerance_flag;
   double tolfrequency = parameter.tolfrequency;
-  int tolsteps = floor(tolfrequency / dt);
+  int tolsteps = floor(tolfrequency/dt);
   int tolmean_steps = floor(tolsteps/logfrequency);
   Eigen::VectorXd etol;
   etol.resize(floor(iterations/logfrequency));
@@ -101,9 +111,11 @@ int main() {
 
   // parameters for particle adhesion
   int particle_flag = parameter.particle_flag;
+  double gammap = parameter.gammap;
   int particle_position = parameter.particle_position;
   double Rp, u, U, rho, rc, X0, Y0, Z0, Ew_t, Kw;
   int angle_flag;
+  Eigen::RowVector3d particle_center, particle_center_mid, particle_force, particle_vel;
   if (particle_flag) {
     Rp = parameter.particle_radius;
     u = parameter.adhesion_strength;
@@ -111,6 +123,9 @@ int main() {
     rho =  parameter.potential_range;
     rc = 5.0*rho;
     angle_flag = parameter.angle_condition_flag;
+
+    std::cout<<"Particle drag coefficient: "<<gammap<<std::endl;
+    logfile<<"Particle drag coefficient: "<<gammap<<std::endl;
 
     if (parameter.particle_position > 0) {
       std::cout<<"Particle position: outside"<<std::endl;
@@ -128,6 +143,8 @@ int main() {
     else {
       X0 = parameter.X0, Y0 = parameter.Y0, Z0 = parameter.Z0;
     }
+
+    particle_center<<X0, Y0, Z0;
 
     std::cout<<"Particle position: "<<X0<<", "<<Y0<<", "<<Z0<<std::endl;
     std::cout<<"Particle radius: "<<Rp<<std::endl;
@@ -223,7 +240,7 @@ int main() {
     E1.compute_bendingenergy_force(V, F, Kb, Force_Bending, EnergyBending, M1);
     E1.compute_areaenergy_force(V, F, Ka, area_target, Force_Area, EnergyArea, M1);
     E1.compute_volumeenergy_force(V, F, Kv, volume_target, Force_Volume, EnergyVolume, M1);
-    if (particle_flag) E1.compute_adhesion_energy_force(V, F, X0, Y0, Z0, Rp, rho, U, rc, angle_flag, particle_position, Ew_t, Kw, Force_Adhesion, EnergyAdhesion, EnergyBias, M1);
+    if (particle_flag) E1.compute_adhesion_energy_force(V, F, particle_center, Rp, rho, U, rc, angle_flag, particle_position, Ew_t, Kw, Force_Adhesion, EnergyAdhesion, EnergyBias, particle_force, M1);
 
     EnergyTotal = EnergyBending + EnergyArea + EnergyVolume + EnergyAdhesion + EnergyBias;
     Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion;
@@ -234,7 +251,7 @@ int main() {
     if (i % logfrequency == 0) {
       EnergyChangeRate_log = (EnergyTotal - EnergyTotalold_log) / (logfrequency * dt);
       EnergyTotalold_log = EnergyTotal;
-      etol(toln++) = EnergyChangeRate_log;
+      etol(toln++) = std::abs(EnergyChangeRate_log);
 
       // screen output
       if (particle_flag)
@@ -274,13 +291,17 @@ int main() {
     if (i % dumpfrequency == 0) {
       char dumpfilename[128];
       sprintf(dumpfilename, "dump%08d.off", i);
-	    igl::writeOFF(dumpfilename, V, F);
-	  }
+      igl::writeOFF(dumpfilename, V, F);
+      comfile<<i<<"  ";
+      comfile<<particle_center(0)<<"  "<<particle_center(1)<<"  "<<particle_center(2)<<std::endl;
+    }
 
     if (i % resfrequency == 0) igl::writeOFF(parameter.resFile, V, F);
 
     velocity = Force_Total / gamma;
+    particle_vel = particle_force / gammap;
     V += velocity * dt;
+    particle_center += particle_vel * dt;
 
     if (v_smooth_flag || delaunay_tri_flag) {
       if ((i+1) % mesh_reg_frequency == 0) {
@@ -297,6 +318,7 @@ int main() {
   }
 
   if ((i+1) == iterations) std::cout<<"Simulation reaches max iterations."<<std::endl;
+  comfile.close();
 
   auto end = system_clock::now();
   auto duration = duration_cast<minutes>(end - start);
@@ -392,6 +414,9 @@ void readParameter()
   runfile >> parameter.particle_flag;
   getline(runfile, line);
   if (parameter.particle_flag) {
+    getline(runfile, line);
+    runfile >> parameter.gammap;
+    getline(runfile, line);
     getline(runfile, line);
     runfile >> parameter.particle_position;
     getline(runfile, line);

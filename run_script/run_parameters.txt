@@ -11,15 +11,17 @@ Kv
 reduced_volume
 1.0
 tolerance
-1.0e-8
+1.0e-7
 tolerance_flag // 1 ON 0 OFF
 1
 tol_frequency
-500
+100
 gamma
 1.0
 particle_flag
 1
+gammap
+1000.0
 particle_position // -1 inside 1 outside
 1
 particle_radius
@@ -27,13 +29,13 @@ particle_radius
 adhesion_strength
 2.0
 potential_range
-0.1
+0.01
 angle_condition_flag
 1
 forced_wrapping // 1 ON 0 OFF
 1 
 wrapping_fraction
-0.8
+0.5
 forced_wrapping_constant
 100
 meshfile

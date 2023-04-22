@@ -42,9 +42,9 @@ void Energy::compute_volumeenergy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, do
 }
 
 
-void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, double X, double Y, double Z,
+void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, Eigen::RowVector3d COM,
                                            double Rp, double rho, double U, double rc, int angle_flag, int particle_position, double Ew_t, double Kw,
-                                           Eigen::MatrixXd& Force_Adhesion, double& EnergyAdhesion, double& EnergyBias, Mesh m)
+                                           Eigen::MatrixXd& Force_Adhesion, double& EnergyAdhesion, double& EnergyBias, Eigen::RowVector3d& PF, Mesh m)
 {
   Force_Adhesion.setZero();
   coefficient.resize(V.rows());
@@ -64,13 +64,12 @@ void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V, Eigen::MatrixXi F,
   EnergyAdhesion = 0.0;
   EnergyBias = 0.0;
 
-  particle_center<<X, Y, Z;
   // vector connecting cetner of the particle and to the vertices;
-  comvec = V.rowwise() - particle_center;
+  comvec = V.rowwise() - COM;
 
   // can this loop be replaced by the eigen operation?
   for (int i = 0; i < V.rows(); i++) {
-    distance(i) = sqrt((V(i,0)-X)*(V(i,0)-X)+(V(i,1)-Y)*(V(i,1)-Y)+(V(i,2)-Z)*(V(i,2)-Z));
+    distance(i) = sqrt((V(i,0)-COM(0))*(V(i,0)-COM(0))+(V(i,1)-COM(1))*(V(i,1)-COM(1))+(V(i,2)-COM(2))*(V(i,2)-COM(2)));
     dc(i) = distance(i) - Rp;
 
     // angle between connecting vector and vertex normal
@@ -84,11 +83,11 @@ void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V, Eigen::MatrixXi F,
 
     coefficient(i) = U * (exp(-(2.0*dc(i))/rho) - 2.0*exp(-dc(i)/rho));
     coefficient_derivative_x(i) = (U/(distance(i)*rho))
-                                *(-exp(-(2.0*dc(i))/rho) + exp(-dc(i)/rho)) * 2.0 * (V(i,0)-X);
+                                *(-exp(-(2.0*dc(i))/rho) + exp(-dc(i)/rho)) * 2.0 * (V(i,0)-COM(0));
     coefficient_derivative_y(i) = (U/(distance(i)*rho))
-                                *(-exp(-(2.0*dc(i))/rho) + exp(-dc(i)/rho)) * 2.0 * (V(i,1)-Y);
+                                *(-exp(-(2.0*dc(i))/rho) + exp(-dc(i)/rho)) * 2.0 * (V(i,1)-COM(1));
     coefficient_derivative_z(i) = (U/(distance(i)*rho))
-                                *(-exp(-(2.0*dc(i))/rho) + exp(-dc(i)/rho)) * 2.0 * (V(i,2)-Z);
+                                *(-exp(-(2.0*dc(i))/rho) + exp(-dc(i)/rho)) * 2.0 * (V(i,2)-COM(2));
 
     // if (dc(i) > EPS && std::abs(Kw) > EPS) Mod_Bias(i) = 1.0;
   }
@@ -113,4 +112,7 @@ void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V, Eigen::MatrixXi F,
     Force_Biased = Kw * dEw * Sum;
     Force_Adhesion = Sum + Force_Biased;
   } else Force_Adhesion = Sum; 
+
+  // calculate total force on the particle
+  PF = -Force_Adhesion.colwise().sum();
 }

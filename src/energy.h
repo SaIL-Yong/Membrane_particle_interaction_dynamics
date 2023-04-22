@@ -31,9 +31,9 @@ class Energy {
   //Eigen::VectorXd area_voronoi;
   //void compute_localareaenergy_force(Eigen::MatrixXd V,Eigen::MatrixXi F,Eigen::MatrixXd& Force_Local_Area,double& local_area_energy);
   //void dosomething();
-  void compute_adhesion_energy_force(Eigen::MatrixXd V,Eigen::MatrixXi F, double X, double Y, double Z,
+  void compute_adhesion_energy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, Eigen::RowVector3d COM,
                                      double rp, double rho, double U, double rc, int angle_flag, int particle_position, double Ew_t, double Kw,
-                                     Eigen::MatrixXd& Force_Adhesion, double& EnergyAdhesion, double& E_bias, Mesh m);
+                                     Eigen::MatrixXd& Force_Adhesion, double& EnergyAdhesion, double& E_bias, Eigen::RowVector3d& PF, Mesh m);
 
  private:
   // variables for bending energy force calculation
@@ -53,6 +53,5 @@ class Energy {
   Eigen::MatrixXd First_Term, Second_Term, Sum, Ead;
   Eigen::MatrixXd Force_Biased;
   Eigen::MatrixXd comvec;
-  Eigen::RowVector3d particle_center;
   double angle, dEw;
 };

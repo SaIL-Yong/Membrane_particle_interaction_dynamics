@@ -4,7 +4,7 @@ close all
 
 fid2=fopen('logfile.txt');
 while feof(fid2)==0
-    for i = 1:5
+    for i = 1:6
         temp=fgetl(fid2);
     end
     maxiteration = sscanf(temp,"%*s %*s %*s %*s %d");
@@ -14,7 +14,7 @@ while feof(fid2)==0
     temp=fgetl(fid2);
     temp=fgetl(fid2);
     dt = sscanf(temp,"%*s %*s %f");
-    for i = 1:8
+    for i = 1:9
         temp=fgetl(fid2);
     end
     if (strcmp(sscanf(temp,"%*s %*s %s"),"outside"))
@@ -23,7 +23,7 @@ while feof(fid2)==0
         particle_position = -1;
     end
     temp=fgetl(fid2);
-    R0 = sscanf(temp,"%*s %*s %f, %f, %f");
+    %R0 = sscanf(temp,"%*s %*s %f, %f, %f");
     temp=fgetl(fid2);
     Rp = sscanf(temp,"%*s %*s %f");
 
@@ -37,6 +37,7 @@ while feof(fid2)==0
     break;
 end
 fclose(fid2);
+
 
 h = 2*chi;
 Rpp = Rp - 0.01;
@@ -68,12 +69,6 @@ ylabel('y','Fontsize',30);
 zlabel('z','Fontsize',30);
 axis([-2.0 2.0 -2.0 2.0 -2.0 2.0]);
 view(0,0);
-S1=surf(X1+R0(1),Y1+R0(2),Z1+R0(3));
-set(S1,'FaceColor',"#A2142F", ...
-  'FaceAlpha',1.0,'FaceLighting','gouraud','EdgeColor','none');
-S2=surf(X2+R0(1),Y2+R0(2),Z2+R0(3));
-set(S2,'FaceColor',"#0072BD", ...
-  'FaceAlpha',1.0,'FaceLighting','gouraud','EdgeColor','none');
 title(['R_p = ', num2str(Rp), ' \chi = ', num2str(chi)]);
 
 fprintf('time step = ');
@@ -112,6 +107,23 @@ for n = 0:dumpfrequency:maxiteration
     end
     fclose(fid);
 
+    fid3=fopen('comfile.txt');
+    while feof(fid3)==0
+        temp=fgetl(fid3);
+        ni = sscanf(temp,"%d %*f %*f %*f");
+        if ni == n
+            R0 = sscanf(temp,"%*d %f %f %f");
+            break;
+        end
+    end
+    fclose(fid3);
+    S1=surf(X1+R0(1),Y1+R0(2),Z1+R0(3));
+    set(S1,'FaceColor',"#A2142F", ...
+      'FaceAlpha',1.0,'FaceLighting','gouraud','EdgeColor','none');
+    S2=surf(X2+R0(1),Y2+R0(2),Z2+R0(3));
+    set(S2,'FaceColor',"#0072BD", ...
+      'FaceAlpha',1.0,'FaceLighting','gouraud','EdgeColor','none');
+
     pp = patch('Faces',tri,'Vertices',[x,y,z],'FaceColor',"#EDB120",'FaceLighting','gouraud','FaceAlpha',0.2,'EdgeColor','k');
     tx = annotation('textbox',[0.05 0.89 0.1 0.1],'String',sprintf('t = %.1f',n*dt),...
         'Fontsize',30,'EdgeColor','w','Color','k');
@@ -122,6 +134,8 @@ for n = 0:dumpfrequency:maxiteration
 
     delete(pp);
     delete(tx);
+    delete(S1);
+    delete(S2);
 
     fprintf('%d ',n);
     kk = kk + 1;

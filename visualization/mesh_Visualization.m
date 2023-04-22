@@ -2,7 +2,8 @@ clc
 clear all
 close all
 
-fid1=fopen('dump00010000.off');
+frame = 000;
+fid1=fopen(sprintf('dump%08d.off',frame));
 
 while feof(fid1)==0
     temp=fgetl(fid1);
@@ -33,7 +34,7 @@ fclose(fid1);
 
 fid2=fopen('logfile.txt');
 while feof(fid2)==0
-    for i = 1:17
+    for i = 1:19
         temp=fgetl(fid2);
     end
     if (strcmp(sscanf(temp,"%*s %*s %s"),"outside"))
@@ -42,7 +43,6 @@ while feof(fid2)==0
         particle_position = -1;
     end
     temp=fgetl(fid2);
-    R0 = sscanf(temp,"%*s %*s %f, %f, %f");
     temp=fgetl(fid2);
     Rp = sscanf(temp,"%*s %*s %f");
 
@@ -56,6 +56,17 @@ while feof(fid2)==0
     break;
 end
 fclose(fid2);
+
+fid3=fopen('comfile.txt');
+while feof(fid3)==0
+    temp=fgetl(fid3);
+    ni = sscanf(temp,"%d %*f %*f %*f");
+    if ni == frame
+        R0 = sscanf(temp,"%*d %f %f %f");
+        break;
+    end
+end
+fclose(fid3);
 
 F1=figure('color','w');
 set(gcf,'Position',[50 50 1000 1000])

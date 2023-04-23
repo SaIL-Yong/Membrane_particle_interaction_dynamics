@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.12)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_C_FLAGS "-O3")
+set(CMAKE_CXX_FLAGS "-O3")
 set(CMAKE_DEBUG_POSTFIX d)
 set(CMAKE_C_FLAGS_DEBUG "-DDEBUG -O0 -g")
 set(CMAKE_CXX_FLAGS_DEBUG "-DDEBUG -O0 -g")
@@ -13,7 +15,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "-DDEBUG -O0 -g")
 
 #message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
 
-project(MemDynamics VERSION 0.1)
+project(MemDynamics VERSION 0.2)
 
 # configure a header file to pass some of the CMake settings
 # to the source code

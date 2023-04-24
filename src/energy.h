@@ -25,7 +25,7 @@ class Energy {
   // float rho=(parameter.potential_range)*rp;
   // float U=(bending_modulus*u)/(pow(rp,2)) ;
       //float X,Y,Z,rp,u,rho,U;
-  void compute_bendingenergy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, double Kb, Eigen::MatrixXd& Force_Bending, double& bending_energy, Mesh m);
+   void compute_bendingenergy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, double Kb,double C_0, Eigen::MatrixXd& Force_Bending, double& bending_energy, Mesh m);
   void compute_areaenergy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, double Ka, double area_target, Eigen::MatrixXd& Force_Area, double& area_energy, Mesh m);
   void compute_volumeenergy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, double Kv, double volume_target, Eigen::MatrixXd& Force_Volume, double& volume_energy, Mesh m);
   //Eigen::VectorXd area_voronoi;

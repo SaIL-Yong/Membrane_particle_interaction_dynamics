@@ -1,5 +1,5 @@
 iterations
-1000000
+10000000
 dt
 0.01
 Kb
@@ -10,30 +10,38 @@ Kv
 0.0
 reduced_volume
 1.0
+C_0
+0.0
 tolerance
-1.0e-2
+1.0e-7
 tolerance_flag // 1 ON 0 OFF
 1
+tol_frequency
+100
 gamma
 1.0
+particle_flag
+1
+gammap
+1000.0
 particle_position // -1 inside 1 outside
--1
+1
 particle_radius
-0.31
+0.3
 adhesion_strength
-5.0
+2.0
 potential_range
-0.1
+0.01
 angle_condition_flag
 1
 forced_wrapping // 1 ON 0 OFF
-0 
+1 
 wrapping_fraction
 0.5
 forced_wrapping_constant
-10
+100
 meshfile
-./start.off
+./equilibrated.off
 outfile
 ./equilibrium.off
 resfile

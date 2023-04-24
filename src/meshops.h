@@ -29,7 +29,7 @@
 
 class Mesh {
  public:
-  void mesh_cal(Eigen::MatrixXd V, Eigen::MatrixXi F,double C_0);// C_0= spontaneous curvature
+  void mesh_cal(Eigen::MatrixXd V, Eigen::MatrixXi F,double C0);// C0 = spontaneous curvature
   double cal_volume2(Eigen::MatrixXd V, Eigen::MatrixXi F);
   double cal_volume(Eigen::MatrixXd V, Eigen::MatrixXi F);
   //double AreaEnergy(Eigen::MatrixXd V,Eigen::MatrixXi F);

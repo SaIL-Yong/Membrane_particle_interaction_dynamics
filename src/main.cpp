@@ -89,16 +89,18 @@ int main() {
   double area_target = 4*PI*Rv*Rv;
   double volume_target = 0.0;
   double rVol; // true reduced volume
-  double C_0=parameter.C_0;
+  double C0 = parameter.C0;
 
   std::cout<<"Vesicle radius: "<<Rv<<std::endl;
   std::cout<<"Membrane drag coefficient: "<<gamma<<std::endl;
   std::cout<<"Membrane bending modulus: "<<Kb<<std::endl;
   std::cout<<"Membrane stretching modulus: "<<Ka<<std::endl;
+  std::cout<<"Membrane spontaneous curvature: "<<C0<<std::endl;
   logfile<<"Vesicle radius: "<<Rv<<std::endl;
   logfile<<"Membrane drag coefficient: "<<gamma<<std::endl;
   logfile<<"Membrane bending modulus: "<<Kb<<std::endl;
   logfile<<"Membrane stretching modulus: "<<Ka<<std::endl;
+  logfile<<"Membrane spontaneous curvature: "<<C0<<std::endl;
 
   if (std::abs(parameter.Kv) > EPS) {
     double rVol_t = parameter.reduced_volume;
@@ -237,8 +239,8 @@ int main() {
   int toln = 0;
   for (i = 0; i < iterations; i++)
   {
-    M1.mesh_cal(V, F,C_0);
-    E1.compute_bendingenergy_force(V, F, Kb,C_0, Force_Bending, EnergyBending, M1);
+    M1.mesh_cal(V, F, C0);
+    E1.compute_bendingenergy_force(V, F, Kb, C0, Force_Bending, EnergyBending, M1);
     E1.compute_areaenergy_force(V, F, Ka, area_target, Force_Area, EnergyArea, M1);
     E1.compute_volumeenergy_force(V, F, Kv, volume_target, Force_Volume, EnergyVolume, M1);
     if (particle_flag) E1.compute_adhesion_energy_force(V, F, particle_center, Rp, rho, U, rc, angle_flag, particle_position, Ew_t, Kw, Force_Adhesion, EnergyAdhesion, EnergyBias, particle_force, M1);
@@ -400,7 +402,7 @@ void readParameter()
   runfile >> parameter.reduced_volume;
   getline(runfile, line);
   getline(runfile, line);
-  runfile >> parameter.C_0;
+  runfile >> parameter.C0;
   getline(runfile, line);
   getline(runfile, line);
   runfile >> parameter.tolerance;

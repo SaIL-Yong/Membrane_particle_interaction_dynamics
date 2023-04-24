@@ -18,6 +18,6 @@ struct Parameter {
     int mesh_reg_frequency, vertex_smoothing_flag, delaunay_triangulation_flag;
     int angle_condition_flag;
     double X0, Y0, Z0;
-    double C_0;///spontaneous_curvature_input
+    double C0;///spontaneous_curvature_input
     int particle_coord_flag;
 };

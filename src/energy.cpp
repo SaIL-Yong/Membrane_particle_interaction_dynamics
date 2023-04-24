@@ -2,7 +2,7 @@
 #include <cmath>
 #include "energy.h"
 
-void Energy::compute_bendingenergy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, double Kb,double C_0,Eigen::MatrixXd& Force_Bending, double& bending_energy, Mesh m)
+void Energy::compute_bendingenergy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, double Kb, double C0, Eigen::MatrixXd& Force_Bending, double& bending_energy, Mesh m)
 {
   bending_energy = 0.0;
   Force_Bending.setZero();
@@ -10,10 +10,10 @@ void Energy::compute_bendingenergy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, d
   bending_energy = EB.sum();
 
   Lap_H = m.Minv * (m.L * m.H_signed);
-  force_density = (2.0 * (m.H_C0.array()) * (m.H_squared+  m.H_signed.cwiseProduct(m.H_C0) - m.K).array()) 
+  force_density = (2.0 * (m.H_C0.array()) * (m.H_squared +  0.5 * C0 * m.H_signed - m.K).array()) 
                  + Lap_H.array();
   vector_term = force_density.array() * m.area_voronoi.array();
-  Force_Bending = (2.0 *Kb)*(m.V_normals.array().colwise() * vector_term.array());
+  Force_Bending = (2.0 * Kb) * (m.V_normals.array().colwise() * vector_term.array());
 }
 
 
@@ -113,8 +113,10 @@ void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V, Eigen::MatrixXi F,
     //Force_Biased = Kw * dEw * (Sum.array().colwise() * Mod_Bias.array());
     Force_Biased = Kw * dEw * Sum;
     Force_Adhesion = Sum + Force_Biased;
-  } else Force_Adhesion = Sum; 
-
-  // calculate total force on the particle
-  PF = -Force_Adhesion.colwise().sum();
+    // calculate total force on the particle
+    PF = -(1 + Kw * dEw) * Second_Term.colwise().sum();
+  } else {
+    Force_Adhesion = Sum; 
+    PF = -Second_Term.colwise().sum();
+  }
 }

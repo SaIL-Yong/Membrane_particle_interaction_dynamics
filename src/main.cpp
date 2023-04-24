@@ -89,6 +89,7 @@ int main() {
   double area_target = 4*PI*Rv*Rv;
   double volume_target = 0.0;
   double rVol; // true reduced volume
+  double C_0=parameter.C_0;
 
   std::cout<<"Vesicle radius: "<<Rv<<std::endl;
   std::cout<<"Membrane drag coefficient: "<<gamma<<std::endl;
@@ -236,8 +237,8 @@ int main() {
   int toln = 0;
   for (i = 0; i < iterations; i++)
   {
-    M1.mesh_cal(V, F);
-    E1.compute_bendingenergy_force(V, F, Kb, Force_Bending, EnergyBending, M1);
+    M1.mesh_cal(V, F,C_0);
+    E1.compute_bendingenergy_force(V, F, Kb,C_0, Force_Bending, EnergyBending, M1);
     E1.compute_areaenergy_force(V, F, Ka, area_target, Force_Area, EnergyArea, M1);
     E1.compute_volumeenergy_force(V, F, Kv, volume_target, Force_Volume, EnergyVolume, M1);
     if (particle_flag) E1.compute_adhesion_energy_force(V, F, particle_center, Rp, rho, U, rc, angle_flag, particle_position, Ew_t, Kw, Force_Adhesion, EnergyAdhesion, EnergyBias, particle_force, M1);
@@ -397,6 +398,9 @@ void readParameter()
   getline(runfile, line);
   getline(runfile, line);
   runfile >> parameter.reduced_volume;
+  getline(runfile, line);
+  getline(runfile, line);
+  runfile >> parameter.C_0;
   getline(runfile, line);
   getline(runfile, line);
   runfile >> parameter.tolerance;

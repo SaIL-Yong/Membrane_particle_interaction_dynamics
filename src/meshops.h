@@ -29,7 +29,7 @@
 
 class Mesh {
  public:
-  void mesh_cal(Eigen::MatrixXd V, Eigen::MatrixXi F);
+  void mesh_cal(Eigen::MatrixXd V, Eigen::MatrixXi F,double C_0);// C_0= spontaneous curvature
   double cal_volume2(Eigen::MatrixXd V, Eigen::MatrixXi F);
   double cal_volume(Eigen::MatrixXd V, Eigen::MatrixXi F);
   //double AreaEnergy(Eigen::MatrixXd V,Eigen::MatrixXi F);
@@ -41,9 +41,9 @@ class Mesh {
   int numF, numV;
   double volume_total, area_total;
   Eigen::SparseMatrix<double> L, M, Minv;
-  Eigen::MatrixXd H, HN, H_squared, H_X_N;
+  Eigen::MatrixXd H, HN, H_squared, H_X_N,H_C0_squared;
   Eigen::VectorXd abc, sign_of_H;
-  Eigen::VectorXd H_signed;
+  Eigen::VectorXd H_signed,H_C0;
   Eigen::VectorXd K;
   Eigen::MatrixXd F_normals, V_normals;
   Eigen::VectorXd dblA;

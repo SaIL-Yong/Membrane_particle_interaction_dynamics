@@ -34,7 +34,7 @@ fclose(fid1);
 
 fid2=fopen('logfile.txt');
 while feof(fid2)==0
-    for i = 1:19
+    for i = 1:18
         temp=fgetl(fid2);
     end
     if (strcmp(sscanf(temp,"%*s %*s %s"),"outside"))

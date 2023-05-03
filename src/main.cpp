@@ -29,16 +29,6 @@ int main() {
     std::cout<<"ERROR: cannot access logfile."<<std::endl;
   }
 
-  // output of particle position
-  std::fstream comfile;
-  comfile.open("comfile.txt",std::ios::out);
-  if (logfile.is_open())
-  {
-    logfile<<"Instantaneous position of the particle"<<std::endl;
-  } else {
-    std::cout<<"ERROR: cannot access comfile."<<std::endl;
-  }
-
   int iterations = parameter.iterations;
   int logfrequency = parameter.logfrequency;
   int dumpfrequency = parameter.dumpfrequency;
@@ -113,6 +103,7 @@ int main() {
   }
 
   // parameters for particle adhesion
+  std::fstream comfile;
   int particle_flag = parameter.particle_flag;
   double gammap = parameter.gammap;
   int particle_position = parameter.particle_position;
@@ -120,6 +111,15 @@ int main() {
   int angle_flag;
   Eigen::RowVector3d particle_center, particle_center_mid, particle_force, particle_vel;
   if (particle_flag) {
+      // output of particle position
+    comfile.open("comfile.txt",std::ios::out);
+    if (comfile.is_open())
+    {
+      comfile<<"Instantaneous position of the particle"<<std::endl;
+    } else {
+      std::cout<<"ERROR: cannot access comfile."<<std::endl;
+    }
+
     Rp = parameter.particle_radius;
     u = parameter.adhesion_strength;
     U = (Kb * u) / (Rp * Rp);
@@ -295,8 +295,10 @@ int main() {
       char dumpfilename[128];
       sprintf(dumpfilename, "dump%08d.off", i);
       igl::writeOFF(dumpfilename, V, F);
-      comfile<<i<<"  ";
-      comfile<<particle_center(0)<<"  "<<particle_center(1)<<"  "<<particle_center(2)<<std::endl;
+      if (particle_flag) {
+        comfile<<i<<"  ";
+        comfile<<particle_center(0)<<"  "<<particle_center(1)<<"  "<<particle_center(2)<<std::endl;
+      }
     }
 
     if (i % resfrequency == 0) igl::writeOFF(parameter.resFile, V, F);
@@ -321,7 +323,7 @@ int main() {
   }
 
   if ((i+1) == iterations) std::cout<<"Simulation reaches max iterations."<<std::endl;
-  comfile.close();
+  if (particle_flag) comfile.close();
 
   auto end = system_clock::now();
   auto duration = duration_cast<minutes>(end - start);

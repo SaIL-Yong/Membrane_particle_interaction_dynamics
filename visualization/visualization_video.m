@@ -4,7 +4,7 @@ close all
 
 fid2=fopen('logfile.txt');
 while feof(fid2)==0
-    for i = 1:6
+    for i = 1:5
         temp=fgetl(fid2);
     end
     maxiteration = sscanf(temp,"%*s %*s %*s %*s %d");

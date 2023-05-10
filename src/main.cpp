@@ -277,10 +277,8 @@ int main() {
       logfile<<EnergyTotal<<"  ";
       logfile<<EnergyChangeRate_log<<"  ";
       logfile<<force_residual<<std::endl;
-    }
 
-    if (i % tolsteps == 0) {
-      if (i != 0) {
+      if (i > tolsteps) {
         EnergyChangeRate_avg = etol(Eigen::seq(toln-1-tolmean_steps,toln-1)).mean();
 
         if (std::abs(EnergyChangeRate_avg) < tolerance && tolerance_flag) {

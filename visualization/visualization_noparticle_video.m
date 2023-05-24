@@ -14,43 +14,9 @@ while feof(fid2)==0
     temp=fgetl(fid2);
     temp=fgetl(fid2);
     dt = sscanf(temp,"%*s %*s %f");
-    for i = 1:13
-        temp=fgetl(fid2);
-    end
-    if (strcmp(sscanf(temp,"%*s %*s %s"),"outside"))
-        particle_position = 1;
-    elseif (strcmp(sscanf(temp,"%*s %*s %s"),"inside"))
-        particle_position = -1;
-    end
-    temp=fgetl(fid2);
-    %R0 = sscanf(temp,"%*s %*s %f, %f, %f");
-    temp=fgetl(fid2);
-    Rp = sscanf(temp,"%*s %*s %f");
-
-    for i = 1:6
-        temp=fgetl(fid2);
-    end
-    chi = sscanf(temp,"%*s %*s %*s %f");
-    if (isempty(chi))
-        chi = 0.0;
-    end
     break;
 end
 fclose(fid2);
-
-
-h = 2*chi;
-Rpp = Rp - 0.01;
-[Rx,Ry,Rz] = sphere(200);
-X1 = Rpp*Rx; Y1 = Rpp*Ry; Z1 = Rpp*Rz;
-X2 = Rpp*Rx; Y2 = Rpp*Ry; Z2 = Rpp*Rz;
-if (particle_position > 0)
-    X1(Rz>-1+h) = NaN; Y1(Rz>-1+h) = NaN; Z1(Rz>-1+h) = NaN;
-    X2(Rz<=-1+h) = NaN; Y2(Rz<=-1+h) = NaN; Z2(Rz<=-1+h) = NaN;
-else
-    X1(Rz<1-h) = NaN; Y1(Rz<1-h) = NaN; Z1(Rz<1-h) = NaN;
-    X2(Rz>=1-h) = NaN; Y2(Rz>=1-h) = NaN; Z2(Rz>=1-h) = NaN;
-end
 
 mkdir(fullfile(pwd,'images'));
 
@@ -68,8 +34,7 @@ xlabel('x','Fontsize',30);
 ylabel('y','Fontsize',30);
 zlabel('z','Fontsize',30);
 axis([-1.5 1.5 -1.5 1.5 -1.5 1.5]);
-view(30,10);
-title(['R_p = ', num2str(Rp), ' \chi = ', num2str(chi)]);
+view(35,10);
 
 fprintf('time step = ');
 kk = 1;
@@ -116,23 +81,6 @@ for n = 0:100*dumpfrequency:maxiteration
     end
     fclose(fid);
 
-    fid3=fopen('comfile.txt');
-    while feof(fid3)==0
-        temp=fgetl(fid3);
-        ni = sscanf(temp,"%d %*f %*f %*f");
-        if ni == n
-            R0 = sscanf(temp,"%*d %f %f %f");
-            break;
-        end
-    end
-    fclose(fid3);
-    S1=surf(X1+R0(1),Y1+R0(2),Z1+R0(3));
-    set(S1,'FaceColor',"#A2142F", ...
-      'FaceAlpha',1.0,'FaceLighting','gouraud','EdgeColor','none');
-    S2=surf(X2+R0(1),Y2+R0(2),Z2+R0(3));
-    set(S2,'FaceColor',"#0072BD", ...
-      'FaceAlpha',1.0,'FaceLighting','gouraud','EdgeColor','none');
-
     pp1 = patch('Faces',tri,'Vertices',[x,y,z],'FaceColor',"#EDB120",'FaceLighting','gouraud',...
         'FaceVertexAlphaData',facealphadata,'AlphaDataMapping','none','FaceAlpha','interp','EdgeAlpha',0.0);
     pp2 = patch('Faces',tri,'Vertices',[x,y,z],'FaceColor',"#EDB120",'FaceLighting','gouraud',...
@@ -147,8 +95,6 @@ for n = 0:100*dumpfrequency:maxiteration
     delete(pp1);
     delete(pp2);
     delete(tx);
-    delete(S1);
-    delete(S2);
 
     fprintf('%d ',n);
     kk = kk + 1;

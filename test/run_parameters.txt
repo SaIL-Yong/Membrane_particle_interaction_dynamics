@@ -41,7 +41,7 @@ wrapping_fraction
 forced_wrapping_constant
 100
 meshfile
-./equilibrated.off
+./start.off
 outfile
 ./equilibrium.off
 resfile

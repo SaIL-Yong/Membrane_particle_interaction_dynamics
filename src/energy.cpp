@@ -10,10 +10,21 @@ void Energy::compute_bendingenergy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, d
   bending_energy = EB.sum();
 
   Lap_H = m.Minv * (m.L * m.H_signed);
-  force_density = (2.0 * (m.H_C0.array()) * (m.H_squared +  0.5 * C0 * m.H_signed - m.K).array()) 
+  force_density = (2.0 * (m.H_C0.array()) * (m.H_squared +  0.5 * C0 * m.H_signed - m.K).array())
                  + Lap_H.array();
-  vector_term = force_density.array() * m.area_voronoi.array();
+  vector_term = force_density.array()*m.area_voronoi.array();
   Force_Bending = (2.0 * Kb) * (m.V_normals.array().colwise() * vector_term.array());
+
+  // std::ofstream file("Force_Density.txt");
+  // if (file.is_open()) {
+  //   file<< force_density << std::endl;
+  //   file.close();
+  //   std::cout << "Force Density successfully saved to file." << std::endl;
+  // }
+  // else {
+  //   std::cout << "Error: cannot open bending force file." << std::endl;
+  //}
+
 }
 
 
@@ -76,7 +87,7 @@ void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V, Eigen::MatrixXi F,
 
     // angle between connecting vector and vertex normal
     angle = acos((comvec.row(i)).dot(m.V_normals.row(i)) / (comvec.row(i).norm() * m.V_normals.row(i).norm()));
-    
+
     if (std::abs(dc(i)) > rc) continue;
     if (angle_flag) {
       if (particle_position > 0 && angle <= 0.5*PI) continue;
@@ -98,7 +109,7 @@ void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V, Eigen::MatrixXi F,
   coefficient_of_derivative.col(0)=coefficient_derivative_x.transpose();
   coefficient_of_derivative.col(1)=coefficient_derivative_y.transpose();
   coefficient_of_derivative.col(2)=coefficient_derivative_z.transpose();
-  
+
   First_Term = -(AG.array().colwise()*coefficient.array());
   Second_Term = -(coefficient_of_derivative.array().colwise()*m.area_voronoi.array());
 
@@ -116,7 +127,7 @@ void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V, Eigen::MatrixXi F,
     // calculate total force on the particle
     PF = -(1 + Kw * dEw) * Second_Term.colwise().sum();
   } else {
-    Force_Adhesion = Sum; 
-    PF = -Second_Term.colwise().sum();
+    Force_Adhesion = Sum;
+    //PF = -Second_Term.colwise().sum();
   }
 }

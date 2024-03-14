@@ -102,7 +102,7 @@ Eigen::MatrixXd Mesh::volume_grad(Eigen::MatrixXd V, Eigen::MatrixXi F)
     VG.row(i) = vol_ij;
   }
 
-  //std::cout<<"vol_grad \n"<<vol_grad<<std::endl;
+  //std::cout<<"vol_grad \n"<<VG<<std::endl;
   return VG;
 }
 

@@ -4,7 +4,7 @@ close all
 
 fid2=fopen('logfile.txt');
 while feof(fid2)==0
-    for i = 1:5
+    for i = 1:6
         temp=fgetl(fid2);
     end
     maxiteration = sscanf(temp,"%*s %*s %*s %*s %d");
@@ -14,7 +14,7 @@ while feof(fid2)==0
     temp=fgetl(fid2);
     temp=fgetl(fid2);
     dt = sscanf(temp,"%*s %*s %f");
-    for i = 1:13
+    for i = 1:9
         temp=fgetl(fid2);
     end
     if (strcmp(sscanf(temp,"%*s %*s %s"),"outside"))
@@ -67,13 +67,13 @@ set(ax,'Fontsize',26,'XMinorTick','on','YMinorTick','on','ZMinorTick','on');
 xlabel('x','Fontsize',30);
 ylabel('y','Fontsize',30);
 zlabel('z','Fontsize',30);
-axis([-1.5 1.5 -1.5 1.5 -1.5 1.5]);
-view(30,10);
+axis([-2.0 2.0 -2.0 2.0 -2.0 2.0]);
+view(0,0);
 title(['R_p = ', num2str(Rp), ' \chi = ', num2str(chi)]);
 
 fprintf('time step = ');
 kk = 1;
-for n = 0:100*dumpfrequency:maxiteration
+for n = 0:dumpfrequency:maxiteration
     filename = sprintf("dump%08d.off",n);
     fid = fopen(filename);
 
@@ -90,22 +90,13 @@ for n = 0:100*dumpfrequency:maxiteration
         y = x;
         z = x;
         tri = zeros(nF,3);
-        facealphadata = zeros(nV,1);
-        edgealphadata = zeros(nV,1);
-        
+
         for i=1:nV
             temp=fgetl(fid);
             vertex=sscanf(temp, '%g %g %g');
             x(i)=vertex(1);
             y(i)=vertex(2);
-            z(i)=vertex(3);
-            if y(i)>0
-                facealphadata(i)=1.0;
-                edgealphadata(i)=0.5;
-            else
-                facealphadata(i)=0.2;
-                edgealphadata(i)=0.1;
-            end
+            z(i)=vertex(3);    
         end
         
         for i=1:nF
@@ -133,10 +124,7 @@ for n = 0:100*dumpfrequency:maxiteration
     set(S2,'FaceColor',"#0072BD", ...
       'FaceAlpha',1.0,'FaceLighting','gouraud','EdgeColor','none');
 
-    pp1 = patch('Faces',tri,'Vertices',[x,y,z],'FaceColor',"#EDB120",'FaceLighting','gouraud',...
-        'FaceVertexAlphaData',facealphadata,'AlphaDataMapping','none','FaceAlpha','interp','EdgeAlpha',0.0);
-    pp2 = patch('Faces',tri,'Vertices',[x,y,z],'FaceColor',"#EDB120",'FaceLighting','gouraud',...
-        'FaceVertexAlphaData',edgealphadata,'AlphaDataMapping','none','FaceAlpha',0.0,'EdgeAlpha','interp');
+    pp = patch('Faces',tri,'Vertices',[x,y,z],'FaceColor',"#EDB120",'FaceLighting','gouraud','FaceAlpha',0.2,'EdgeColor','k');
     tx = annotation('textbox',[0.05 0.89 0.1 0.1],'String',sprintf('t = %.1f',n*dt),...
         'Fontsize',30,'EdgeColor','w','Color','k');
 
@@ -144,8 +132,7 @@ for n = 0:100*dumpfrequency:maxiteration
     fullname = fullfile(pwd,'images',imgfname);
     print(fullname,'-djpeg','-r300');
 
-    delete(pp1);
-    delete(pp2);
+    delete(pp);
     delete(tx);
     delete(S1);
     delete(S2);

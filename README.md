@@ -22,9 +22,7 @@ cmake --build .
 ###                      2) For Particle Interaction.
 
 For generating video from image sequence, using ffmpeg
-
 example syntax
-
-ffmpeg -r 10 -i img%05d.jpg -c:v libx264 -pix_fmt yuvj420p -crf 18 -vf "pad=ceil(iw/2)*2:ceil(ih/2)*2" video.mp4
+ffmpeg -i img%05d.jpg -c:v libx264 -pix_fmt yuv420p -crf 18 -vf "pad=ceil(iw/2)*2:ceil(ih/2)*2" -r 10 video.mp4
 -crf (0-51) controls vidoe quality (0 is lossless)
 -r is the frame rate (per second)

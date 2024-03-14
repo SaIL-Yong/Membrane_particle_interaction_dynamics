@@ -5,6 +5,7 @@
 #include "meshops.h"
 #include "energy.h"
 #include "parameters.h"
+
 using namespace std::chrono;
 int numV;                                               // number of vertices
 int numF;                                               // number of faces
@@ -27,6 +28,16 @@ int main() {
     logfile<<"This is logfile for simulation"<<std::endl;
   } else {
     std::cout<<"ERROR: cannot access logfile."<<std::endl;
+  }
+
+  // output of particle position
+  std::fstream comfile;
+  comfile.open("comfile.txt",std::ios::out);
+  if (logfile.is_open())
+  {
+    logfile<<"Instantaneous position of the particle"<<std::endl;
+  } else {
+    std::cout<<"ERROR: cannot access comfile."<<std::endl;
   }
 
   int iterations = parameter.iterations;
@@ -71,7 +82,8 @@ int main() {
   }
   
   // paraemters for membrane properties
-  double gamma = parameter.gamma;
+  //double mass = 1.0;
+  double mass = parameter.gamma;
   double Kb = parameter.Kb;
   double Kv = 0.0;
   double Ka = parameter.Ka;
@@ -103,23 +115,13 @@ int main() {
   }
 
   // parameters for particle adhesion
-  std::fstream comfile;
   int particle_flag = parameter.particle_flag;
-  double gammap = parameter.gammap;
+  //double gammap = parameter.gammap;
   int particle_position = parameter.particle_position;
   double Rp, u, U, rho, rc, X0, Y0, Z0, Ew_t, Kw;
   int angle_flag;
   Eigen::RowVector3d particle_center, particle_center_mid, particle_force, particle_vel;
   if (particle_flag) {
-      // output of particle position
-    comfile.open("comfile.txt",std::ios::out);
-    if (comfile.is_open())
-    {
-      comfile<<"Instantaneous position of the particle"<<std::endl;
-    } else {
-      std::cout<<"ERROR: cannot access comfile."<<std::endl;
-    }
-
     Rp = parameter.particle_radius;
     u = parameter.adhesion_strength;
     U = (Kb * u) / (Rp * Rp);
@@ -127,8 +129,8 @@ int main() {
     rc = 5.0*rho;
     angle_flag = parameter.angle_condition_flag;
 
-    std::cout<<"Particle drag coefficient: "<<gammap<<std::endl;
-    logfile<<"Particle drag coefficient: "<<gammap<<std::endl;
+    // std::cout<<"Particle drag coefficient: "<<gammap<<std::endl;
+    // logfile<<"Particle drag coefficient: "<<gammap<<std::endl;
 
     if (parameter.particle_position > 0) {
       std::cout<<"Particle position: outside"<<std::endl;
@@ -211,8 +213,17 @@ int main() {
   Mesh M1;
   Energy E1;
 
-  Eigen::MatrixXd Force_Area(numV, 3), Force_Volume(numV, 3), Force_Bending(numV, 3), Force_Adhesion(numV, 3), velocity(numV, 3), Force_Total(numV, 3); //force components
+  Eigen::MatrixXd Force_Area(numV, 3), Force_Volume(numV, 3), Force_Bending(numV, 3), Force_Adhesion(numV, 3),velocity(numV, 3), 
+                  Force_Total(numV, 3), acceleration(numV,3),acceleration_half_step(numV,3); //force components
   velocity.setZero();
+  //velocity_half_step.setZero();
+  Force_Total.setZero();
+  //Force_Total_old.setZero();
+  acceleration.setZero();
+  acceleration_half_step.setZero();
+ 
+  
+
   double EnergyVolume = 0.0, EnergyArea = 0.0, EnergyBending = 0.0, EnergyAdhesion = 0.0,  EnergyBias = 0.0,
          EnergyTotal = 0.0, EnergyTotalold_log = 0.0, EnergyChangeRate_log = 0.0, EnergyChangeRate_avg = 0.0;  //energy components
   Eigen::MatrixXd l;
@@ -239,15 +250,39 @@ int main() {
   int toln = 0;
   for (i = 0; i < iterations; i++)
   {
+    // Calculate forces and energies
     M1.mesh_cal(V, F, C0);
     E1.compute_bendingenergy_force(V, F, Kb, C0, Force_Bending, EnergyBending, M1);
     E1.compute_areaenergy_force(V, F, Ka, area_target, Force_Area, EnergyArea, M1);
     E1.compute_volumeenergy_force(V, F, Kv, volume_target, Force_Volume, EnergyVolume, M1);
     if (particle_flag) E1.compute_adhesion_energy_force(V, F, particle_center, Rp, rho, U, rc, angle_flag, particle_position, Ew_t, Kw, Force_Adhesion, EnergyAdhesion, EnergyBias, particle_force, M1);
-
+  
     EnergyTotal = EnergyBending + EnergyArea + EnergyVolume + EnergyAdhesion + EnergyBias;
-    Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion;
+    Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion;    
+    //force_residual = Force_Total.norm();
+
+    // Update vertex positions
+    //acceleration = Force_Total/mass;
+    acceleration_half_step = Force_Total / mass;
+
+    V += velocity * dt + 0.5 * acceleration_half_step * (dt * dt);
+
+    // Repeat force calculations here
+    M1.mesh_cal(V, F, C0);
+    E1.compute_bendingenergy_force(V, F, Kb, C0, Force_Bending, EnergyBending, M1);
+    E1.compute_areaenergy_force(V, F, Ka, area_target, Force_Area, EnergyArea, M1);
+    E1.compute_volumeenergy_force(V, F, Kv, volume_target, Force_Volume, EnergyVolume, M1);
+    if (particle_flag) E1.compute_adhesion_energy_force(V, F, particle_center, Rp, rho, U, rc, angle_flag, particle_position, Ew_t, Kw, Force_Adhesion, EnergyAdhesion, EnergyBias, particle_force, M1);
+  
+    EnergyTotal = EnergyBending + EnergyArea + EnergyVolume + EnergyAdhesion + EnergyBias;
+    Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion;  
     force_residual = Force_Total.norm();
+
+    acceleration = Force_Total / mass;
+    // Update velocities with average acceleration
+    velocity = 0.5 * (acceleration + acceleration_half_step) * dt;
+
+
 
     rVol = 6 * sqrt(PI) * M1.volume_total * pow(M1.area_total, -1.5);
 
@@ -277,8 +312,10 @@ int main() {
       logfile<<EnergyTotal<<"  ";
       logfile<<EnergyChangeRate_log<<"  ";
       logfile<<force_residual<<std::endl;
+    }
 
-      if (i > tolsteps) {
+    if (i % tolsteps == 0) {
+      if (i != 0) {
         EnergyChangeRate_avg = etol(Eigen::seq(toln-1-tolmean_steps,toln-1)).mean();
 
         if (std::abs(EnergyChangeRate_avg) < tolerance && tolerance_flag) {
@@ -293,18 +330,16 @@ int main() {
       char dumpfilename[128];
       sprintf(dumpfilename, "dump%08d.off", i);
       igl::writeOFF(dumpfilename, V, F);
-      if (particle_flag) {
-        comfile<<i<<"  ";
-        comfile<<particle_center(0)<<"  "<<particle_center(1)<<"  "<<particle_center(2)<<std::endl;
-      }
+      comfile<<i<<"  ";
+      comfile<<particle_center(0)<<"  "<<particle_center(1)<<"  "<<particle_center(2)<<std::endl;
     }
 
     if (i % resfrequency == 0) igl::writeOFF(parameter.resFile, V, F);
 
-    velocity = Force_Total / gamma;
-    particle_vel = particle_force / gammap;
-    V += velocity * dt;
-    particle_center += particle_vel * dt;
+    //velocity = Force_Total / gamma;
+    //particle_vel = particle_force / gammap;
+    //V += velocity * dt;
+    //particle_center += particle_vel * dt;
 
     if (v_smooth_flag || delaunay_tri_flag) {
       if ((i+1) % mesh_reg_frequency == 0) {
@@ -321,7 +356,7 @@ int main() {
   }
 
   if ((i+1) == iterations) std::cout<<"Simulation reaches max iterations."<<std::endl;
-  if (particle_flag) comfile.close();
+  comfile.close();
 
   auto end = system_clock::now();
   auto duration = duration_cast<minutes>(end - start);
@@ -374,6 +409,15 @@ int main() {
   }
   else {
     std::cout << "Error: cannot open area force file." << std::endl;
+  }
+    std::ofstream file4("Volume_Force.txt");
+  if (file4.is_open()) {
+    file4<< Force_Volume << std::endl;
+    file4.close();
+    std::cout << "Volume force successfully saved to file." << std::endl;
+  }
+  else {
+    std::cout << "Error: cannot open volume force file." << std::endl;
   }
 }
 

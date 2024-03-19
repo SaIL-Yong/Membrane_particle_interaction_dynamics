@@ -1,8 +1,10 @@
 #include "energy.h"
 #include "meshops.h"
 #include "parameters.h"
+#include <omp.h>
 
-void Mesh::mesh_cal(Eigen::MatrixXd V, Eigen::MatrixXi F,double C0)
+
+void Mesh::mesh_cal(Eigen::MatrixXd V, Eigen::MatrixXi F)
 {
   numV = V.rows();
   numF = F.rows();
@@ -14,6 +16,7 @@ void Mesh::mesh_cal(Eigen::MatrixXd V, Eigen::MatrixXi F,double C0)
   igl::massmatrix(V, F, igl::MASSMATRIX_TYPE_VORONOI, M);
   igl::invert_diag(M, Minv);
   igl::gaussian_curvature(V, F, K);
+  
 
   K = (Minv * K).eval();
   HN = -Minv * (L * V) / 2.0;
@@ -23,14 +26,14 @@ void Mesh::mesh_cal(Eigen::MatrixXd V, Eigen::MatrixXi F,double C0)
   abc = H_X_N.rowwise().sum();
   sign_of_H = abc.array().sign();
   H_signed = H.array() * sign_of_H.array();
-  H_signed = H_signed.array();
   H_squared = H.array().square();
-  H_C0 = H_signed.array() - 0.5*C0;
-  H_C0_squared = H_C0.array().square();
   area_voronoi = M.diagonal();
 
   volume_total = cal_volume2(V, F);
   area_total = dblA.sum() / 2;
+
+
+
 }
 
 double Mesh::cal_volume2(Eigen::MatrixXd V, Eigen::MatrixXi F)
@@ -51,6 +54,7 @@ double Mesh::cal_volume(Eigen::MatrixXd V, Eigen::MatrixXi F)
   volume_total = 0.0;
   sum = 0.0;
 
+  //#pragma omp parallel for reduction(+:volume_total) private(p0x, p0y, p0z, p1x, p1y, p1z, p2x, p2y, p2z, v321, v231, v312, v132, v213, v123, sum)
   for (int i = 0; i < numF; i++) {
 
     p0x = V(F(i,0),0);
@@ -91,7 +95,9 @@ Eigen::MatrixXd Mesh::volume_grad(Eigen::MatrixXd V, Eigen::MatrixXi F)
 
   int i, j, k;
 
+  //#pragma omp parallel for private(j, k) shared(VG)
   for (i = 0; i < numV; i++) {
+    Eigen::RowVector3d vol_ij;
     vol_ij.setZero();
 
     for (j = 0; j < VF[i].size(); j++) {
@@ -99,10 +105,11 @@ Eigen::MatrixXd Mesh::volume_grad(Eigen::MatrixXd V, Eigen::MatrixXi F)
       vol_ij += (1.0/3.0)*(dblA(k)/2.0)*F_normals.row(k);
     }
 
+    //#pragma omp critical
     VG.row(i) = vol_ij;
   }
 
-  //std::cout<<"vol_grad \n"<<VG<<std::endl;
+  //std::cout<<"vol_grad \n"<<vol_grad<<std::endl;
   return VG;
 }
 
@@ -115,27 +122,26 @@ Eigen::MatrixXd Mesh::vertex_smoothing(Eigen::MatrixXd V, Eigen::MatrixXi F)
 
   int i, j, k;
 
+  //#pragma omp parallel for private(j, k)
   for (i = 0; i < numV; i++) {
-    f_norm.resize(VF[i].size(), 3);
-    V_centroid.resize(VF[i].size(), 3);
-    face_area.resize(VF[i].size());
+    Eigen::MatrixXd f_norm(VF[i].size(), 3);
+    Eigen::MatrixXd V_centroid(VF[i].size(), 3);
+    Eigen::VectorXd face_area(VF[i].size());
           
-    face_area_sum = 0.0;
+    double face_area_sum = 0.0;
     
     for (j = 0; j < VF[i].size(); j++) {
       k = VF[i][j];
-      //std::cout<<"facearea \n "<< dblA(k)<<std::endl;
-      face_area_sum += (dblA(k));
+      face_area_sum += dblA(k);
       face_area(j) = dblA(k);
       f_norm.row(j) = F_normals.row(k);
       V_centroid.row(j) = V_b.row(k);
     }
 
-    sum_of_area_centroid = face_area.transpose() * V_centroid;
-    V_avg = sum_of_area_centroid / face_area_sum;
-    f_norm_sum = f_norm.colwise().sum();//fsum in python
-    //std::cout<<"f_sum \n "<< V.row(i).dot(f_norm_sum)<<std::endl;
-    lambda = ((V_avg.dot(f_norm_sum)) - (V.row(i).dot(f_norm_sum))) / (f_norm_sum.dot(f_norm_sum));
+    Eigen::VectorXd sum_of_area_centroid = face_area.transpose() * V_centroid;
+    Eigen::RowVector3d V_avg = sum_of_area_centroid / face_area_sum;
+    Eigen::RowVector3d f_norm_sum = f_norm.colwise().sum();
+    double lambda = ((V_avg.dot(f_norm_sum)) - (V.row(i).dot(f_norm_sum))) / (f_norm_sum.dot(f_norm_sum));
 
     V_new.row(i) = V_avg - lambda*f_norm_sum;
   }

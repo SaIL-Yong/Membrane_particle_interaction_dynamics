@@ -64,8 +64,5 @@ bondfrequency
 1
 vertex_smoothing_flag
 1
-
-
-1
 delaunay_triangulation_flag
 1

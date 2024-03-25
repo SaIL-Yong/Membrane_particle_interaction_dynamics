@@ -25,6 +25,7 @@
 #include <igl/gaussian_curvature.h>
 #include <igl/intrinsic_delaunay_triangulation.h>
 #include <igl/barycenter.h>
+#include <igl/barycentric_coordinates.h>
 
 
 class Mesh {

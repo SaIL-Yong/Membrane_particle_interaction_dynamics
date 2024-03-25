@@ -33,6 +33,7 @@ class Energy {
  // void compute_adhesion_energy_force(Eigen::MatrixXd V,Eigen::MatrixXi F, double X, double Y, double Z,
  //                                    double rp, double rho, double U, double rc, int angle_flag, int particle_position, double Ew_t, double Kw,
  //                                    Eigen::MatrixXd& Force_Adhesion, double& EnergyAdhesion, double& E_bias, Mesh m);
+ void redistributeAdhesionForce(Eigen::MatrixXd V2, Eigen::MatrixXi F2, Eigen::MatrixXd closest_points, Eigen::MatrixXd Force_Adhesion, Eigen::VectorXi facet_index, Eigen::MatrixXd& ForcesOnVertices) ; 
 
  private:
   // variables for bending energy force calculation

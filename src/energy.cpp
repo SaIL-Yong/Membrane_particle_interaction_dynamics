@@ -155,11 +155,45 @@ void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V, Eigen::MatrixXi F,
     Force_Biased = Kw * dEw * Sum;
     Force_Adhesion = Sum + Force_Biased;
   } else Force_Adhesion = Sum; 
-
-
-
 }
+/// @brief 
+/// @param V2 
+/// @param F2 
+/// @param closest_points 
+/// @param Force_Adhesion 
+/// @param facet_index 
+/// @param ForcesOnVertices 
+void Energy::redistributeAdhesionForce(Eigen::MatrixXd V2, Eigen::MatrixXi F2, Eigen::MatrixXd closest_points, Eigen::MatrixXd Force_Adhesion, Eigen::VectorXi facet_index, Eigen::MatrixXd& ForcesOnVertices)  {
+    // Initialize ForcesOnVertices to be zero
+    //ForcesOnVertices.setZero();
+    ForcesOnVertices.setZero(V2.rows(), 3);
 
+    for (size_t i = 0; i < closest_points.rows(); ++i) {
+
+        // Inside the loop where you distribute forces:
+        Eigen::Vector3d force = -Force_Adhesion.row(i); // Access the i-th force vector
+        // Proceed to distribute this force using barycentric coordinates
+        // Get the indices of the vertices of the triangle
+        int f_idx = facet_index(i); // Triangle index
+        Eigen::Vector3i face = F2.row(f_idx);
+
+        // Get the vertices of the triangle
+        Eigen::Matrix<double, 3, 3> triangle;
+        triangle.row(0) = V2.row(face(0));
+        triangle.row(1) = V2.row(face(1));
+        triangle.row(2) = V2.row(face(2));
+
+        // Compute the barycentric coordinates of the closest point with respect to the triangle
+        Eigen::MatrixXd barycentricCoords;
+        igl::barycentric_coordinates(closest_points.row(i), triangle.row(0), triangle.row(1), triangle.row(2), barycentricCoords);
+        //std::cout << "Barycentric coordinates: " << barycentricCoords << std::endl;
+
+        // Distribute the force according to the barycentric coordinates
+        for (int j = 0; j < 3; ++j) {
+            ForcesOnVertices.row(face(j)) += force * barycentricCoords(0,j);
+        }
+    }
+}
 
 //   // can this loop be replaced by the eigen operation?
 

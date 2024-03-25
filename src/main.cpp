@@ -245,6 +245,8 @@ int main() {
 
   Eigen::MatrixXd Force_Area(numV, 3), Force_Volume(numV, 3), Force_Bending(numV, 3), Force_Adhesion(numV, 3), velocity(numV, 3), Force_Total(numV, 3),
                   acceleration(numV,3),acceleration_half_step(numV,3); //force components
+
+  Eigen::MatrixXd ForcesOnVertices;
   velocity.setZero();
   //velocity_half_step.setZero();
   Force_Total.setZero();
@@ -319,6 +321,7 @@ int main() {
    // Check if the file was successfully opened
     if (outfile.is_open()) {
     outfile << signed_distance << std::endl;
+    outfile << facet_index << std::endl;
     outfile.close();
     }
     else {
@@ -335,6 +338,19 @@ int main() {
     acceleration = Force_Total / mass;
     // Update velocities with average acceleration
     velocity = 0.5 * (acceleration + acceleration_half_step) * dt;
+
+    //ForcesonParticleVertices
+    E1.redistributeAdhesionForce(V2,F2,closest_points, Force_Adhesion, facet_index,ForcesOnVertices); 
+  //   //std::cout << "ForcesOnVertices" << ForcesOnVertices << std::endl;
+  //     std::ofstream file3("Opposite_Adhesion_Force.txt");
+  // if (file3.is_open()) {
+  //   file3<< ForcesOnVertices << std::endl;
+  //   file3.close();
+  //   std::cout << "Particle Adhesion force successfully saved to file." << std::endl;
+  // }
+  // else {
+  //   std::cout << "Error: cannot open area force file." << std::endl;
+  // }
 
 
     rVol = 6 * sqrt(PI) * M1.volume_total * pow(M1.area_total, -1.5);

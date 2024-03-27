@@ -32,9 +32,9 @@ potential_range
 0.01
 r_equilibrium
 0.0
-epsilon
-0
-sigma
+mass
+1.0
+kbT
 1.0
 angle_condition_flag
 1

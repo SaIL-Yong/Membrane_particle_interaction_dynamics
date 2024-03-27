@@ -84,8 +84,10 @@ int main() {
     logfile<<"Convergence: OFF\n"<<std::endl;
   }
   
-  // paraemters for membrane properties
-  double mass = parameter.gamma;
+  // paraemters for membrane properties]
+  double gamma = parameter.gamma;
+  double mass = parameter.mass;
+  double kbT = parameter.kbT;
   double Kb = parameter.Kb;
   double Kv = 0.0;
   double Ka = parameter.Ka;
@@ -546,10 +548,10 @@ void readParameter()
     runfile >> parameter.r_equilibrium;
     getline(runfile, line);
     getline(runfile, line);
-    runfile >> parameter.epsilon;
+    runfile >> parameter.mass;
     getline(runfile, line);
     getline(runfile, line);
-    runfile >> parameter.sigma;
+    runfile >> parameter.kbT;
     getline(runfile, line);
     getline(runfile, line);
     runfile >> parameter.angle_condition_flag;

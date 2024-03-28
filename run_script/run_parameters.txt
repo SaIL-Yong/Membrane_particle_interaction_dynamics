@@ -18,6 +18,10 @@ tol_frequency
 500
 gamma
 1.0
+mass
+1.0
+kbT
+0.1
 particle_flag 
 1
 particle_position // -1 inside 1 outside
@@ -32,10 +36,6 @@ potential_range
 0.01
 r_equilibrium
 0.0
-mass
-1.0
-kbT
-1.0
 angle_condition_flag
 1
 forced_wrapping // 1 ON 0 OFF
@@ -61,8 +61,10 @@ resfrequency
 mesh_reg_frequency
 1
 bondfrequency
-1
+100
 vertex_smoothing_flag
 1
 delaunay_triangulation_flag
+1
+random_force_flag
 1

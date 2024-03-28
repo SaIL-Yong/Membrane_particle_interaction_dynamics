@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cmath>
+#include <random>
 #include "energy.h"
 
 void Energy::compute_bendingenergy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, double Kb, Eigen::MatrixXd& Force_Bending, double& bending_energy, Mesh m)
@@ -193,6 +194,22 @@ void Energy::redistributeAdhesionForce(Eigen::MatrixXd V2, Eigen::MatrixXi F2, E
             ForcesOnVertices.row(face(j)) += force * barycentricCoords(0,j);
         }
     }
+}
+
+
+void Energy::compute_random_force(Eigen::MatrixXd& V1, double gamma, double kbT, double mass, double dt, Eigen::MatrixXd& Force_Random) {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::normal_distribution<double> dist(0, sqrt(2 * gamma * kbT / (mass * dt)));
+        // Functor that generates random forces
+    auto randomFunc = [&gen, &dist](double dummy) {
+        return dist(gen);
+    };
+
+    // Applying the functor to each element of the randomForces matrix
+    Force_Random = V1.unaryExpr(randomFunc);
+
+
 }
 
 //   // can this loop be replaced by the eigen operation?

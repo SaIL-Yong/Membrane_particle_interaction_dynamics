@@ -16,8 +16,8 @@ struct Parameter {
     double reduced_volume, particle_radius, adhesion_strength, potential_range,r_equilibrium;
     std::string meshFile, outFile, resFile,particleFile;
     int mesh_reg_frequency, vertex_smoothing_flag, delaunay_triangulation_flag,lennard_jones_flag;
-    int angle_condition_flag;
+    int angle_condition_flag,random_force_flag;
     double X0, Y0, Z0;
     int particle_coord_flag;
-    double epsilon,sigma;
+    double mass,kbT;
 };

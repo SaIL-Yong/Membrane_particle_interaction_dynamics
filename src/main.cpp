@@ -118,7 +118,7 @@ int main() {
   // parameters for particle adhesion
   int particle_flag = parameter.particle_flag;
   int particle_position = parameter.particle_position;
-  double Rp, u, U, rho, rc, X0, Y0, Z0, Ew_t, Kw,r_equilibrium,epsilon,sigma;
+  double Rp, u, U, rho, rc, X0, Y0, Z0, Ew_t, Kw,r_equilibrium,sigma;
   int angle_flag;
 
   // Declaration and initialization of COM
@@ -135,8 +135,6 @@ int main() {
     U = (Kb * u) / (Rp * Rp);
     rho =  parameter.potential_range;
     r_equilibrium=parameter.r_equilibrium;
-    epsilon=parameter.epsilon;
-    sigma=parameter.sigma;
     rc = 5.0*rho;
     angle_flag = parameter.angle_condition_flag;
     
@@ -245,8 +243,8 @@ int main() {
 
   Energy E1;
 
-  Eigen::MatrixXd Force_Area(numV, 3), Force_Volume(numV, 3), Force_Bending(numV, 3), Force_Adhesion(numV, 3), velocity(numV, 3), Force_Total(numV, 3),
-                  acceleration(numV,3),acceleration_half_step(numV,3); //force components
+  Eigen::MatrixXd Force_Area(numV, 3), Force_Volume(numV, 3), Force_Bending(numV, 3), Force_Adhesion(numV, 3),Force_Random(numV,3),
+                  velocity(numV, 3), Force_Total(numV, 3),acceleration(numV,3),acceleration_half_step(numV,3); //force components
 
   Eigen::MatrixXd ForcesOnVertices;
   velocity.setZero();
@@ -288,23 +286,16 @@ int main() {
     E1.compute_bendingenergy_force(V1, F1, Kb, Force_Bending, EnergyBending, M1);
     E1.compute_areaenergy_force(V1, F1, Ka, area_target, Force_Area, EnergyArea, M1);
     E1.compute_volumeenergy_force(V1, F1, Kv, volume_target, Force_Volume, EnergyVolume, M1);
-    igl::signed_distance(V1, V2, F2, igl::SIGNED_DISTANCE_TYPE_PSEUDONORMAL, signed_distance, facet_index, closest_points, normals_closest_points);
+    E1.compute_random_force(V1, gamma, kbT, mass, dt, Force_Random);
+    if(i % bondfrequency == 0 && particle_flag )igl::signed_distance(V1, V2, F2, igl::SIGNED_DISTANCE_TYPE_PSEUDONORMAL, signed_distance, facet_index, closest_points, normals_closest_points);
 
-  //  //std::cout << "Facet Index" << facet_index<<std::endl;
-  //   std::ofstream outfile("signed_distance.txt");
-  //  // Check if the file was successfully opened
-  //   if (outfile.is_open()) {
-  //   outfile << signed_distance << std::endl;
-  //   outfile.close();
-  //   }
-  //   else {
-  //   std::cout << "Error: cannot open adhesion force file." <<std::endl;
-  //   }
-    E1.compute_adhesion_energy_force(V1, F1, closest_points, rho, U,r_equilibrium,rc,angle_flag,
+
+    if (particle_flag) E1.compute_adhesion_energy_force(V1, F1, closest_points, rho, U,r_equilibrium,rc,angle_flag,
                                     particle_position,sigma,  Ew_t, Kw,Force_Adhesion,signed_distance, EnergyAdhesion,EnergyBias, M1);
     //if (particle_flag) E1.compute_adhesion_energy_force(V1, F1, X0, Y0, Z0, Rp, rho, U, rc, angle_flag, particle_position, Ew_t, Kw, Force_Adhesion, EnergyAdhesion, EnergyBias, M1);
+    
     EnergyTotal = EnergyBending + EnergyArea + EnergyVolume + EnergyAdhesion + EnergyBias;
-    Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion;
+    Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion + Force_Random;
 
     //acceleration = Force_Total/mass;
     acceleration_half_step = Force_Total / mass;
@@ -316,8 +307,9 @@ int main() {
     E1.compute_bendingenergy_force(V1, F1, Kb, Force_Bending, EnergyBending, M1);
     E1.compute_areaenergy_force(V1, F1, Ka, area_target, Force_Area, EnergyArea, M1);
     E1.compute_volumeenergy_force(V1, F1, Kv, volume_target, Force_Volume, EnergyVolume, M1);
+    E1.compute_random_force(V1, gamma, kbT, mass, dt, Force_Random);
+    if(i % bondfrequency == 0 && particle_flag){
     igl::signed_distance(V1, V2, F2, igl::SIGNED_DISTANCE_TYPE_PSEUDONORMAL, signed_distance, facet_index, closest_points, normals_closest_points);
-
    //std::cout << "Facet Index" << facet_index<<std::endl;
     std::ofstream outfile("signed_distance.txt");
    // Check if the file was successfully opened
@@ -328,12 +320,14 @@ int main() {
     }
     else {
     std::cout << "Error: cannot open adhesion force file." <<std::endl;
+        }
     }
-    E1.compute_adhesion_energy_force(V1, F1, closest_points, rho, U,r_equilibrium,rc,angle_flag,
+
+    if (particle_flag) E1.compute_adhesion_energy_force(V1, F1, closest_points, rho, U,r_equilibrium,rc,angle_flag,
                                     particle_position,sigma,  Ew_t, Kw,Force_Adhesion,signed_distance, EnergyAdhesion,EnergyBias, M1);
     //if (particle_flag) E1.compute_adhesion_energy_force(V1, F1, X0, Y0, Z0, Rp, rho, U, rc, angle_flag, particle_position, Ew_t, Kw, Force_Adhesion, EnergyAdhesion, EnergyBias, M1);
     EnergyTotal = EnergyBending + EnergyArea + EnergyVolume + EnergyAdhesion + EnergyBias;
-    Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion;
+    Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion + Force_Random;
     force_residual = Force_Total.norm();
 
 
@@ -353,7 +347,6 @@ int main() {
   // else {
   //   std::cout << "Error: cannot open area force file." << std::endl;
   // }
-
 
     rVol = 6 * sqrt(PI) * M1.volume_total * pow(M1.area_total, -1.5);
 
@@ -519,6 +512,12 @@ void readParameter()
   runfile >> parameter.gamma;
   getline(runfile, line);
   getline(runfile, line);
+  runfile >> parameter.mass;
+  getline(runfile, line);
+  getline(runfile, line);
+  runfile >> parameter.kbT;
+  getline(runfile, line);
+  getline(runfile, line);
   runfile >> parameter.particle_flag;
   getline(runfile, line);
   if (parameter.particle_flag) {
@@ -546,12 +545,6 @@ void readParameter()
     getline(runfile, line);
     getline(runfile, line);
     runfile >> parameter.r_equilibrium;
-    getline(runfile, line);
-    getline(runfile, line);
-    runfile >> parameter.mass;
-    getline(runfile, line);
-    getline(runfile, line);
-    runfile >> parameter.kbT;
     getline(runfile, line);
     getline(runfile, line);
     runfile >> parameter.angle_condition_flag;
@@ -594,5 +587,8 @@ void readParameter()
   getline(runfile, line);
   getline(runfile, line);
   runfile >> parameter.delaunay_triangulation_flag;
+  getline(runfile, line);
+  getline(runfile, line);
+  runfile >> parameter.random_force_flag;
   runfile.close();
 }

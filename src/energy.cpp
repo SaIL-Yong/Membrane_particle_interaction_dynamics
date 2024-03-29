@@ -2,6 +2,8 @@
 #include <cmath>
 #include <random>
 #include "energy.h"
+#include "meshops.h"
+
 
 void Energy::compute_bendingenergy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, double Kb, Eigen::MatrixXd& Force_Bending, double& bending_energy, Mesh m)
 {

@@ -3,63 +3,32 @@ include <Eigen/Core>
 #include <igl/doublearea.h>
 #include <Eigen/Geometry> // For cross product and norm
 
-RigidBody::MeshProperties RigidBody::getMeshProps(const std::vector<Eigen::Vector3d>& vertices, const std::vector<Eigen::Vector3i>& faces) {
-    MeshProperties props;
-    Eigen::Vector3d centroid = Eigen::Vector3d::Zero();
-    double totalVolume = 0.0;
-
-    // Temporary origin to reduce roundoff errors
-    Eigen::Vector3d ref = Eigen::Vector3d::Zero();
-    for (const auto& v : vertices) {
-        ref += v;
+void RigidBody::calculateProperties(
+    Eigen::MatrixXD points, double mass,
+    Eigen::Vector3d& cente_of_mass,
+    Eigen::Matrix3d& moment_of_inertia) {
+    
+    //ente_of_mass= Eigen::Vector3d::Zero();
+    for (const auto& point : points) {
+        ente_of_mass+= point;
     }
-    ref /= vertices.size();
+    ente_of_mass/= points.size();
 
-    Eigen::Matrix3d sumProducts = Eigen::Matrix3d::Zero();
-
-    for (const auto& f : faces) {
-        Eigen::Vector3d v0 = vertices[f[0]] - ref;
-        Eigen::Vector3d v1 = vertices[f[1]] - ref;
-        Eigen::Vector3d v2 = vertices[f[2]] - ref;
-
-        Eigen::Vector3d e0 = v1 - v0;
-        Eigen::Vector3d e1 = v2 - v0;
-        Eigen::Vector3d normal = 0.5 * e0.cross(e1);
-        double area = normal.norm();
-        normal.normalize();
-
-        // Triangle centroid
-        Eigen::Vector3d cnt = (v0 + v1 + v2) / 3.0;
-        double volume = cnt.dot(normal) * area / 3.0;
-
-        totalVolume += volume;
-        centroid += volume * cnt;
-        sumProducts += area * (cnt * cnt.transpose());
+    //moment_of_inertia = Eigen::Matrix3d::Zero();
+    //double mass = 1.0; // Assuming each point has a mass of 1 for simplicity
+    for (const auto& point : points) {
+        Eigen::Vector3d r = point - centerOfMass;
+        moment_of_inertia(0, 0) += mass * (r.y() * r.y() + r.z() * r.z());
+        moment_of_inertia(1, 1) += mass * (r.x() * r.x() + r.z() * r.z());
+        moment_of_inertia(2, 2) += mass * (r.x() * r.x() + r.y() * r.y());
+        
+        moment_of_inertia(0, 1) -= mass * r.x() * r.y();
+        moment_of_inertia(1, 0) = moment_of_inertia(0, 1); // I_xy = I_yx
+        
+        moment_of_inertia(0, 2) -= mass * r.x() * r.z();
+        moment_of_inertia(2, 0) = moment_of_inertia(0, 2); // I_xz = I_zx
+        
+        moment_of_inertia(1, 2) -= mass * r.y() * r.z();
+        moment_of_inertia(2, 1) = moment_of_inertia(1, 2); // I_yz = I_zy
     }
-
-    if (totalVolume != 0.0) {
-        centroid /= totalVolume;
-    }
-
-    // Adjust centroid to original reference frame
-    centroid += ref;
-
-    // Inertia tensor components
-    Eigen::Matrix3d inertiaTensor = Eigen::Matrix3d::Zero();
-    inertiaTensor(0, 0) = sumProducts(1, 1) + sumProducts(2, 2);
-    inertiaTensor(1, 1) = sumProducts(0, 0) + sumProducts(2, 2);
-    inertiaTensor(2, 2) = sumProducts(0, 0) + sumProducts(1, 1);
-    inertiaTensor(0, 1) = inertiaTensor(1, 0) = -sumProducts(0, 1);
-    inertiaTensor(0, 2) = inertiaTensor(2, 0) = -sumProducts(0, 2);
-    inertiaTensor(1, 2) = inertiaTensor(2, 1) = -sumProducts(1, 2);
-
-    // Final properties assignment
-    props.volume = totalVolume;
-    props.centroid = centroid;
-    props.inertiaTensor = inertiaTensor;
-
-    // Area tensor calculation is omitted for brevity but follows a similar approach
-    // to inertia tensor, adapted to surface area calculations.
-
-    return props;
 }

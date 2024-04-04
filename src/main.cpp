@@ -5,6 +5,7 @@
 #include "meshops.h"
 #include "energy.h"
 #include "parameters.h"
+#include "rigidbody.h"
 using namespace std::chrono;
 int numV;                                               // number of vertices
 int numF;                                               // number of faces
@@ -237,11 +238,13 @@ int main() {
   }
   
   // Calculate the distances between each pair of vertices
-  ParticleAdhesion P1;
+  //ParticleAdhesion P1;
   //P1.find_pairs(V1, F1, V2, F2, distance_threshold, bonds);
   Mesh M1;
 
   Energy E1;
+
+  RigidBody R1;
 
   Eigen::MatrixXd Force_Area(numV, 3), Force_Volume(numV, 3), Force_Bending(numV, 3), Force_Adhesion(numV, 3),Force_Random(numV,3),
                   velocity(numV, 3), Force_Total(numV, 3),acceleration(numV,3),acceleration_half_step(numV,3); //force components
@@ -253,6 +256,8 @@ int main() {
   //Force_Total_old.setZero();
   acceleration.setZero();
   acceleration_half_step.setZero();
+  Eigen::Vector3d center_of_mass;
+  Eigen::Vector3d torque;
  
 
   double EnergyVolume = 0.0, EnergyArea = 0.0, EnergyBending = 0.0, EnergyAdhesion = 0.0,  EnergyBias = 0.0,
@@ -337,16 +342,24 @@ int main() {
 
     //ForcesonParticleVertices
     E1.redistributeAdhesionForce(V2,F2,closest_points, Force_Adhesion, facet_index,ForcesOnVertices); 
-  //   //std::cout << "ForcesOnVertices" << ForcesOnVertices << std::endl;
-  //     std::ofstream file3("Opposite_Adhesion_Force.txt");
-  // if (file3.is_open()) {
-  //   file3<< ForcesOnVertices << std::endl;
-  //   file3.close();
-  //   std::cout << "Particle Adhesion force successfully saved to file." << std::endl;
-  // }
-  // else {
-  //   std::cout << "Error: cannot open area force file." << std::endl;
-  // }
+    //std::cout << "Force_Total" << Force_Total << std::endl;
+    
+    // Calculate the properties
+    //RigidBody::MeshProperties props = RigidBody::calculate_properties(V2, mass);
+    Eigen::Matrix3d moment_of_inertia;
+    Eigen::Matrix3d inverse_moment_of_inertia;
+    R1.calculateProperties(V2,mass,moment_of_inertia, inverse_moment_of_inertia);
+    // Use the calculated properties
+    //std::cout << "Center of Mass: \n" << props.center_of_mass.transpose() << std::endl;
+    std::cout << "Inertia Tensor: \n" << moment_of_inertia << std::endl;   
+
+    R1.calculate_center_of_mass(V2,F2,center_of_mass);
+    R1.calculate_torque(V2,ForcesOnVertices,center_of_mass, torque);
+    std::cout << "Center of Mass: \n" << center_of_mass.transpose() << std::endl;
+    std::cout << "Torque: \n" << torque.transpose() << std::endl;
+    
+
+
 
     rVol = 6 * sqrt(PI) * M1.volume_total * pow(M1.area_total, -1.5);
 

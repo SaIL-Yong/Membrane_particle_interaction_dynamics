@@ -45,8 +45,7 @@ void Energy::compute_volumeenergy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, do
 }
 void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, Eigen::MatrixXd V_particle,double rho, double U,double r_equilibrium,double rc,
                                            int angle_flag,int particle_position,double sigma,double Ew_t, double Kw,
-                                           Eigen::MatrixXd& Force_Adhesion,Eigen::MatrixXd signed_distance, double& EnergyAdhesion,double& EnergyBias,  Mesh m)
-{
+                                           Eigen::MatrixXd& Force_Adhesion,Eigen::MatrixXd signed_distance, double& EnergyAdhesion,double& EnergyBias,  Mesh m){
   Force_Adhesion.setZero();
   coefficient.resize(V.rows());
   coefficient_derivative_x.resize(V.rows());
@@ -70,8 +69,6 @@ void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V, Eigen::MatrixXi F,
   for (int i = 0; i < V.rows(); i++) {
     dc = signed_distance(i);
     //std::cout<<"signed distance"<<dc<<std::endl;
-
-    
 
     if (std::abs(dc) > rc) continue;
 
@@ -119,6 +116,7 @@ void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V, Eigen::MatrixXi F,
     Force_Adhesion = Sum + Force_Biased;
   } else Force_Adhesion = Sum; 
 }
+                                           }
 /// @brief 
 /// @param V2 
 /// @param F2 
@@ -126,7 +124,8 @@ void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V, Eigen::MatrixXi F,
 /// @param Force_Adhesion 
 /// @param facet_index 
 /// @param ForcesOnVertices 
-void Energy::redistributeAdhesionForce(Eigen::MatrixXd V2, Eigen::MatrixXi F2, Eigen::MatrixXd closest_points, Eigen::MatrixXd Force_Adhesion, Eigen::VectorXi facet_index, Eigen::MatrixXd& ForcesOnVertices)  {
+void Energy::redistributeAdhesionForce(Eigen::MatrixXd V2, Eigen::MatrixXi F2, Eigen::MatrixXd closest_points, 
+Eigen::MatrixXd Force_Adhesion, Eigen::VectorXi facet_index, Eigen::MatrixXd& ForcesOnVertices)  {
     // Initialize ForcesOnVertices to be zero
     //ForcesOnVertices.setZero();
     ForcesOnVertices.setZero(V2.rows(), 3);
@@ -167,10 +166,7 @@ void Energy::compute_random_force(Eigen::MatrixXd& V1, double gamma, double kbT,
     auto randomFunc = [&gen, &dist](double dummy) {
         return dist(gen);
     };
-
     // Applying the functor to each element of the randomForces matrix
     Force_Random = V1.unaryExpr(randomFunc);
-
-
 }
 

@@ -189,6 +189,14 @@ int main() {
       std::cout<<"Angle criterion: OFF\n"<<std::endl;
       logfile<<"Angle criterion: OFF\n"<<std::endl;
     }
+    if (parameter.random_force_flag) {
+      std::cout<<"Random force flag: ON\n"<<std::endl;
+      logfile<<"Random force flag: ON\n"<<std::endl;
+    }
+    else {
+      std::cout<<"Random force flag: OFF\n"<<std::endl;
+      logfile<<"Random force flag: OFF\n"<<std::endl;
+    }
 
     // parameters for forced wrapping
     Mesh M2;
@@ -291,7 +299,7 @@ int main() {
     E1.compute_bendingenergy_force(V1, F1, Kb, Force_Bending, EnergyBending, M1);
     E1.compute_areaenergy_force(V1, F1, Ka, area_target, Force_Area, EnergyArea, M1);
     E1.compute_volumeenergy_force(V1, F1, Kv, volume_target, Force_Volume, EnergyVolume, M1);
-    E1.compute_random_force(V1, gamma, kbT, mass, dt, Force_Random);
+    if (parameter.random_force_flag)E1.compute_random_force(V1, gamma, kbT, mass, dt, Force_Random);
     if(i % bondfrequency == 0 && particle_flag )igl::signed_distance(V1, V2, F2, igl::SIGNED_DISTANCE_TYPE_PSEUDONORMAL, signed_distance, facet_index, closest_points, normals_closest_points);
 
 
@@ -312,7 +320,7 @@ int main() {
     E1.compute_bendingenergy_force(V1, F1, Kb, Force_Bending, EnergyBending, M1);
     E1.compute_areaenergy_force(V1, F1, Ka, area_target, Force_Area, EnergyArea, M1);
     E1.compute_volumeenergy_force(V1, F1, Kv, volume_target, Force_Volume, EnergyVolume, M1);
-    E1.compute_random_force(V1, gamma, kbT, mass, dt, Force_Random);
+    if (parameter.random_force_flag)E1.compute_random_force(V1, gamma, kbT, mass, dt, Force_Random);
     if(i % bondfrequency == 0 && particle_flag){
     igl::signed_distance(V1, V2, F2, igl::SIGNED_DISTANCE_TYPE_PSEUDONORMAL, signed_distance, facet_index, closest_points, normals_closest_points);
    //std::cout << "Facet Index" << facet_index<<std::endl;
@@ -338,26 +346,27 @@ int main() {
 
     acceleration = Force_Total / mass;
     // Update velocities with average acceleration
-    velocity = 0.5 * (acceleration + acceleration_half_step) * dt;
+    velocity = 0.5 * (acceleration + acceleration_half_step) * dt - gamma * velocity*(dt/mass);
 
     //ForcesonParticleVertices
     E1.redistributeAdhesionForce(V2,F2,closest_points, Force_Adhesion, facet_index,ForcesOnVertices); 
     //std::cout << "Force_Total" << Force_Total << std::endl;
     
+
+    /*  Rigid Body Calculations 
     // Calculate the properties
     //RigidBody::MeshProperties props = RigidBody::calculate_properties(V2, mass);
     Eigen::Matrix3d moment_of_inertia;
     Eigen::Matrix3d inverse_moment_of_inertia;
     R1.calculateProperties(V2,mass,moment_of_inertia, inverse_moment_of_inertia);
     // Use the calculated properties
-    //std::cout << "Center of Mass: \n" << props.center_of_mass.transpose() << std::endl;
     std::cout << "Inertia Tensor: \n" << moment_of_inertia << std::endl;   
-
     R1.calculate_center_of_mass(V2,F2,center_of_mass);
     R1.calculate_torque(V2,ForcesOnVertices,center_of_mass, torque);
     std::cout << "Center of Mass: \n" << center_of_mass.transpose() << std::endl;
     std::cout << "Torque: \n" << torque.transpose() << std::endl;
     
+    */
 
 
 

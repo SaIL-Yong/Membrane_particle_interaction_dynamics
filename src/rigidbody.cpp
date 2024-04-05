@@ -25,6 +25,7 @@ void RigidBody::calculateProperties(const Eigen::MatrixXd points, double mass,Ei
         moment_of_inertia(2, 1) = moment_of_inertia(1, 2); // Symmetry in the inertia tensor
     }
 
+
     if (moment_of_inertia.determinant() != 0) {
             inverse_moment_of_inertia = moment_of_inertia.inverse();
         } else {

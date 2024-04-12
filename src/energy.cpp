@@ -161,7 +161,7 @@ Eigen::MatrixXd Force_Adhesion, Eigen::VectorXi facet_index, Eigen::MatrixXd& Fo
 void Energy::compute_random_force(Eigen::MatrixXd& V1, double gamma, double kbT, double mass, double dt, Eigen::MatrixXd& Force_Random) {
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::normal_distribution<double> dist(0, sqrt(2 * gamma * kbT ));
+    std::normal_distribution<double> dist(0, sqrt(2 * gamma * kbT * dt/ (mass) ));
         // Functor that generates random forces
     auto randomFunc = [&gen, &dist](double dummy) {
         return dist(gen);

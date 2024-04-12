@@ -1,0 +1,1 @@
+/usr/bin/c++  -O3   CMakeFiles/MemDynamics.dir/src/energy.cpp.o CMakeFiles/MemDynamics.dir/src/main.cpp.o CMakeFiles/MemDynamics.dir/src/meshedparticle.cpp.o CMakeFiles/MemDynamics.dir/src/meshops.cpp.o CMakeFiles/MemDynamics.dir/src/rigidbody.cpp.o  -o MemDynamics  -lpthread 

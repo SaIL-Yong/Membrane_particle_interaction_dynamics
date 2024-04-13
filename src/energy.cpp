@@ -44,7 +44,7 @@ void Energy::compute_volumeenergy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, do
   }
 }
 void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, Eigen::MatrixXd V_particle,double rho, double U,double r_equilibrium,double rc,
-                                           int angle_flag,int particle_position,double sigma,double Ew_t, double Kw,
+                                           int angle_flag,int particle_position,double Ew_t, double Kw,
                                            Eigen::MatrixXd& Force_Adhesion,Eigen::MatrixXd signed_distance, double& EnergyAdhesion,double& EnergyBias,  Mesh m){
   Force_Adhesion.setZero();
   coefficient.resize(V.rows());

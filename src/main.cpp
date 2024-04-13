@@ -23,6 +23,10 @@ int main() {
   numV = V1.rows();
   int numFp = F2.rows();
   int numVp = V2.rows();
+
+  Eigen::VectorXi nearest;              // Nearest neighbor of each vertex in V1 in V2
+  std::vector<std::pair<int, int>> bonds;
+
   /**
    * @brief The threshold distance used for determining if two particles are close enough to interact with each other.
    */
@@ -95,12 +99,10 @@ int main() {
 
   std::cout<<"Vesicle radius: "<<Rv<<std::endl;
   std::cout<<"Membrane drag coefficient: "<<gamma<<std::endl;
-  std::cout<<"Membrane mass coefficient: "<<mass<<std::endl;
   std::cout<<"Membrane bending modulus: "<<Kb<<std::endl;
   std::cout<<"Membrane stretching modulus: "<<Ka<<std::endl;
   logfile<<"Vesicle radius: "<<Rv<<std::endl;
   logfile<<"Membrane drag coefficient: "<<gamma<<std::endl;
-  logfile<<"Membrane mass coefficient: "<<mass<<std::endl;
   logfile<<"Membrane bending modulus: "<<Kb<<std::endl;
   logfile<<"Membrane stretching modulus: "<<Ka<<std::endl;
 
@@ -117,7 +119,7 @@ int main() {
   // parameters for particle adhesion
   int particle_flag = parameter.particle_flag;
   int particle_position = parameter.particle_position;
-  double Rp, u, U, rho, rc, X0, Y0, Z0, Ew_t, Kw,r_equilibrium,sigma;
+  double Rp, u, U, rho, rc, X0, Y0, Z0, Ew_t, Kw,r_equilibrium,epsilon,sigma;
   int angle_flag;
 
   // Declaration and initialization of COM
@@ -128,6 +130,8 @@ int main() {
   Eigen::MatrixXd normals_closest_points;  // Matrix to store closest normals (if needed)
   
 
+
+  int random_force_flag = parameter.random_force_flag;
   if (particle_flag) {
     Rp = parameter.particle_radius;
     u = parameter.adhesion_strength;
@@ -210,16 +214,6 @@ int main() {
     }
   }
 
-if (parameter.random_force_flag) {
-      std::cout<<"Random force flag: ON\n"<<std::endl;
-      logfile<<"Random force flag: ON\n"<<std::endl;
-    }
-    else {
-      std::cout<<"Random force flag: OFF\n"<<std::endl;
-      logfile<<"Random force flag: OFF\n"<<std::endl;
-  }
-
-
   // mesh regularization flag
   int v_smooth_flag = parameter.vertex_smoothing_flag;
   int delaunay_tri_flag = parameter.delaunay_triangulation_flag;
@@ -246,33 +240,26 @@ if (parameter.random_force_flag) {
   }
   
   // Calculate the distances between each pair of vertices
-  //ParticleAdhesion P1;
+  ParticleAdhesion P1;
   //P1.find_pairs(V1, F1, V2, F2, distance_threshold, bonds);
   Mesh M1;
 
   Energy E1;
 
-  Eigen::MatrixXd Force_Area(numV, 3), Force_Volume(numV, 3), Force_Bending(numV, 3), Force_Adhesion(numV, 3),Force_Random(numV,3),
-                  velocity(numV, 3),velocity_half_step(numV,3) ,Force_Total(numV, 3),acceleration(numV,3),acceleration_half_step(numV,3); //force components
+  Eigen::MatrixXd Force_Area(numV, 3), Force_Volume(numV, 3), Force_Bending(numV, 3), Force_Adhesion(numV, 3),Force_Random, velocity(numV, 3), Force_Total(numV, 3),
+                  acceleration(numV,3),acceleration_half_step(numV,3),velocity_half_step(numV,3); //force components
 
   Eigen::MatrixXd ForcesOnVertices;
+  Force_Adhesion.setZero();
+  Force_Random.setZero();
   velocity.setZero();
   velocity_half_step.setZero();
+  
   Force_Total.setZero();
   //Force_Total_old.setZero();
   acceleration.setZero();
   acceleration_half_step.setZero();
-  Eigen::Vector3d center_of_mass;
-  Eigen::Vector3d torque;
-
-
-  /////RigidBody Calculations and Paramters
-  RigidBody body;
-  body.calculateProperties(V2, mass);
-  
-
-  //std::cout << "Inertia Tensor: \n" <<body.getMomentOfInertia() << std::endl;
-  ///RigidBody Calculations and Paramters
+ 
 
   double EnergyVolume = 0.0, EnergyArea = 0.0, EnergyBending = 0.0, EnergyAdhesion = 0.0,  EnergyBias = 0.0,
          EnergyTotal = 0.0, EnergyTotalold_log = 0.0, EnergyChangeRate_log = 0.0, EnergyChangeRate_avg = 0.0;  //energy components
@@ -301,74 +288,65 @@ if (parameter.random_force_flag) {
   int toln = 0;
   for (i = 0; i < iterations; i++)
   {
-    // M1.mesh_cal(V1, F1);
-    // E1.compute_bendingenergy_force(V1, F1, Kb, Force_Bending, EnergyBending, M1);
-    // E1.compute_areaenergy_force(V1, F1, Ka, area_target, Force_Area, EnergyArea, M1);
-    // E1.compute_volumeenergy_force(V1, F1, Kv, volume_target, Force_Volume, EnergyVolume, M1);
-    // if (parameter.random_force_flag)E1.compute_random_force(V1, gamma, kbT, mass, dt, Force_Random);
-    // if(i % bondfrequency == 0 && particle_flag )igl::signed_distance(V1, V2, F2, igl::SIGNED_DISTANCE_TYPE_PSEUDONORMAL, signed_distance, facet_index, closest_points, normals_closest_points);
+    M1.mesh_cal(V1, F1);
+    E1.compute_bendingenergy_force(V1, F1, Kb, Force_Bending, EnergyBending, M1);
+    E1.compute_areaenergy_force(V1, F1, Ka, area_target, Force_Area, EnergyArea, M1);
+    E1.compute_volumeenergy_force(V1, F1, Kv, volume_target, Force_Volume, EnergyVolume, M1);
+    if(i%bondfrequency==0)igl::signed_distance(V1, V2, F2, igl::SIGNED_DISTANCE_TYPE_PSEUDONORMAL, signed_distance, facet_index, closest_points, normals_closest_points);
+    if(particle_flag){E1.compute_adhesion_energy_force(V1, F1, closest_points, rho, U,r_equilibrium,rc,angle_flag,
+                                    particle_position, Ew_t, Kw,Force_Adhesion,signed_distance, EnergyAdhesion,EnergyBias, M1);}
+    if (random_force_flag)E1.compute_random_force(V1, gamma, kbT, mass, dt, Force_Random);
+    //std::cout << "Force Adhesion" << Force_Adhesion << std::endl;
+    EnergyTotal = EnergyBending + EnergyArea + EnergyVolume + EnergyAdhesion + EnergyBias;
+    Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion;
 
+    //acceleration = Force_Total/mass;
+    acceleration_half_step = Force_Total / mass;
+    velocity_half_step = velocity + 0.5 *dt* (acceleration_half_step - (gamma*velocity)) + Force_Random ;
 
-    // if (particle_flag) E1.compute_adhesion_energy_force(V1, F1, closest_points, rho, U,r_equilibrium,rc,angle_flag,
-    //                                 particle_position,sigma,  Ew_t, Kw,Force_Adhesion,signed_distance, EnergyAdhesion,EnergyBias, M1);
-    // //if (particle_flag) E1.compute_adhesion_energy_force(V1, F1, X0, Y0, Z0, Rp, rho, U, rc, angle_flag, particle_position, Ew_t, Kw, Force_Adhesion, EnergyAdhesion, EnergyBias, M1);
-    
-    // EnergyTotal = EnergyBending + EnergyArea + EnergyVolume + EnergyAdhesion + EnergyBias;
-    // Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion;// + Force_Random;
+    V1 += velocity * dt;// + 0.5 * acceleration_half_step * (dt * dt);
 
-    // //acceleration = Force_Total/mass;
-    // acceleration_half_step = Force_Total / mass;
+    //V1 += velocity * dt + 0.5 * acceleration_half_step * (dt * dt);
 
-    // //velocity_half_step = velocity + 0.5 *dt* (acceleration_half_step- gamma*velocity) + Force_Random ;
-
-    // V1 += velocity * dt + 0.5 * acceleration_half_step * (dt * dt);
-
-    //V1 += (velocity * dt);// + 0.5 * acceleration_half_step * (dt * dt) ;
     //Repeat the force calucaltion here
     M1.mesh_cal(V1, F1);
     E1.compute_bendingenergy_force(V1, F1, Kb, Force_Bending, EnergyBending, M1);
     E1.compute_areaenergy_force(V1, F1, Ka, area_target, Force_Area, EnergyArea, M1);
     E1.compute_volumeenergy_force(V1, F1, Kv, volume_target, Force_Volume, EnergyVolume, M1);
-    if (parameter.random_force_flag)E1.compute_random_force(V1, gamma, kbT, mass, dt, Force_Random);
-    if(i % bondfrequency == 0 && particle_flag){
-    igl::signed_distance(V1, V2, F2, igl::SIGNED_DISTANCE_TYPE_PSEUDONORMAL, signed_distance, facet_index, closest_points, normals_closest_points);
+    if(i%bondfrequency==0){igl::signed_distance(V1, V2, F2, igl::SIGNED_DISTANCE_TYPE_PSEUDONORMAL, signed_distance, facet_index, closest_points, normals_closest_points);
+
    //std::cout << "Facet Index" << facet_index<<std::endl;
     std::ofstream outfile("signed_distance.txt");
    // Check if the file was successfully opened
     if (outfile.is_open()) {
-    outfile << signed_distance << std::endl;
-    outfile << facet_index << std::endl;
-    outfile.close();
+      outfile << signed_distance << std::endl;
+      outfile << facet_index << std::endl;
+      outfile.close();
+      } 
+      else {
+      std::cout << "Error: cannot open adhesion force file." <<std::endl;
+      }
     }
-    else {
-    std::cout << "Error: cannot open adhesion force file." <<std::endl;
-        }
-    }
-
-    if (particle_flag) E1.compute_adhesion_energy_force(V1, F1, closest_points, rho, U,r_equilibrium,rc,angle_flag,
-                                    particle_position,sigma,  Ew_t, Kw,Force_Adhesion,signed_distance, EnergyAdhesion,EnergyBias, M1);
-    //if (particle_flag) E1.compute_adhesion_energy_force(V1, F1, X0, Y0, Z0, Rp, rho, U, rc, angle_flag, particle_position, Ew_t, Kw, Force_Adhesion, EnergyAdhesion, EnergyBias, M1);
+    if(particle_flag){E1.compute_adhesion_energy_force(V1, F1, closest_points, rho, U,r_equilibrium,rc,angle_flag,
+                                    particle_position, Ew_t, Kw,Force_Adhesion,signed_distance, EnergyAdhesion,EnergyBias, M1);}
+    if (random_force_flag)E1.compute_random_force(V1, gamma, kbT, mass, dt, Force_Random);
     EnergyTotal = EnergyBending + EnergyArea + EnergyVolume + EnergyAdhesion + EnergyBias;
-    Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion;// + Force_Random;
+    Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion;
     force_residual = Force_Total.norm();
 
 
-    // acceleration = Force_Total / mass;
-
-    // velocity = 0.5 * (acceleration + acceleration_half_step) * dt;
+    acceleration = Force_Total / mass;
     // Update velocities with average acceleration
-    //velocity = velocity_half_step + 0.5 *dt*(acceleration - (gamma * velocity_half_step)) + Force_Random ;
+    velocity = velocity_half_step + 0.5 *dt*(acceleration - (gamma * velocity_half_step)) + Force_Random ;
+    //elocity = 0.5 * (acceleration + acceleration_half_step) * dt;
 
     //ForcesonParticleVertices
-    //if (particle_flag) E1.redistributeAdhesionForce(V2,F2,closest_points, Force_Adhesion, facet_index,ForcesOnVertices); 
+    if(particle_flag)E1.redistributeAdhesionForce(V2,F2,closest_points, Force_Adhesion, facet_index,ForcesOnVertices); 
 
-    
-    //body.calculate_center_of_mass(V2,F2,COM);
-    //body.printTorque(ForcesOnVertices, closest_points, COM);
-    //std::cout << "Force_Total" << Force_Total << std::endl;
-    
 
-    /*  Rigid Body Calculations 
+    rVol = 6 * sqrt(PI) * M1.volume_total * pow(M1.area_total, -1.5);
+
+        /*  Rigid Body Calculations 
     // Calculate the properties
     //RigidBody::MeshProperties props = RigidBody::calculate_properties(V2, mass);
     Eigen::Matrix3d moment_of_inertia;
@@ -381,12 +359,7 @@ if (parameter.random_force_flag) {
     std::cout << "Center of Mass: \n" << center_of_mass.transpose() << std::endl;
     std::cout << "Torque: \n" << torque.transpose() << std::endl;
     
-    */
-
-
-
-    rVol = 6 * sqrt(PI) * M1.volume_total * pow(M1.area_total, -1.5);
-
+    */ 
     if (i % logfrequency == 0) {
       EnergyChangeRate_log = (EnergyTotal - EnergyTotalold_log) / (logfrequency * dt);
       EnergyTotalold_log = EnergyTotal;
@@ -436,8 +409,10 @@ if (parameter.random_force_flag) {
 
     if (i % resfrequency == 0) igl::writeOFF(parameter.resFile, V1, F1);
 
-    velocity = Force_Total / gamma;
-    V1 += velocity * dt;
+
+
+    //velocity = Force_Total / gamma;
+    //V1 += velocity * dt;
 
     if (v_smooth_flag || delaunay_tri_flag) {
       if ((i+1) % mesh_reg_frequency == 0) {

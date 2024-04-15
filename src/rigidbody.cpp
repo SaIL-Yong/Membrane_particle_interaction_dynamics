@@ -59,40 +59,19 @@ void RigidBody::printTorque( Eigen::MatrixXd force,  Eigen::MatrixXd point_of_ap
     calculate_torque(force, point_of_application, center_of_mass, torque);
     std::cout << "Torque: " << torque.transpose() << std::endl;
 }
-/*
-void RigidBody::update_position_orientation(const Eigen::MatrixXd& forces, const Eigen::MatrixXd& point_of_application, const Eigen::Vector3d& torque, const double dt, Eigen::Vector3d& new_position) {
-    // Calculate the net force acting on the center of mass
-    Eigen::Vector3d net_force = forces.colwise().sum();
+// Eigen::Quaterniond RigidBody::calculateOrientation(Eigen::MatrixXd forces, Eigen::MatrixXd point_of_application,Eigen::Vector3d torque,  double dt,  Eigen::Quaterniond& current_orientation) {
+//     // Calculate the net torque acting on the rigid body
+//     Eigen::Vector3d net_torque = torque + calculate_torque(forces, point_of_application, center_of_mass);
 
-    // Calculate the linear acceleration of the center of mass
-    Eigen::Vector3d linear_acceleration = net_force / mass;
+//     // Calculate the change in orientation using the angular velocity
+//     Eigen::Quaterniond delta_orientation;
+//     delta_orientation.setIdentity();
+//     delta_orientation.coeffs() = 0.5 * dt * Eigen::Vector3d(net_torque.x(), net_torque.y(), net_torque.z());
 
-    // Calculate the change in position using the linear acceleration
-    Eigen::Vector3d delta_position = linear_acceleration * dt;
+//     // Update the orientation of the rigid body
+//     Eigen::Quaterniond new_orientation = current_orientation * delta_orientation;
+//     new_orientation.normalize();
 
-    // Calculate the change in orientation using the angular velocity
-    Eigen::Quaterniond delta_orientation;
-    delta_orientation.setIdentity();
-    delta_orientation.coeffs() = 0.5 * dt * Eigen::Vector3d(angular_velocity.x(), angular_velocity.y(), angular_velocity.z());
-
-    // Update the position of the center of mass
-    new_position += delta_position;
-
-    // Update the orientation of the center of mass
-    Eigen::Quaterniond current_orientation;
-    current_orientation.setIdentity();
-    current_orientation.coeffs() = orientation;
-
-    Eigen::Quaterniond new_orientation = current_orientation * delta_orientation;
-    new_orientation.normalize();
-
-    // Update the angular velocity
-    Eigen::Vector3d new_angular_velocity = angular_velocity + torque * dt / moment_of_inertia;
-
-    // Set the new position, orientation, and angular velocity
-    position = new_position;
-    orientation = new_orientation.coeffs();
-    angular_velocity = new_angular_velocity;
-}
-*/
+//     return new_orientation;
+// }
 

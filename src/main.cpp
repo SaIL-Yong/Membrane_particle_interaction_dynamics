@@ -49,7 +49,7 @@ int main() {
   int resfrequency = parameter.resfrequency;
   double dt = parameter.dt, time = 0.0;
   double tolerance = parameter.tolerance;
-  double force_residual;
+  double force_residual,force_ratio;
   int tolerance_flag = parameter.tolerance_flag;
   double tolfrequency = parameter.tolfrequency;
   int tolsteps = floor(tolfrequency / dt);
@@ -271,15 +271,15 @@ int main() {
   // initiate logfile output
   if (particle_flag) {
     if (parameter.forced_wrapping_flag)
-      logfile<<"Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  AdhesionEnergy  BiasedWrappingEnergy  TotalEnergy  EnergyChangeRate  ForceResidual"<<std::endl;
+      logfile<<"Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  AdhesionEnergy  BiasedWrappingEnergy  TotalEnergy  EnergyChangeRate ForceRatio ForceResidual"<<std::endl;
     else
-      logfile<<"Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  AdhesionEnergy  TotalEnergy  EnergyChangeRate  ForceResidual"<<std::endl;
+      logfile<<"Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  AdhesionEnergy  TotalEnergy  EnergyChangeRate  ForceRatio ForceResidual"<<std::endl;
   } else {
-    logfile<<"Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  TotalEnergy  EnergyChangeRate  ForceResidual"<<std::endl;
+    logfile<<"Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  TotalEnergy  EnergyChangeRate  ForceRatio ForceResidual"<<std::endl;
   }
 
   // initiate screen output
-  if (particle_flag) std::cout<<"Iteration  ReducedVolume  BendingEnergy  AdhesionEnergy  TotalEnergy  EnergyChangeRate  ForceResidual"<<std::endl;
+  if (particle_flag) std::cout<<"Iteration  ReducedVolume  BendingEnergy  AdhesionEnergy  TotalEnergy  EnergyChangeRate ForceResidual"<<std::endl;
   else std::cout<<"Iteration  ReducedVolume  BendingEnergy  TotalEnergy  EnergyChangeRate  ForceResidual"<<std::endl;
   //P1.find_pairs(V1, F1, V2, F2, distance_threshold, bonds);
   //std::cout << "bond is updated." << std::endl;
@@ -292,17 +292,17 @@ int main() {
     E1.compute_bendingenergy_force(V1, F1, Kb, Force_Bending, EnergyBending, M1);
     E1.compute_areaenergy_force(V1, F1, Ka, area_target, Force_Area, EnergyArea, M1);
     E1.compute_volumeenergy_force(V1, F1, Kv, volume_target, Force_Volume, EnergyVolume, M1);
-    if(i%bondfrequency==0)igl::signed_distance(V1, V2, F2, igl::SIGNED_DISTANCE_TYPE_PSEUDONORMAL, signed_distance, facet_index, closest_points, normals_closest_points);
+    if(particle_flag && i%bondfrequency==0)igl::signed_distance(V1, V2, F2, igl::SIGNED_DISTANCE_TYPE_PSEUDONORMAL, signed_distance, facet_index, closest_points, normals_closest_points);
     if(particle_flag){E1.compute_adhesion_energy_force(V1, F1, closest_points, rho, U,r_equilibrium,rc,angle_flag,
                                     particle_position, Ew_t, Kw,Force_Adhesion,signed_distance, EnergyAdhesion,EnergyBias, M1);}
     if (random_force_flag)E1.compute_random_force(V1, gamma, kbT, mass, dt, Force_Random);
     //std::cout << "Force Adhesion" << Force_Adhesion << std::endl;
     EnergyTotal = EnergyBending + EnergyArea + EnergyVolume + EnergyAdhesion + EnergyBias;
-    Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion;
+    Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion+ Force_Random;
 
     //acceleration = Force_Total/mass;
     acceleration_half_step = Force_Total / mass;
-    velocity_half_step = velocity + 0.5 *dt* (acceleration_half_step - (gamma*velocity)) + Force_Random ;
+    velocity_half_step = velocity_half_step + 0.5 *dt* (acceleration_half_step - (gamma*velocity));// + Force_Random ;
 
     V1 += velocity * dt;// + 0.5 * acceleration_half_step * (dt * dt);
 
@@ -313,7 +313,7 @@ int main() {
     E1.compute_bendingenergy_force(V1, F1, Kb, Force_Bending, EnergyBending, M1);
     E1.compute_areaenergy_force(V1, F1, Ka, area_target, Force_Area, EnergyArea, M1);
     E1.compute_volumeenergy_force(V1, F1, Kv, volume_target, Force_Volume, EnergyVolume, M1);
-    if(i%bondfrequency==0){igl::signed_distance(V1, V2, F2, igl::SIGNED_DISTANCE_TYPE_PSEUDONORMAL, signed_distance, facet_index, closest_points, normals_closest_points);
+    if(particle_flag && i%bondfrequency==0){igl::signed_distance(V1, V2, F2, igl::SIGNED_DISTANCE_TYPE_PSEUDONORMAL, signed_distance, facet_index, closest_points, normals_closest_points);
 
    //std::cout << "Facet Index" << facet_index<<std::endl;
     std::ofstream outfile("signed_distance.txt");
@@ -331,18 +331,19 @@ int main() {
                                     particle_position, Ew_t, Kw,Force_Adhesion,signed_distance, EnergyAdhesion,EnergyBias, M1);}
     if (random_force_flag)E1.compute_random_force(V1, gamma, kbT, mass, dt, Force_Random);
     EnergyTotal = EnergyBending + EnergyArea + EnergyVolume + EnergyAdhesion + EnergyBias;
-    Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion;
+    Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion+Force_Random;
     force_residual = Force_Total.norm();
-
+    if (random_force_flag)force_ratio=Force_Random.norm()/(Force_Bending + Force_Area + Force_Volume + Force_Adhesion).norm();
+    //std::cout<<"Force Ratio: "<<force_ratio<<std::endl;
 
     acceleration = Force_Total / mass;
     // Update velocities with average acceleration
-    velocity = velocity_half_step + 0.5 *dt*(acceleration - (gamma * velocity_half_step)) + Force_Random ;
-    //elocity = 0.5 * (acceleration + acceleration_half_step) * dt;
-
+    velocity = velocity_half_step + 0.5 *dt*(acceleration - (gamma * velocity_half_step));// + Force_Random ;
+    //velocity = 0.5 * (acceleration + acceleration_half_step) * dt;
+    
     //ForcesonParticleVertices
     if(particle_flag)E1.redistributeAdhesionForce(V2,F2,closest_points, Force_Adhesion, facet_index,ForcesOnVertices); 
-
+    
 
     rVol = 6 * sqrt(PI) * M1.volume_total * pow(M1.area_total, -1.5);
 
@@ -385,6 +386,7 @@ int main() {
       }
       logfile<<EnergyTotal<<"  ";
       logfile<<EnergyChangeRate_log<<"  ";
+      logfile<<force_ratio<<"  ";
       logfile<<force_residual<<std::endl;
     }
 

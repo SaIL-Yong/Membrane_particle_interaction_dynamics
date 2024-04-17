@@ -11,12 +11,12 @@
 class RigidBody {
 private:
    
-    Eigen::Matrix3d moment_of_inertia = Eigen::Matrix3d::Zero();
-    Eigen::Matrix3d inverse_moment_of_inertia = Eigen::Matrix3d::Zero();
+    Eigen::Matrix3d moment_of_inertia;// = Eigen::Matrix3d::Zero();
+    Eigen::Matrix3d inverse_moment_of_inertia;// = Eigen::Matrix3d::Zero();
     //bool propertiesCalculated = false;
-     Eigen::Quaterniond orientation;
+    Eigen::Quaterniond orientation;
 public:
-    void calculateProperties(const Eigen::MatrixXd points, double mass/*,Eigen::Matrix3d& moment_of_inertia, Eigen::Matrix3d& inverse_moment_of_inertia*/);
+    void calculate_properties(Eigen::MatrixXd points, double mass/*,Eigen::Matrix3d& moment_of_inertia, Eigen::Matrix3d& inverse_moment_of_inertia*/);
      // Accessor methods for moment of inertia
     Eigen::Matrix3d getMomentOfInertia() const { return moment_of_inertia; }
     Eigen::Matrix3d getInverseMomentOfInertia() const { return inverse_moment_of_inertia; }
@@ -25,9 +25,14 @@ public:
 
     void calculate_center_of_mass(Eigen::MatrixXd V, Eigen::MatrixXi F, Eigen::Vector3d& center_of_mass);
     void calculate_torque(Eigen::MatrixXd force, Eigen::MatrixXd point_of_application,Eigen::Vector3d center_of_mass,Eigen::Vector3d& torque);
+    void angular_momentum (Eigen::Vector3d torque,double dt, Eigen::Vector3d& angular_momentum);
+    void calculate_omega(Eigen::Vector3d angular_momentum, Eigen::Matrix3d inverse_moment_of_inertia,Eigen::Vector3d& angular_velocity);
+    void update_quaternion(Eigen::Quaterniond currentQuaternion, Eigen::Vector3d angular_velocity, double deltaTime, Eigen::Quaterniond& new_quaternion);
     void printTorque(Eigen::MatrixXd force,  Eigen::MatrixXd point_of_application, Eigen::Vector3d center_of_mass);
 
     // Declare a method to calculate the orientation of the rigid body
-    
+
+    Eigen::Vector3d  ang_mom,omega; 
+
 };
 #endif // RIGIDBODY_H

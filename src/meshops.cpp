@@ -32,8 +32,6 @@ void Mesh::mesh_cal(Eigen::MatrixXd V, Eigen::MatrixXi F)
   volume_total = cal_volume2(V, F);
   area_total = dblA.sum() / 2;
 
-
-
 }
 
 double Mesh::cal_volume2(Eigen::MatrixXd V, Eigen::MatrixXi F)

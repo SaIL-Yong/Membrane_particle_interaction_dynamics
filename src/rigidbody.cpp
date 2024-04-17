@@ -4,17 +4,20 @@
 #include <igl/doublearea.h>
 #include <Eigen/Geometry> // For cross product and norm
 
-void RigidBody::calculateProperties(const Eigen::MatrixXd points, double mass/*,Eigen::Matrix3d& moment_of_inertia, Eigen::Matrix3d& inverse_moment_of_inertia*/) {  
+void RigidBody::calculate_properties(Eigen::MatrixXd points, double mass/*,Eigen::Matrix3d& moment_of_inertia, Eigen::Matrix3d& inverse_moment_of_inertia*/) {  
     Eigen::Vector3d center_of_mass = Eigen::Vector3d::Zero();
     //int numPoints = points.rows(); 
 // Assuming 'points' is of type Eigen::MatrixXd (or Eigen::MatrixXf) and each row is a point
     center_of_mass = points.colwise().mean();
+    std::cout << "Center of mass: " << center_of_mass.transpose()<< std::endl;
 
     // Calculate the moment of inertia
     
     for (int i = 0; i < points.rows(); ++i) {
         Eigen::Vector3d r = points.row(i).transpose() - center_of_mass; // Corrected vector subtraction
+        //std::cout << "r: " << r.y() << std::endl;
         moment_of_inertia(0, 0) += mass * (r.y() * r.y() + r.z() * r.z());
+        std::cout<<"moment_of_inertia(0, 0): "<<moment_of_inertia(0, 0)<<std::endl;
         moment_of_inertia(1, 1) += mass * (r.x() * r.x() + r.z() * r.z());
         moment_of_inertia(2, 2) += mass * (r.x() * r.x() + r.y() * r.y());
 
@@ -53,6 +56,27 @@ void RigidBody::calculate_torque(Eigen::MatrixXd force, Eigen::MatrixXd point_of
         torque += r.cross(forceVec);
         }
 }
+void RigidBody::angular_momentum (Eigen::Vector3d torque,double dt, Eigen::Vector3d& ang_mom) {
+    ang_mom += torque * dt;  // Update angular momentum using ΔL = torque * Δt
+}
+void RigidBody::calculate_omega(Eigen::Vector3d angular_momentum, Eigen::Matrix3d inverse_moment_of_inertia,Eigen::Vector3d& angular_velocity) {
+    angular_velocity = inverse_moment_of_inertia * angular_momentum; // ω = I^-1 * L
+}
+
+
+// Update quaternion based on angular velocity and time step
+// void RigidBody::update_quaternion(Eigen::Quaterniond currentQuaternion, Eigen::Vector3d angular_velocity, double deltaTime, Eigen::Quaterniond& new_quaternion) {
+//     // Convert angular velocity to a pure quaternion
+//     Eigen::Quaterniond omega(0, angular_velocity.x(), angular_velocity.y(), angular_velocity.z());
+
+//     // Calculate quaternion derivative
+//     Eigen::Quaterniond quaternion_derivative = 0.5 * (currentQuaternion * omega);
+
+//     // Update quaternion by integrating the quaternion derivative
+//     Eigen::Quaterniond newQuaternion = currentQuaternion + quaternion_derivative * deltaTime;
+//     new_quaternion.normalize();  // Normalize to account for numerical errors 
+// }
+
 
 void RigidBody::printTorque( Eigen::MatrixXd force,  Eigen::MatrixXd point_of_application,  Eigen::Vector3d center_of_mass) {
     Eigen::Vector3d torque;

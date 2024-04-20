@@ -17,7 +17,7 @@ void RigidBody::calculate_properties(Eigen::MatrixXd points, double mass/*,Eigen
         Eigen::Vector3d r = points.row(i).transpose() - center_of_mass; // Corrected vector subtraction
         //std::cout << "r: " << r.y() << std::endl;
         moment_of_inertia(0, 0) += mass * (r.y() * r.y() + r.z() * r.z());
-        std::cout<<"moment_of_inertia(0, 0): "<<moment_of_inertia(0, 0)<<std::endl;
+        //std::cout<<"moment_of_inertia(0, 0): "<<moment_of_inertia(0, 0)<<std::endl;
         moment_of_inertia(1, 1) += mass * (r.x() * r.x() + r.z() * r.z());
         moment_of_inertia(2, 2) += mass * (r.x() * r.x() + r.y() * r.y());
 
@@ -59,23 +59,56 @@ void RigidBody::calculate_torque(Eigen::MatrixXd force, Eigen::MatrixXd point_of
 void RigidBody::angular_momentum (Eigen::Vector3d torque,double dt, Eigen::Vector3d& ang_mom) {
     ang_mom += torque * dt;  // Update angular momentum using ΔL = torque * Δt
 }
-void RigidBody::calculate_omega(Eigen::Vector3d angular_momentum, Eigen::Matrix3d inverse_moment_of_inertia,Eigen::Vector3d& angular_velocity) {
-    angular_velocity = inverse_moment_of_inertia * angular_momentum; // ω = I^-1 * L
+void RigidBody::calculate_omega(Eigen::Vector3d angular_momentum, Eigen::Matrix3d inverse_moment_of_inertia,Eigen::Quaterniond quat,Eigen::Vector3d& angular_velocity) {
+    Eigen::Matrix3d Iinv = quat.toRotationMatrix()*inverse_moment_of_inertia*quat.toRotationMatrix().transpose();
+    angular_velocity = Iinv* angular_momentum; // ω = I^-1 * L
 }
 
 
-// Update quaternion based on angular velocity and time step
-// void RigidBody::update_quaternion(Eigen::Quaterniond currentQuaternion, Eigen::Vector3d angular_velocity, double deltaTime, Eigen::Quaterniond& new_quaternion) {
-//     // Convert angular velocity to a pure quaternion
-//     Eigen::Quaterniond omega(0, angular_velocity.x(), angular_velocity.y(), angular_velocity.z());
+//Update quaternion based on angular velocity and time step
+void RigidBody::update_quaternion(Eigen::Quaterniond current_quaternion, Eigen::Vector3d angular_velocity, double dt, Eigen::Quaterniond& new_quaternion) {
+        // Convert angular velocity to a pure quaternion (zero real part)
+        Eigen::Quaterniond omega_q(0, angular_velocity.x(), angular_velocity.y(), angular_velocity.z());
 
-//     // Calculate quaternion derivative
-//     Eigen::Quaterniond quaternion_derivative = 0.5 * (currentQuaternion * omega);
+        // // Calculate the quaternion derivative using quaternion multiplication
+         Eigen::Quaterniond product = current_quaternion * omega_q;
 
-//     // Update quaternion by integrating the quaternion derivative
-//     Eigen::Quaterniond newQuaternion = currentQuaternion + quaternion_derivative * deltaTime;
-//     new_quaternion.normalize();  // Normalize to account for numerical errors 
-// }
+        // // Correctly applying scalar multiplication to the quaternion components
+        // Eigen::Quaterniond quaternion_derivative(product.w() * 0.5, product.x() * 0.5, product.y() * 0.5, product.z() * 0.5);
+            // Quaternion derivative should be half of current_quaternion * omega_q
+            // Multiply quaternion coefficients by 0.5
+        Eigen::Vector4d coeffs = product.coeffs() * 0.5;
+
+        // Reconstruct the quaternion from scaled coefficients
+        Eigen::Quaterniond quaternion_derivative(coeffs);
+
+        // Update the quaternion using the derivative and the time step
+           // Compute the magnitude of the angular velocity vector
+        double omega_magnitude = angular_velocity.norm();
+    
+        // Avoid division by zero in case of very small angular velocities
+        if(omega_magnitude > std::numeric_limits<double>::epsilon()) {
+        // Normalized angular velocity vector
+        Eigen::Vector3d omega_normalized = angular_velocity.normalized();
+        // Compute the scaled angle for the quaternion exponential
+        double theta = omega_magnitude * dt * 0.5; 
+        // Compute the quaternion exponential
+        Eigen::Quaterniond delta_q(std::cos(theta), 
+                                   omega_normalized.x() * std::sin(theta),
+                                   omega_normalized.y() * std::sin(theta),
+                                   omega_normalized.z() * std::sin(theta));
+        
+        // Update the quaternion by multiplying with the exponential quaternion
+        new_quaternion = (delta_q * current_quaternion).normalized();
+        } else {
+        // For very small angular velocities, you might simply normalize the quaternion
+        // as the change is negligible
+        new_quaternion.normalize();
+    }
+    //  Output the rotation matrix for debugging/verification
+    //std::cout << "Updated Rotation Matrix:\n" << new_quaternion.toRotationMatrix() << std::endl;
+}
+
 
 
 void RigidBody::printTorque( Eigen::MatrixXd force,  Eigen::MatrixXd point_of_application,  Eigen::Vector3d center_of_mass) {

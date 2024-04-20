@@ -125,7 +125,7 @@ int main() {
   int angle_flag;
 
   // Declaration and initialization of COM
-  Eigen::Vector3d COM(0.0, 0.0, 0.0);
+  Eigen::Vector3d COM(0.0, 0.0, 0.0),center_of_mass;
   Eigen::MatrixXd signed_distance;  // Matrix to store signed distances
   Eigen::MatrixXi facet_index;  // Matrix to store facet indices
   Eigen::MatrixXd closest_points;  // Matrix to store closest points
@@ -290,10 +290,14 @@ int main() {
   Eigen::Matrix3d moment_of_inertia;
   Eigen::Matrix3d inverse_moment_of_inertia;
   Eigen::Vector3d torque,ang_momentum,ang_velocity;
-  body.calculate_properties(V1,mass);
-  std::cout<<"moment_of_inertia: "<< moment_of_inertia<<std::endl;
+  body.calculate_properties(V2,mass);
+  // Access and use the calculated properties
+  std::cout << "Center of Mass: " << body.getCenterOfMass().transpose() << std::endl;
+  std::cout << "Moment of Inertia: \n" << body.getMomentOfInertia() << std::endl;
+  std::cout << "Inverse Moment of Inertia (if calculated): \n" << body.getInverseMomentOfInertia() << std::endl;
 
-  Eigen::Quaterniond quaternion_current = Eigen::Quaterniond::Identity();
+  Eigen::Quaterniond current_quaternion = Eigen::Quaterniond::Identity();
+  Eigen::Quaterniond new_quaternion= Eigen::Quaterniond::Identity();
   // std::cout << "Initial Quaternion (Identity): "
   //             << "w = " << quaternion_current.w() << ", "
   //             << "x = " << quaternion_current.x() << ", "
@@ -372,12 +376,18 @@ int main() {
     if(particle_flag)E1.redistributeAdhesionForce(V2,F2,closest_points, Force_Adhesion, facet_index,ForcesOnVertices); 
 
     ///  Rigid Body Calculations 
+    body.calculate_center_of_mass(V2,F2,center_of_mass);
   
-    body.calculate_torque(ForcesOnVertices, V2, COM, torque);
+    body.calculate_torque(ForcesOnVertices, V2, center_of_mass, torque);
     body.angular_momentum(torque, dt ,ang_momentum);
-    body.calculate_omega(ang_momentum,inverse_moment_of_inertia, ang_velocity);
+    body.calculate_omega(ang_momentum,inverse_moment_of_inertia, new_quaternion,ang_velocity);
     //std::cout << "Angular Momentum: " << ang_momentum << std::endl;
-    //std::cout << "Angular Velocity: " << ang_velocity << std::endl;
+    std::cout << "Angular Velocity: " << ang_velocity << std::endl;
+    body.update_quaternion(current_quaternion, ang_velocity, dt,new_quaternion);
+    
+
+
+    ///Rigid Body Calculations End
     
     
     if (i % logfrequency == 0) {

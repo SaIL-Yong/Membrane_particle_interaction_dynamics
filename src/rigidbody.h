@@ -32,10 +32,11 @@ public:
     void angular_momentum (Eigen::Vector3d torque,double dt, Eigen::Vector3d& angular_momentum);
     void calculate_omega(Eigen::Vector3d angular_momentum, Eigen::Matrix3d rot_mat, Eigen::Matrix3d idiag, Eigen::Vector3d& angular_velocity);
     void update_quaternion(Eigen::Quaterniond current_quaternion, Eigen::Vector3d angular_velocity, double dt, Eigen::Quaterniond& new_quaternion);
-    void update_vertex_position(Eigen::MatrixXd& V, Eigen::MatrixXd forces,  Eigen::Quaterniond quaternion, double dt, Eigen::Vector3d& particle_velocity);
-
+    //void update_vertex_position(Eigen::MatrixXd& V, Eigen::MatrixXd forces,  Eigen::Quaterniond quaternion, double dt, Eigen::Vector3d& particle_velocity_com);
+    void update_vertex_velocities_positions(Eigen::MatrixXd& V,Eigen::Vector3d vcm,Eigen::Vector3d omega,Eigen::Vector3d com,double dt, Eigen::MatrixXd& node_velocities);
     void diagonalize_inertia_tensor(Eigen::Matrix3d inertia_tensor, Eigen::Matrix3d& principal_axes,Eigen::Matrix3d& principal_moments);
     void exyz_to_q(Eigen::Matrix3d R ,Eigen::Quaterniond& quat);
+    void q_to_exyz(Eigen::Quaterniond quat, Eigen::Matrix3d& R);
     //void printTorque(Eigen::MatrixXd force,  Eigen::MatrixXd point_of_application, Eigen::Vector3d center_of_mass);
     // Declare a method to calculate the orientation of the rigid body
     Eigen::Vector3d  ang_mom,omega; 

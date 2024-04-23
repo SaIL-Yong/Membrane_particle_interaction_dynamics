@@ -86,69 +86,15 @@ void RigidBody::update_quaternion(Eigen::Quaterniond current_quaternion, Eigen::
         Eigen::Quaterniond omega_q(0, angular_velocity.x(), angular_velocity.y(), angular_velocity.z());
 
         // // Calculate the quaternion derivative using quaternion multiplication
-         Eigen::Quaterniond product = current_quaternion * omega_q;
-
-        // // Correctly applying scalar multiplication to the quaternion components
-        // Eigen::Quaterniond quaternion_derivative(product.w() * 0.5, product.x() * 0.5, product.y() * 0.5, product.z() * 0.5);
-            // Quaternion derivative should be half of current_quaternion * omega_q
-            // Multiply quaternion coefficients by 0.5
-        Eigen::Vector4d coeffs = product.coeffs() * 0.5;
-
-        // Reconstruct the quaternion from scaled coefficients
-        Eigen::Quaterniond quaternion_derivative(coeffs);
-
-        // Update the quaternion using the derivative and the time step
-           // Compute the magnitude of the angular velocity vector
-        double omega_magnitude = angular_velocity.norm();
-    
-        // Avoid division by zero in case of very small angular velocities
-        if(omega_magnitude > std::numeric_limits<double>::epsilon()) {
-        // Normalized angular velocity vector
-        Eigen::Vector3d omega_normalized = angular_velocity.normalized();
-        // Compute the scaled angle for the quaternion exponential
-        double theta = omega_magnitude * dt * 0.5; 
-        // Compute the quaternion exponential
-        Eigen::Quaterniond delta_q(std::cos(theta), 
-                                   omega_normalized.x() * std::sin(theta),
-                                   omega_normalized.y() * std::sin(theta),
-                                   omega_normalized.z() * std::sin(theta));
-        
-        // Update the quaternion by multiplying with the exponential quaternion
-        new_quaternion = (delta_q * current_quaternion).normalized();
-        } else {
-        // For very small angular velocities, you might simply normalize the quaternion
-        // as the change is negligible
+         Eigen::Quaterniond product = omega_q*current_quaternion;
+        // Update the quaternion using the derivative and time step
+        new_quaternion.w() = current_quaternion.w() + 0.5 * dt * product.w(),
+        new_quaternion.x() = current_quaternion.x() + 0.5 * dt * product.x(),
+        new_quaternion.y() = current_quaternion.y() + 0.5 * dt * product.y(),
+        new_quaternion.z() = current_quaternion.z() + 0.5 * dt * product.z();
+        // normalizing the quaternion
         new_quaternion.normalize();
-    }
-    //  Output the rotation matrix for debugging/verification
-    //std::cout << "Updated Rotation Matrix:\n" << new_quaternion.toRotationMatrix() << std::endl;
 }
-
-// Function to update vertex positions using matrix operations
-void RigidBody::update_vertex_position(Eigen::MatrixXd& V, Eigen::MatrixXd forces,  Eigen::Quaterniond quaternion, double dt, Eigen::Vector3d& particle_velocity) {
-        // Calculate the net force (assuming each column in forces is a force vector for the corresponding vertex)
-        //Eigen::Vector3d net_force = forces.rowwise().sum();
-        //std::cout << "Net Force: " << net_force.transpose() << std::endl;
-
-        // Calculate the acceleration of the center of mass based on the net force
-        particle_acceleration =  forces.colwise().sum() / V.rows();
-
-        // Update the velocity of the center of mass based on the acceleration
-        particle_velocity += particle_acceleration * dt;
-        //std::cout << "Particle Velocity: " << particle_velocity.transpose() << std::endl;
-
-        // Update all vertex positions by translating with the velocity
-        V.rowwise() += (particle_velocity * dt).transpose();
-
-        // Calculate the rotation matrix from the quaternion
-        rotation_matrix = quaternion.toRotationMatrix();
-        //Affine3d T = quaternion * Translation3d(V);
-
-               // Apply the rotation to all vertex positions
-        V = (rotation_matrix * V.transpose()).transpose();
-        //V= T * V;
-}
-
 
 void RigidBody::diagonalize_inertia_tensor(Eigen::Matrix3d inertia_tensor, Eigen::Matrix3d& principal_axes, Eigen::Matrix3d& principal_moments) {
     Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eigensolver(inertia_tensor);
@@ -167,24 +113,47 @@ void RigidBody::exyz_to_q(Eigen::Matrix3d R ,Eigen::Quaterniond& quat) {
     quat = Eigen::Quaterniond(R);
     quat.normalize();
 }
-// void RigidBody::printTorque( Eigen::MatrixXd force,  Eigen::MatrixXd point_of_application,  Eigen::Vector3d center_of_mass) {
-//     Eigen::Vector3d torque;
-//     calculate_torque(force, point_of_application, center_of_mass, torque);
-//     std::cout << "Torque: " << torque.transpose() << std::endl;
-// }
-// Eigen::Quaterniond RigidBody::calculateOrientation(Eigen::MatrixXd forces, Eigen::MatrixXd point_of_application,Eigen::Vector3d torque,  double dt,  Eigen::Quaterniond& current_orientation) {
-//     // Calculate the net torque acting on the rigid body
-//     Eigen::Vector3d net_torque = torque + calculate_torque(forces, point_of_application, center_of_mass);
+void RigidBody::q_to_exyz(Eigen::Quaterniond quat, Eigen::Matrix3d& R)
+{
+    // Convert the quaternion to a rotation matrix
+    R = quat.toRotationMatrix();
+}
+void RigidBody::update_vertex_velocities_positions(Eigen::MatrixXd& V,Eigen::Vector3d vcm,Eigen::Vector3d omega,Eigen::Vector3d com,double dt, Eigen::MatrixXd& node_velocities) {
+        // Assume V contains vertex positions and each row corresponds to a vertex
+        // Assume velocities is a matrix with the same dimensions as V
 
-//     // Calculate the change in orientation using the angular velocity
-//     Eigen::Quaterniond delta_orientation;
-//     delta_orientation.setIdentity();
-//     delta_orientation.coeffs() = 0.5 * dt * Eigen::Vector3d(net_torque.x(), net_torque.y(), net_torque.z());
+        // Calculate vertex velocities
+        for (int i = 0; i < V.rows(); i++) {
+            Eigen::Vector3d r = V.row(i).transpose() - com; // position relative to the center of mass
+            Eigen::Vector3d rotational_velocity = omega.cross(r); // omega x r
+            node_velocities.row(i) = vcm.transpose() + rotational_velocity.transpose();
+        }
+        // Update vertex positions
+        V += node_velocities * dt;
+}
+/*
+// Function to update vertex positions using matrix operations
+void RigidBody::update_vertex_position(Eigen::MatrixXd& V, Eigen::MatrixXd forces,  Eigen::Quaterniond quaternion, double dt, Eigen::Vector3d& particle_velocity_com) {
+        // Calculate the net force (assuming each column in forces is a force vector for the corresponding vertex)
+        //Eigen::Vector3d net_force = forces.rowwise().sum();
+        //std::cout << "Net Force: " << net_force.transpose() << std::endl;
 
-//     // Update the orientation of the rigid body
-//     Eigen::Quaterniond new_orientation = current_orientation * delta_orientation;
-//     new_orientation.normalize();
+        // Calculate the acceleration of the center of mass based on the net force
+        particle_acceleration_com =  forces.colwise().sum() / V.rows();
 
-//     return new_orientation;
-// }
+        // Update the velocity of the center of mass based on the acceleration
+        particle_velocity_com += particle_acceleration * dt;
+        //std::cout << "Particle Velocity: " << particle_velocity.transpose() << std::endl;
 
+        // Update all vertex positions by translating with the velocity
+        V.rowwise() += (particle_velocity * dt).transpose();
+
+        // Calculate the rotation matrix from the quaternion
+        rotation_matrix = quaternion.toRotationMatrix();
+        //Affine3d T = quaternion * Translation3d(V);
+
+               // Apply the rotation to all vertex positions
+        V = (rotation_matrix * V.transpose()).transpose();
+        //V= T * V;
+}
+*/

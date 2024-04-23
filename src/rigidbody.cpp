@@ -59,10 +59,23 @@ void RigidBody::calculate_torque(Eigen::MatrixXd force, Eigen::MatrixXd point_of
 void RigidBody::angular_momentum (Eigen::Vector3d torque,double dt, Eigen::Vector3d& ang_mom) {
     ang_mom += torque * dt;  // Update angular momentum using ΔL = torque * Δt
 }
-void RigidBody::calculate_omega(Eigen::Vector3d angular_momentum, Eigen::Matrix3d inverse_moment_of_inertia,Eigen::Quaterniond quat,Eigen::Vector3d& angular_velocity) {
-    Eigen::Matrix3d Iinv = quat.toRotationMatrix()*inverse_moment_of_inertia*quat.toRotationMatrix().transpose();
-    angular_velocity = Iinv* angular_momentum; // ω = I^-1 * L
-}
+// void RigidBody::calculate_omega(Eigen::Vector3d angular_momentum, Eigen::Matrix3d rot_mat,Eigen::Vector3d idiag,Eigen::Vector3d& angular_velocity) {
+//     //Eigen::Matrix3d Iinv = quat.toRotationMatrix()*inverse_moment_of_inertia*quat.toRotationMatrix().transpose(); 
+
+//     // Transform angular momentum from space to body frame
+//     Eigen::Vector3d mom_body = rot_mat.transpose() * angular_momentum;  // P^T * M_space
+//     // Calculate the inverse inertia tensor in the body frame
+//     // Iinv= R * I^-1 * R^T  
+//         // Compute angular velocity in the body frame
+//     Eigen::Vector3d omega_body;
+//     for (int i = 0; i < 3; ++i) {
+//         omega_body(i) = idiag(i) == 0.0 ? 0.0 : m_body(i) / idiag(i);
+//     }
+
+//     // Transform angular velocity back to the space frame
+//     angular_velocity = rot_mat * omega_body;  // P * w_body
+//     //angular_velocity = Iinv* angular_momentum; // ω = I^-1 * L //space_frame
+// }
 
 
 //Update quaternion based on angular velocity and time step
@@ -109,13 +122,54 @@ void RigidBody::update_quaternion(Eigen::Quaterniond current_quaternion, Eigen::
     //std::cout << "Updated Rotation Matrix:\n" << new_quaternion.toRotationMatrix() << std::endl;
 }
 
+// Function to update vertex positions using matrix operations
+void RigidBody::update_vertex_position(Eigen::MatrixXd& V, Eigen::MatrixXd forces,  Eigen::Quaterniond quaternion, double dt, Eigen::Vector3d& particle_velocity) {
+        // Calculate the net force (assuming each column in forces is a force vector for the corresponding vertex)
+        //Eigen::Vector3d net_force = forces.rowwise().sum();
+        //std::cout << "Net Force: " << net_force.transpose() << std::endl;
 
+        // Calculate the acceleration of the center of mass based on the net force
+        particle_acceleration =  forces.colwise().sum() / V.rows();
 
-void RigidBody::printTorque( Eigen::MatrixXd force,  Eigen::MatrixXd point_of_application,  Eigen::Vector3d center_of_mass) {
-    Eigen::Vector3d torque;
-    calculate_torque(force, point_of_application, center_of_mass, torque);
-    std::cout << "Torque: " << torque.transpose() << std::endl;
+        // Update the velocity of the center of mass based on the acceleration
+        particle_velocity += particle_acceleration * dt;
+        //std::cout << "Particle Velocity: " << particle_velocity.transpose() << std::endl;
+
+        // Update all vertex positions by translating with the velocity
+        V.rowwise() += (particle_velocity * dt).transpose();
+
+        // Calculate the rotation matrix from the quaternion
+        rotation_matrix = quaternion.toRotationMatrix();
+        //Affine3d T = quaternion * Translation3d(V);
+
+               // Apply the rotation to all vertex positions
+        V = (rotation_matrix * V.transpose()).transpose();
+        //V= T * V;
 }
+
+
+void RigidBody::diagonalize_inertia_tensor(Eigen::Matrix3d inertia_tensor, Eigen::Matrix3d& principal_axes, Eigen::Matrix3d& principal_moments) {
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eigensolver(inertia_tensor);
+    if (eigensolver.info() != Eigen::Success) abort();
+    
+    principal_axes = eigensolver.eigenvectors();
+    principal_moments = eigensolver.eigenvalues().asDiagonal();
+    
+    std::cout << "Principal axes:\n" << principal_axes << std::endl;
+    std::cout << "Principal moments of inertia (Diagonal):\n" << principal_moments << std::endl;
+    // Optionally: Ensure the rotation matrix follows the right-hand rule
+    // rotation_matrix.col(2) = rotation_matrix.col(0).cross(rotation_matrix.col(1)); 
+}
+void RigidBody::exyz_to_q(Eigen::Matrix3d R ,Eigen::Quaterniond& quat) {
+    // Convert the rotation matrix to a quaternion
+    quat = Eigen::Quaterniond(R);
+    quat.normalize();
+}
+// void RigidBody::printTorque( Eigen::MatrixXd force,  Eigen::MatrixXd point_of_application,  Eigen::Vector3d center_of_mass) {
+//     Eigen::Vector3d torque;
+//     calculate_torque(force, point_of_application, center_of_mass, torque);
+//     std::cout << "Torque: " << torque.transpose() << std::endl;
+// }
 // Eigen::Quaterniond RigidBody::calculateOrientation(Eigen::MatrixXd forces, Eigen::MatrixXd point_of_application,Eigen::Vector3d torque,  double dt,  Eigen::Quaterniond& current_orientation) {
 //     // Calculate the net torque acting on the rigid body
 //     Eigen::Vector3d net_torque = torque + calculate_torque(forces, point_of_application, center_of_mass);

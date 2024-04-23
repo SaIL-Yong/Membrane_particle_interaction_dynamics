@@ -252,12 +252,14 @@ int main() {
 
   Energy E1;
 
-  Eigen::MatrixXd Force_Area(numV, 3), Force_Volume(numV, 3), Force_Bending(numV, 3), Force_Adhesion(numV, 3),Force_Random, velocity(numV, 3), Force_Total(numV, 3),
-                  acceleration(numV,3),acceleration_half_step(numV,3),velocity_half_step(numV,3); //force components
+  Eigen::MatrixXd Force_Area(numV, 3), Force_Volume(numV, 3), Force_Bending(numV, 3), Force_Adhesion(numV, 3),Force_Random(numV,3),Force_Repulsion(numV,3), velocity(numV, 3), Force_Total(numV, 3),
+                  acceleration(numV,3),acceleration_half_step(numV,3),velocity_half_step(numV,3),ForcesOnVertices; //force components
 
-  Eigen::MatrixXd ForcesOnVertices;
+  //Eigen::MatrixXd ForcesOnVertices;
   Force_Adhesion.setZero();
   Force_Random.setZero();
+  Force_Repulsion.setZero();
+  //ForcesOnVertices.setZero();
   velocity.setZero();
   velocity_half_step.setZero();
   
@@ -283,27 +285,31 @@ int main() {
   } else {
     logfile<<"Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  TotalEnergy  EnergyChangeRate  ForceResidual"<<std::endl;
   }
+  
 
-  ///RigidBodyCalculations
-
+  
+  //RigidBodyCalculations and particl motions
+  if (particle_flag){
   RigidBody body;
+  Eigen::Matrix3d rotation_matrix,diag;
   Eigen::Matrix3d moment_of_inertia;
   Eigen::Matrix3d inverse_moment_of_inertia;
-  Eigen::Vector3d torque,ang_momentum,ang_velocity;
+  Eigen::Vector3d torque,ang_momentum,ang_velocity,particle_velocity;
   body.calculate_properties(V2,mass);
   // Access and use the calculated properties
   std::cout << "Center of Mass: " << body.getCenterOfMass().transpose() << std::endl;
   std::cout << "Moment of Inertia: \n" << body.getMomentOfInertia() << std::endl;
   std::cout << "Inverse Moment of Inertia (if calculated): \n" << body.getInverseMomentOfInertia() << std::endl;
-
-  Eigen::Quaterniond current_quaternion = Eigen::Quaterniond::Identity();
+  body.diagonalize_inertia_tensor(body.getMomentOfInertia(), rotation_matrix,diag);
+  //std::cout << "Rotation Matrix: \n" << rotation_matrix << std::endl;
+  Eigen::Quaterniond current_quaternion; // Initialize the quaternion
   Eigen::Quaterniond new_quaternion= Eigen::Quaterniond::Identity();
-  // std::cout << "Initial Quaternion (Identity): "
-  //             << "w = " << quaternion_current.w() << ", "
-  //             << "x = " << quaternion_current.x() << ", "
-  //             << "y = " << quaternion_current.y() << ", "
-  //             << "z = " << quaternion_current.z() << std::endl;
-
+  std::cout << "Initial Quaternion (Identity): "
+               << "w = " <<current_quaternion.w() << ", "
+               << "x = " <<current_quaternion.x() << ", "
+               << "y = " <<current_quaternion.y() << ", "
+               << "z = " <<current_quaternion.z() << std::endl;
+  }
   
 ///
 
@@ -323,11 +329,11 @@ int main() {
     E1.compute_volumeenergy_force(V1, F1, Kv, volume_target, Force_Volume, EnergyVolume, M1);
     if(particle_flag && i%bondfrequency==0)igl::signed_distance(V1, V2, F2, igl::SIGNED_DISTANCE_TYPE_PSEUDONORMAL, signed_distance, facet_index, closest_points, normals_closest_points);
     if(particle_flag){E1.compute_adhesion_energy_force(V1, F1, closest_points, rho, U,r_equilibrium,rc,angle_flag,
-                                    particle_position, Ew_t, Kw,Force_Adhesion,signed_distance, EnergyAdhesion,EnergyBias, M1);}
-    //if (random_force_flag)E1.compute_random_force(V1, gamma, kbT, mass, dt, Force_Random);
+                                    particle_position, Ew_t, Kw,Force_Adhesion,Force_Repulsion,signed_distance, EnergyAdhesion,EnergyBias, M1);}
+    if (random_force_flag)E1.compute_random_force(V1, gamma, kbT, mass, dt, Force_Random);
     //std::cout << "Force Adhesion" << Force_Adhesion << std::endl;
     EnergyTotal = EnergyBending + EnergyArea + EnergyVolume + EnergyAdhesion + EnergyBias;
-    Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion;//+ Force_Random;
+    Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion+ Force_Random;
 
     //acceleration = Force_Total/mass;
     acceleration_half_step = Force_Total / mass;
@@ -357,13 +363,13 @@ int main() {
       }
     }
     if(particle_flag){E1.compute_adhesion_energy_force(V1, F1, closest_points, rho, U,r_equilibrium,rc,angle_flag,
-                                    particle_position, Ew_t, Kw,Force_Adhesion,signed_distance, EnergyAdhesion,EnergyBias, M1);}
-    //if (random_force_flag)E1.compute_random_force(V1, gamma, kbT, mass, dt, Force_Random);
+                                    particle_position, Ew_t, Kw,Force_Adhesion,Force_Repulsion,signed_distance, EnergyAdhesion,EnergyBias, M1);}
+    if (random_force_flag)E1.compute_random_force(V1, gamma, kbT, mass, dt, Force_Random);
     EnergyTotal = EnergyBending + EnergyArea + EnergyVolume + EnergyAdhesion + EnergyBias;
-    Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion;//+Force_Random;
+    Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion+Force_Random;
     force_residual = Force_Total.norm();
-    //if (random_force_flag)force_ratio=Force_Random.norm()/(Force_Bending + Force_Area + Force_Volume + Force_Adhesion).norm();
-    //std::cout<<"Force Ratio: "<<force_ratio<<std::endl;
+    if (random_force_flag){force_ratio=Force_Random.norm()/(Force_Bending + Force_Area + Force_Volume + Force_Adhesion).norm();
+    std::cout<<"Force Ratio: "<<force_ratio<<std::endl;}
 
     acceleration = Force_Total / mass;
     // Update velocities with average acceleration
@@ -373,21 +379,42 @@ int main() {
     rVol = 6 * sqrt(PI) * M1.volume_total * pow(M1.area_total, -1.5);
 
     //ForcesonParticleVertices
-    if(particle_flag)E1.redistributeAdhesionForce(V2,F2,closest_points, Force_Adhesion, facet_index,ForcesOnVertices); 
+    if(particle_flag){E1.redistributeAdhesionForce(V2,F2,closest_points, Force_Repulsion, facet_index,ForcesOnVertices); 
+    /*std::ofstream file_force("particle_force.txt");
+    if (file_force.is_open()) {
+    file_force<< ForcesOnVertices<< std::endl;
+    file_force.close();
+    std::cout << "particle force successfully saved to file." << std::endl;
+    }
+    else {
+    std::cout << "Error: cannot open particle force file." << std::endl;
+    }*/
+    }
+    /*
 
-    ///  Rigid Body Calculations 
+    //  Rigid Body Calculations 
     body.calculate_center_of_mass(V2,F2,center_of_mass);
   
     body.calculate_torque(ForcesOnVertices, V2, center_of_mass, torque);
     body.angular_momentum(torque, dt ,ang_momentum);
     body.calculate_omega(ang_momentum,inverse_moment_of_inertia, new_quaternion,ang_velocity);
     //std::cout << "Angular Momentum: " << ang_momentum << std::endl;
-    std::cout << "Angular Velocity: " << ang_velocity << std::endl;
+    std::cout << "Angular Velocity: " << ang_velocity.transpose() << std::endl;
     body.update_quaternion(current_quaternion, ang_velocity, dt,new_quaternion);
+    //forces.rowwise().sum();
+    //std::cout << "Net Force: " << net_force.transpose() << std::endl;
+       
+    // Calculate the acceleration of the center of mass based on the net force
+    //Eigen::Vector3d acceleration_particle = ForcesOnVertices.colwise().sum();
+    //std::cout << "Acceleration: " << acceleration_particle.transpose() << std::endl;
+    // Update the velocity of the center of mass based on the acceleration
+    //particle_velocity += acceleration * dt;
+    //std::cout << "Velocity: " << particle_velocity.transpose() << std::endl;
+    body.update_vertex_position(V2, ForcesOnVertices, new_quaternion, dt, particle_velocity);
+    std::cout << "Particle Velocity: " << particle_velocity.transpose() << std::endl;
     
-
-
-    ///Rigid Body Calculations End
+    */
+    //Rigid Body Calculations End
     
     
     if (i % logfrequency == 0) {
@@ -435,7 +462,7 @@ int main() {
       char dumpfilename[128];
       sprintf(dumpfilename, "dump%08d.off", i);
 	    igl::writeOFF(dumpfilename, V1, F1);
-
+      igl::writeOFF("particle.off", V2, F2);
 	  }
 
     if (i % resfrequency == 0) igl::writeOFF(parameter.resFile, V1, F1);

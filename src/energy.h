@@ -28,8 +28,8 @@ class Energy {
   void compute_volumeenergy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, double Kv, double volume_target, Eigen::MatrixXd& Force_Volume, double& volume_energy, Mesh m);
   
   void compute_adhesion_energy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, Eigen::MatrixXd V_particle,double rho, double U,double r_equilibrium,double rc,
-                                          int angle_flag,int particle_position,double Ew_t, double Kw,
-                                          Eigen::MatrixXd& Force_Adhesion,Eigen::MatrixXd signed_distance, double& EnergyAdhesion,double& EnergyBias,  Mesh m);
+                                          int angle_flag,int particle_position,double Ew_t, double Kw,Eigen::MatrixXd& Force_Adhesion,
+                                          Eigen::MatrixXd& Force_Repulsion,Eigen::MatrixXd signed_distance, double& EnergyAdhesion,double& EnergyBias,  Mesh m);
 
  void redistributeAdhesionForce(Eigen::MatrixXd V2, Eigen::MatrixXi F2, Eigen::MatrixXd closest_points, Eigen::MatrixXd Force_Adhesion, Eigen::VectorXi facet_index, Eigen::MatrixXd& ForcesOnVertices) ; 
 
@@ -37,9 +37,13 @@ class Energy {
 
  private:
   // variables for bending energy force calculation
+  int f_idx;
+  Eigen::Vector3i face;
+  Eigen::Matrix<double, 3, 3> triangle;
   Eigen::VectorXd Lap_H, force_density;
   Eigen::VectorXd EB;
   Eigen::VectorXd vector_term;
+  Eigen::Vector3d force;
 
   // variables for area and volume energy force calculation
   Eigen::MatrixXd AG;

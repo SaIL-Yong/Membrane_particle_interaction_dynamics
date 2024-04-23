@@ -44,8 +44,8 @@ void Energy::compute_volumeenergy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, do
   }
 }
 void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, Eigen::MatrixXd V_particle,double rho, double U,double r_equilibrium,double rc,
-                                           int angle_flag,int particle_position,double Ew_t, double Kw,
-                                           Eigen::MatrixXd& Force_Adhesion,Eigen::MatrixXd signed_distance, double& EnergyAdhesion,double& EnergyBias,  Mesh m){
+                                           int angle_flag,int particle_position,double Ew_t, double Kw,Eigen::MatrixXd& Force_Adhesion,
+                                           Eigen::MatrixXd& Force_Repulsion,Eigen::MatrixXd signed_distance, double& EnergyAdhesion,double& EnergyBias,  Mesh m){
   Force_Adhesion.setZero();
   coefficient.resize(V.rows());
   coefficient_derivative_x.resize(V.rows());
@@ -64,7 +64,7 @@ void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V, Eigen::MatrixXi F,
   comvec = V-V_particle;
 
 
-  // can this loop be replaced by the eigen operation
+  // can this loop be replaced by the eigen operation???
 
   for (int i = 0; i < V.rows(); i++) {
     dc = signed_distance(i);
@@ -92,7 +92,7 @@ void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V, Eigen::MatrixXi F,
                                 *(-exp(-(2.0*dc)/rho) + exp(-dc/rho)) * 2.0 * dy;
     coefficient_derivative_z(i) = (U/(dc*rho))
                                 *(-exp(-(2.0*dc)/rho) + exp(-dc/rho)) * 2.0 * dz;
-
+  }
   coefficient_of_derivative.resize(V.rows(), 3);
   coefficient_of_derivative.col(0)=coefficient_derivative_x.transpose();
   coefficient_of_derivative.col(1)=coefficient_derivative_y.transpose();
@@ -115,8 +115,10 @@ void Energy::compute_adhesion_energy_force(Eigen::MatrixXd V, Eigen::MatrixXi F,
     Force_Biased = Kw * dEw * Sum;
     Force_Adhesion = Sum + Force_Biased;
   } else Force_Adhesion = Sum; 
+
+  Force_Repulsion = Second_Term;
+  
 }
-                                           }
 /// @brief 
 /// @param V2 
 /// @param F2 
@@ -133,14 +135,14 @@ Eigen::MatrixXd Force_Adhesion, Eigen::VectorXi facet_index, Eigen::MatrixXd& Fo
     for (size_t i = 0; i < closest_points.rows(); ++i) {
 
         // Inside the loop where you distribute forces:
-        Eigen::Vector3d force = -Force_Adhesion.row(i); // Access the i-th force vector
+        force = -Force_Adhesion.row(i); // Access the i-th force vector
         // Proceed to distribute this force using barycentric coordinates
         // Get the indices of the vertices of the triangle
-        int f_idx = facet_index(i); // Triangle index
-        Eigen::Vector3i face = F2.row(f_idx);
+        f_idx = facet_index(i); // Triangle index
+        face = F2.row(f_idx);
 
         // Get the vertices of the triangle
-        Eigen::Matrix<double, 3, 3> triangle;
+        //Eigen::Matrix<double, 3, 3> triangle;
         triangle.row(0) = V2.row(face(0));
         triangle.row(1) = V2.row(face(1));
         triangle.row(2) = V2.row(face(2));

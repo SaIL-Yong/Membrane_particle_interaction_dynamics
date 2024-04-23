@@ -30,7 +30,7 @@ public:
     void calculate_center_of_mass(Eigen::MatrixXd V, Eigen::MatrixXi F, Eigen::Vector3d& center_of_mass);
     void calculate_torque(Eigen::MatrixXd force, Eigen::MatrixXd point_of_application,Eigen::Vector3d center_of_mass,Eigen::Vector3d& torque);
     void angular_momentum (Eigen::Vector3d torque,double dt, Eigen::Vector3d& angular_momentum);
-    void calculate_omega(Eigen::Vector3d angular_momentum, Eigen::Matrix3d rot_mat,Eigen::Vector3d idiag,Eigen::Vector3d& angular_velocity);
+    void calculate_omega(Eigen::Vector3d angular_momentum, Eigen::Matrix3d rot_mat, Eigen::Matrix3d idiag, Eigen::Vector3d& angular_velocity);
     void update_quaternion(Eigen::Quaterniond current_quaternion, Eigen::Vector3d angular_velocity, double dt, Eigen::Quaterniond& new_quaternion);
     void update_vertex_position(Eigen::MatrixXd& V, Eigen::MatrixXd forces,  Eigen::Quaterniond quaternion, double dt, Eigen::Vector3d& particle_velocity);
 

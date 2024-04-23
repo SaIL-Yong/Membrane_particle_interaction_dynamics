@@ -289,9 +289,9 @@ int main() {
 
   
   //RigidBodyCalculations and particl motions
-  if (particle_flag){
+  //if (particle_flag){
   RigidBody body;
-  Eigen::Matrix3d rotation_matrix,diag;
+  Eigen::Matrix3d rotation_matrix,idiag;
   Eigen::Matrix3d moment_of_inertia;
   Eigen::Matrix3d inverse_moment_of_inertia;
   Eigen::Vector3d torque,ang_momentum,ang_velocity,particle_velocity;
@@ -300,7 +300,7 @@ int main() {
   std::cout << "Center of Mass: " << body.getCenterOfMass().transpose() << std::endl;
   std::cout << "Moment of Inertia: \n" << body.getMomentOfInertia() << std::endl;
   std::cout << "Inverse Moment of Inertia (if calculated): \n" << body.getInverseMomentOfInertia() << std::endl;
-  body.diagonalize_inertia_tensor(body.getMomentOfInertia(), rotation_matrix,diag);
+  body.diagonalize_inertia_tensor(body.getMomentOfInertia(), rotation_matrix,idiag);
   //std::cout << "Rotation Matrix: \n" << rotation_matrix << std::endl;
   Eigen::Quaterniond current_quaternion; // Initialize the quaternion
   Eigen::Quaterniond new_quaternion= Eigen::Quaterniond::Identity();
@@ -309,7 +309,9 @@ int main() {
                << "x = " <<current_quaternion.x() << ", "
                << "y = " <<current_quaternion.y() << ", "
                << "z = " <<current_quaternion.z() << std::endl;
-  }
+
+  // Calculate the angular velocity
+ // }
   
 ///
 
@@ -390,17 +392,17 @@ int main() {
     std::cout << "Error: cannot open particle force file." << std::endl;
     }*/
     }
-    /*
+    
 
     //  Rigid Body Calculations 
     body.calculate_center_of_mass(V2,F2,center_of_mass);
   
     body.calculate_torque(ForcesOnVertices, V2, center_of_mass, torque);
     body.angular_momentum(torque, dt ,ang_momentum);
-    body.calculate_omega(ang_momentum,inverse_moment_of_inertia, new_quaternion,ang_velocity);
-    //std::cout << "Angular Momentum: " << ang_momentum << std::endl;
+    body.calculate_omega(ang_momentum, rotation_matrix, idiag, ang_velocity);
+    std::cout << "Angular Momentum: " << ang_momentum << std::endl;
     std::cout << "Angular Velocity: " << ang_velocity.transpose() << std::endl;
-    body.update_quaternion(current_quaternion, ang_velocity, dt,new_quaternion);
+    //body.update_quaternion(current_quaternion, ang_velocity, dt,new_quaternion);
     //forces.rowwise().sum();
     //std::cout << "Net Force: " << net_force.transpose() << std::endl;
        
@@ -413,7 +415,7 @@ int main() {
     body.update_vertex_position(V2, ForcesOnVertices, new_quaternion, dt, particle_velocity);
     std::cout << "Particle Velocity: " << particle_velocity.transpose() << std::endl;
     
-    */
+    
     //Rigid Body Calculations End
     
     

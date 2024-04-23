@@ -4,6 +4,8 @@
 #include <igl/doublearea.h>
 #include <Eigen/Geometry> // For cross product and norm
 
+
+////This function calculate momemt of inertia and center of mass in space frame
 void RigidBody::calculate_properties(Eigen::MatrixXd points, double mass/*,Eigen::Matrix3d& moment_of_inertia, Eigen::Matrix3d& inverse_moment_of_inertia*/) {  
     Eigen::Vector3d center_of_mass = Eigen::Vector3d::Zero();
     //int numPoints = points.rows(); 
@@ -59,23 +61,23 @@ void RigidBody::calculate_torque(Eigen::MatrixXd force, Eigen::MatrixXd point_of
 void RigidBody::angular_momentum (Eigen::Vector3d torque,double dt, Eigen::Vector3d& ang_mom) {
     ang_mom += torque * dt;  // Update angular momentum using ΔL = torque * Δt
 }
-// void RigidBody::calculate_omega(Eigen::Vector3d angular_momentum, Eigen::Matrix3d rot_mat,Eigen::Vector3d idiag,Eigen::Vector3d& angular_velocity) {
-//     //Eigen::Matrix3d Iinv = quat.toRotationMatrix()*inverse_moment_of_inertia*quat.toRotationMatrix().transpose(); 
 
-//     // Transform angular momentum from space to body frame
-//     Eigen::Vector3d mom_body = rot_mat.transpose() * angular_momentum;  // P^T * M_space
-//     // Calculate the inverse inertia tensor in the body frame
-//     // Iinv= R * I^-1 * R^T  
-//         // Compute angular velocity in the body frame
-//     Eigen::Vector3d omega_body;
-//     for (int i = 0; i < 3; ++i) {
-//         omega_body(i) = idiag(i) == 0.0 ? 0.0 : m_body(i) / idiag(i);
-//     }
 
-//     // Transform angular velocity back to the space frame
-//     angular_velocity = rot_mat * omega_body;  // P * w_body
-//     //angular_velocity = Iinv* angular_momentum; // ω = I^-1 * L //space_frame
-// }
+void RigidBody::calculate_omega(Eigen::Vector3d angular_momentum, Eigen::Matrix3d rot_mat, Eigen::Matrix3d idiag, Eigen::Vector3d& angular_velocity) {
+        // Transform angular momentum from space to body frame
+        Eigen::Vector3d mom_body = rot_mat.transpose() * angular_momentum;  // P^T * M_space
+
+        // Compute angular velocity in the body frame
+        Eigen::Vector3d omega_body;
+        for (int i = 0; i < 3; ++i) {
+            // Check if diagonal inertia (inverse inertia component) is zero to prevent division by zero
+            omega_body(i) = idiag(i, i) == 0.0 ? 0.0 : mom_body(i) / idiag(i, i);
+        }
+
+        // Transform angular velocity back to the space frame
+        angular_velocity = rot_mat * omega_body;  // P * ω_body
+}
+
 
 
 //Update quaternion based on angular velocity and time step

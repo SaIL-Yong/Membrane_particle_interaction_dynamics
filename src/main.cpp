@@ -293,16 +293,14 @@ int main() {
   RigidBody body;
   Eigen::Matrix3d rotation_matrix,idiag;
   Eigen::Matrix3d moment_of_inertia;
-  Eigen::Matrix3d inverse_moment_of_inertia;
+  //Eigen::Matrix3d inverse_moment_of_inertia;
   Eigen::Vector3d torque,ang_momentum,ang_velocity,particle_velocity_com,particle_acceleration_com;
   Eigen::MatrixXd particle_velocities(V2.rows(),3);
-  body.calculate_properties(V2,mass);///space_frame
+  Eigen::MatrixXd displace(V2.rows(),3);
+
+  body.calculate_properties(V2,mass,rotation_matrix,idiag,displace);///space_frame
   // Access and use the calculated properties
   std::cout << "Center of Mass: " << body.getCenterOfMass().transpose() << std::endl;
-  std::cout << "Moment of Inertia: \n" << body.getMomentOfInertia() << std::endl;
-  std::cout << "Inverse Moment of Inertia (if calculated): \n" << body.getInverseMomentOfInertia() << std::endl;
-  body.diagonalize_inertia_tensor(body.getMomentOfInertia(), rotation_matrix,idiag);
-  //std::cout << "Rotation Matrix: \n" << rotation_matrix << std::endl;
   Eigen::Quaterniond current_quaternion; // Initialize the quaternion
   body.exyz_to_q(rotation_matrix,current_quaternion);
   Eigen::Quaterniond new_quaternion;//= Eigen::Quaterniond::Identity();
@@ -466,7 +464,7 @@ int main() {
     std::cout << "Rotation Matrix: \n" << rotation_matrix << std::endl;
 
     //v= vcm + omega x r
-    body.update_vertex_velocities_positions(V2,rotation_matrix ,center_of_mass,particle_velocity_com ,ang_velocity, dt,particle_velocities);
+    //body.update_vertex_velocities_positions(V2,rotation_matrix ,particle_velocity_com ,ang_velocity,displace, dt,particle_velocities);
     //std::cout << "Particle Velocity: " << particle_velocity.transpose() << std::endl;
     
     

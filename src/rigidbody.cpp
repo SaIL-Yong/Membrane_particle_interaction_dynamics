@@ -6,39 +6,56 @@
 
 
 ////This function calculate momemt of inertia and center of mass in space frame
-void RigidBody::calculate_properties(Eigen::MatrixXd points, double mass/*,Eigen::Matrix3d& moment_of_inertia, Eigen::Matrix3d& inverse_moment_of_inertia*/) {  
-    Eigen::Vector3d center_of_mass = Eigen::Vector3d::Zero();
-    //int numPoints = points.rows(); 
-// Assuming 'points' is of type Eigen::MatrixXd (or Eigen::MatrixXf) and each row is a point
-    center_of_mass = points.colwise().mean();
-    std::cout << "Center of mass: " << center_of_mass.transpose()<< std::endl;
-
-    // Calculate the moment of inertia
-    
-    for (int i = 0; i < points.rows(); ++i) {
-        Eigen::Vector3d r = points.row(i).transpose() - center_of_mass; // Corrected vector subtraction
-        //std::cout << "r: " << r.y() << std::endl;
-        moment_of_inertia(0, 0) += mass * (r.y() * r.y() + r.z() * r.z());
-        //std::cout<<"moment_of_inertia(0, 0): "<<moment_of_inertia(0, 0)<<std::endl;
-        moment_of_inertia(1, 1) += mass * (r.x() * r.x() + r.z() * r.z());
-        moment_of_inertia(2, 2) += mass * (r.x() * r.x() + r.y() * r.y());
-
-        moment_of_inertia(0, 1) -= mass * r.x() * r.y();
-        moment_of_inertia(1, 0) = moment_of_inertia(0, 1); // Symmetry in the inertia tensor
-        moment_of_inertia(0, 2) -= mass * r.x() * r.z();
-        moment_of_inertia(2, 0) = moment_of_inertia(0, 2); // Symmetry in the inertia tensor
-        moment_of_inertia(1, 2) -= mass * r.y() * r.z();
-        moment_of_inertia(2, 1) = moment_of_inertia(1, 2); // Symmetry in the inertia tensor
-    }
+void RigidBody::calculate_properties(Eigen::MatrixXd points, double mass,Eigen::Matrix3d& principal_axes, Eigen::Matrix3d& principal_moments,Eigen::MatrixXd& displace) { 
+   center_of_mass = Eigen::Vector3d::Zero();
+   //int numPoints = points.rows();
+ // Assuming 'points' is of type Eigen::MatrixXd (or Eigen::MatrixXf) and each row is a point
+   center_of_mass = points.colwise().mean();
+   std::cout << "Center of mass: " << center_of_mass.transpose()<< std::endl;
+   displace = points.rowwise() - center_of_mass.transpose();
+   // Calculate the moment of inertia
+  
+   for (int i = 0; i < points.rows(); ++i) {
+       Eigen::Vector3d r = points.row(i).transpose() - center_of_mass; // Corrected vector subtraction
+       //std::cout << "r: " << r.y() << std::endl;
+       moment_of_inertia(0, 0) += mass * (r.y() * r.y() + r.z() * r.z());
+       //std::cout<<"moment_of_inertia(0, 0): "<<moment_of_inertia(0, 0)<<std::endl;
+       moment_of_inertia(1, 1) += mass * (r.x() * r.x() + r.z() * r.z());
+       moment_of_inertia(2, 2) += mass * (r.x() * r.x() + r.y() * r.y());
 
 
-    if (moment_of_inertia.determinant() != 0) {
-            inverse_moment_of_inertia = moment_of_inertia.inverse();
-        } else {
-            std::cerr << "Warning: Moment of inertia matrix is not invertible." << std::endl;
-    }
- // Return the calculated properties
+       moment_of_inertia(0, 1) -= mass * r.x() * r.y();
+       moment_of_inertia(1, 0) = moment_of_inertia(0, 1); // Symmetry in the inertia tensor
+       moment_of_inertia(0, 2) -= mass * r.x() * r.z();
+       moment_of_inertia(2, 0) = moment_of_inertia(0, 2); // Symmetry in the inertia tensor
+       moment_of_inertia(1, 2) -= mass * r.y() * r.z();
+       moment_of_inertia(2, 1) = moment_of_inertia(1, 2); // Symmetry in the inertia tensor
+   }
+
+
+   /* moment of inertia inverse
+   if (moment_of_inertia.determinant() != 0) {
+           inverse_moment_of_inertia = moment_of_inertia.inverse();
+       } else {
+           std::cerr << "Warning: Moment of inertia matrix is not invertible." << std::endl;
+   }
+   */
+  moment_of_inertia.normalize();
+   // Diagonalize the moment of inertia tensor
+  Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eigensolver(moment_of_inertia);
+   if (eigensolver.info() != Eigen::Success) abort();
+  
+   principal_axes = eigensolver.eigenvectors();
+   principal_moments = eigensolver.eigenvalues().asDiagonal();
+
+
+   std::cout << "Principal axes:\n" << principal_axes << std::endl;
+   std::cout << "Principal moments of inertia (Diagonal):\n" << principal_moments << std::endl;
+   // Optionally: Ensure the rotation matrix follows the right-hand rule
+   // rotation_matrix.col(2) = rotation_matrix.col(0).cross(rotation_matrix.col(1));
+// Return the calculated properties
 }
+
 
 void RigidBody::calculate_center_of_mass(Eigen::MatrixXd V, Eigen::MatrixXi F, Eigen::Vector3d& center_of_mass) {
      center_of_mass = V.colwise().mean();
@@ -97,18 +114,18 @@ void RigidBody::update_quaternion(Eigen::Quaterniond current_quaternion, Eigen::
         new_quaternion.normalize();
 }
 
-void RigidBody::diagonalize_inertia_tensor(Eigen::Matrix3d inertia_tensor, Eigen::Matrix3d& principal_axes, Eigen::Matrix3d& principal_moments) {
-    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eigensolver(inertia_tensor);
-    if (eigensolver.info() != Eigen::Success) abort();
+// void RigidBody::diagonalize_inertia_tensor(Eigen::Matrix3d inertia_tensor, Eigen::Matrix3d& principal_axes, Eigen::Matrix3d& principal_moments) {
+//     Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eigensolver(inertia_tensor);
+//     if (eigensolver.info() != Eigen::Success) abort();
     
-    principal_axes = eigensolver.eigenvectors();
-    principal_moments = eigensolver.eigenvalues().asDiagonal();
+//     principal_axes = eigensolver.eigenvectors();
+//     principal_moments = eigensolver.eigenvalues().asDiagonal();
     
-    std::cout << "Principal axes:\n" << principal_axes << std::endl;
-    std::cout << "Principal moments of inertia (Diagonal):\n" << principal_moments << std::endl;
-    // Optionally: Ensure the rotation matrix follows the right-hand rule
-    // rotation_matrix.col(2) = rotation_matrix.col(0).cross(rotation_matrix.col(1)); 
-}
+//     std::cout << "Principal axes:\n" << principal_axes << std::endl;
+//     std::cout << "Principal moments of inertia (Diagonal):\n" << principal_moments << std::endl;
+//     // Optionally: Ensure the rotation matrix follows the right-hand rule
+//     // rotation_matrix.col(2) = rotation_matrix.col(0).cross(rotation_matrix.col(1)); 
+// }
 void RigidBody::exyz_to_q(Eigen::Matrix3d R ,Eigen::Quaterniond& quat) {
     // Convert the rotation matrix to a quaternion
     quat = Eigen::Quaterniond(R);
@@ -121,17 +138,17 @@ void RigidBody::q_to_exyz(Eigen::Quaterniond quat, Eigen::Matrix3d& R)
 }
 
 //// V= vcm + omega x r  (r= V - com)
-void RigidBody::update_vertex_velocities_positions(Eigen::MatrixXd& V,Eigen::Matrix3d rot_mat,Eigen::Vector3d vcm,Eigen::Vector3d omega,Eigen::Vector3d com,double dt, Eigen::MatrixXd& node_velocities) {
+void RigidBody::update_vertex_velocities_positions(Eigen::MatrixXd& V,Eigen::Matrix3d rot_mat,Eigen::Vector3d vcm,Eigen::Vector3d omega,Eigen::MatrixXd displace,double dt, Eigen::MatrixXd& node_velocities) {
         // velocities is a matrix with the same dimensions as V
         // Calculate vertex velocities
+        // Calculate vertex velocities
         for (int i = 0; i < V.rows(); i++) {
-            Eigen::Vector3d r = V.row(i).transpose() - com; // position relative to the center of mass
-            r=rot_mat*r;
-            Eigen::Vector3d rotational_velocity = omega.cross(r); // omega x r
-            node_velocities.row(i) = vcm.transpose() + rotational_velocity.transpose();
+            Eigen::Vector3d r = rot_mat * displace.row(i).transpose(); // Apply rotation to displacement
+            Eigen::Vector3d rotational_velocity = omega.cross(r);      // omega x r
+            node_velocities.row(i) = vcm+ rotational_velocity; // Add translational velocity
         }
         // Update vertex positions
-        V += node_velocities * dt;
+        V = rot_mat*V;
 }
 /*
 // Function to update vertex positions using matrix operations

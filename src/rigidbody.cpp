@@ -121,11 +121,12 @@ void RigidBody::q_to_exyz(Eigen::Quaterniond quat, Eigen::Matrix3d& R)
 }
 
 //// V= vcm + omega x r  (r= V - com)
-void RigidBody::update_vertex_velocities_positions(Eigen::MatrixXd& V,Eigen::Vector3d vcm,Eigen::Vector3d omega,Eigen::Vector3d com,double dt, Eigen::MatrixXd& node_velocities) {
+void RigidBody::update_vertex_velocities_positions(Eigen::MatrixXd& V,Eigen::Matrix3d rot_mat,Eigen::Vector3d vcm,Eigen::Vector3d omega,Eigen::Vector3d com,double dt, Eigen::MatrixXd& node_velocities) {
         // velocities is a matrix with the same dimensions as V
         // Calculate vertex velocities
         for (int i = 0; i < V.rows(); i++) {
             Eigen::Vector3d r = V.row(i).transpose() - com; // position relative to the center of mass
+            r=rot_mat*r;
             Eigen::Vector3d rotational_velocity = omega.cross(r); // omega x r
             node_velocities.row(i) = vcm.transpose() + rotational_velocity.transpose();
         }

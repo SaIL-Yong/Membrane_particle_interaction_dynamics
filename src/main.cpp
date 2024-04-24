@@ -460,13 +460,13 @@ int main() {
     std::cout << "Angular Velocity: " << ang_velocity.transpose() << std::endl;
 
     // Update the quaternion
-    body.update_quaternion(current_quaternion, ang_velocity, dt,new_quaternion); 
+    body.update_quaternion(current_quaternion, ang_velocity, dt,new_quaternion); ///simple euler update
     current_quaternion=new_quaternion;
     body.q_to_exyz(new_quaternion, rotation_matrix);
     std::cout << "Rotation Matrix: \n" << rotation_matrix << std::endl;
 
-    //V= vcm + omega x r
-    body.update_vertex_velocities_positions(V2, center_of_mass,particle_velocity_com ,ang_velocity, dt,particle_velocities);
+    //v= vcm + omega x r
+    body.update_vertex_velocities_positions(V2,rotation_matrix ,center_of_mass,particle_velocity_com ,ang_velocity, dt,particle_velocities);
     //std::cout << "Particle Velocity: " << particle_velocity.transpose() << std::endl;
     
     

@@ -79,7 +79,8 @@ void RigidBody::calculate_omega(Eigen::Vector3d angular_momentum, Eigen::Matrix3
 }
 
 
-
+//simple euler update
+//RichardsonIterativeMethod for quaternion update would be implemented sooon
 //Update quaternion based on angular velocity and time step
 void RigidBody::update_quaternion(Eigen::Quaterniond current_quaternion, Eigen::Vector3d angular_velocity, double dt, Eigen::Quaterniond& new_quaternion) {
         // Convert angular velocity to a pure quaternion (zero real part)
@@ -118,10 +119,10 @@ void RigidBody::q_to_exyz(Eigen::Quaterniond quat, Eigen::Matrix3d& R)
     // Convert the quaternion to a rotation matrix
     R = quat.toRotationMatrix();
 }
-void RigidBody::update_vertex_velocities_positions(Eigen::MatrixXd& V,Eigen::Vector3d vcm,Eigen::Vector3d omega,Eigen::Vector3d com,double dt, Eigen::MatrixXd& node_velocities) {
-        // Assume V contains vertex positions and each row corresponds to a vertex
-        // Assume velocities is a matrix with the same dimensions as V
 
+//// V= vcm + omega x r  (r= V - com)
+void RigidBody::update_vertex_velocities_positions(Eigen::MatrixXd& V,Eigen::Vector3d vcm,Eigen::Vector3d omega,Eigen::Vector3d com,double dt, Eigen::MatrixXd& node_velocities) {
+        // velocities is a matrix with the same dimensions as V
         // Calculate vertex velocities
         for (int i = 0; i < V.rows(); i++) {
             Eigen::Vector3d r = V.row(i).transpose() - com; // position relative to the center of mass

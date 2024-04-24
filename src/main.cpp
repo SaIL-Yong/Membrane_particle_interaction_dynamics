@@ -341,11 +341,56 @@ int main() {
 
     //acceleration = Force_Total/mass;
     acceleration_half_step = Force_Total / mass;
-    velocity_half_step = velocity_half_step + 0.5 *dt* (acceleration_half_step - (gamma*velocity));// + Force_Random ;
+    //velocity_half_step = velocity_half_step + 0.5 *dt* (acceleration_half_step - (gamma*velocity));// + Force_Random ;
 
-    V1 += velocity * dt;// + 0.5 * acceleration_half_step * (dt * dt);
+    V1 += velocity * dt + 0.5 * acceleration_half_step * (dt * dt);
 
     //V1 += velocity * dt + 0.5 * acceleration_half_step * (dt * dt);
+        //ForcesonParticleVertices
+    if(particle_flag){E1.redistributeAdhesionForce(V2,F2,closest_points, Force_Repulsion, facet_index,ForcesOnVertices); 
+    /*std::ofstream file_force("particle_force.txt");
+    if (file_force.is_open()) {
+    file_force<< ForcesOnVertices<< std::endl;
+    file_force.close();
+    std::cout << "particle force successfully saved to file." << std::endl;
+    }
+    else {
+    std::cout << "Error: cannot open particle force file." << std::endl;
+    }*/
+    } 
+
+    //  Rigid Body Calculations 
+    // body.calculate_center_of_mass(V2,F2,center_of_mass);
+    // body.calculate_torque(ForcesOnVertices, V2, center_of_mass, torque); //torque calculation
+    //     // Calculate the acceleration of the center of mass based on the net force
+    // particle_acceleration_com =  ForcesOnVertices.colwise().sum() / V2.rows();
+
+    // // Update the velocity of the center of mass based on the acceleration
+    // particle_velocity_com = particle_acceleration_com * dt;
+    //     //std::cout << "Particle Velocity: " << particle_velocity.transpose() << std::endl;
+
+    // // Update all vertex positions by translating with the velocity
+    // //V2.rowwise() += (particle_velocity_com * dt).transpose();
+    // //calculate angular momentum
+    // body.angular_momentum(torque, dt ,ang_momentum);
+    // //calculate angular velocity
+    // body.calculate_omega(ang_momentum, rotation_matrix, idiag, ang_velocity);
+    // std::cout << "Angular Momentum: " << ang_momentum.transpose() << std::endl;
+    // std::cout << "Angular Velocity: " << ang_velocity.transpose() << std::endl;
+
+    // // Update the quaternion
+    // body.update_quaternion(current_quaternion, ang_velocity, dt,new_quaternion); 
+    // body.q_to_exyz(new_quaternion, rotation_matrix);
+    // std::cout << "Rotation Matrix: \n" << rotation_matrix << std::endl;
+
+    // //V= vcm + omega x r
+    // body.update_vertex_velocities_positions(V2, center_of_mass,particle_velocity_com ,ang_velocity, dt,particle_velocities);
+    // //std::cout << "Particle Velocity: " << particle_velocity.transpose() << std::endl;
+    
+    
+    //Rigid Body Calculations End
+
+
 
     //Repeat the force calucaltion here
     M1.mesh_cal(V1, F1);
@@ -377,8 +422,8 @@ int main() {
 
     acceleration = Force_Total / mass;
     // Update velocities with average acceleration
-    velocity = velocity_half_step + 0.5 *dt*(acceleration - (gamma * velocity_half_step));// + Force_Random ;
-    //velocity = 0.5 * (acceleration + acceleration_half_step) * dt;
+    //velocity = velocity_half_step + 0.5 *dt*(acceleration - (gamma * velocity_half_step));// + Force_Random ;
+    velocity = 0.5 * (acceleration + acceleration_half_step) * dt;
 
     rVol = 6 * sqrt(PI) * M1.volume_total * pow(M1.area_total, -1.5);
 
@@ -402,7 +447,7 @@ int main() {
     particle_acceleration_com =  ForcesOnVertices.colwise().sum() / V2.rows();
 
     // Update the velocity of the center of mass based on the acceleration
-    particle_velocity_com += particle_acceleration_com * dt;
+    particle_velocity_com = particle_acceleration_com * dt;
         //std::cout << "Particle Velocity: " << particle_velocity.transpose() << std::endl;
 
     // Update all vertex positions by translating with the velocity
@@ -416,6 +461,7 @@ int main() {
 
     // Update the quaternion
     body.update_quaternion(current_quaternion, ang_velocity, dt,new_quaternion); 
+    current_quaternion=new_quaternion;
     body.q_to_exyz(new_quaternion, rotation_matrix);
     std::cout << "Rotation Matrix: \n" << rotation_matrix << std::endl;
 

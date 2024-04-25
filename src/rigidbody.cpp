@@ -40,7 +40,7 @@ void RigidBody::calculate_properties(Eigen::MatrixXd points, double mass,Eigen::
            std::cerr << "Warning: Moment of inertia matrix is not invertible." << std::endl;
    }
    */
-  moment_of_inertia.normalize();
+  moment_of_inertia.normalize();// normalizing inertia tensor following LAMMPS
    // Diagonalize the moment of inertia tensor
   Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eigensolver(moment_of_inertia);
    if (eigensolver.info() != Eigen::Success) abort();
@@ -82,17 +82,17 @@ void RigidBody::angular_momentum (Eigen::Vector3d torque,double dt, Eigen::Vecto
 
 void RigidBody::calculate_omega(Eigen::Vector3d angular_momentum, Eigen::Matrix3d rot_mat, Eigen::Matrix3d idiag, Eigen::Vector3d& angular_velocity) {
         // Transform angular momentum from space to body frame
-        Eigen::Vector3d mom_body = rot_mat.transpose() * angular_momentum;  // P^T * M_space
+        mom_body = rot_mat.transpose() * angular_momentum;  // P^T * Angular_Momentum_space
 
         // Compute angular velocity in the body frame
-        Eigen::Vector3d omega_body;
+        omega_body;//space_frame
         for (int i = 0; i < 3; ++i) {
             // Check if diagonal inertia (inverse inertia component) is zero to prevent division by zero
             omega_body(i) = idiag(i, i) == 0.0 ? 0.0 : mom_body(i) / idiag(i, i);
         }
 
         // Transform angular velocity back to the space frame
-        angular_velocity = rot_mat * omega_body;  // P * ω_body
+        angular_velocity = rot_mat * omega_body;  // P * ω_body(body_frame) 
 }
 
 
@@ -106,12 +106,12 @@ void RigidBody::update_quaternion(Eigen::Quaterniond current_quaternion, Eigen::
         // // Calculate the quaternion derivative using quaternion multiplication
          Eigen::Quaterniond product = omega_q*current_quaternion;
         // Update the quaternion using the derivative and time step
-        new_quaternion.w() = current_quaternion.w() + 0.5 * dt * product.w(),
+        new_quaternion.w() = current_quaternion.w() + 0.5 * dt* product.w(),
         new_quaternion.x() = current_quaternion.x() + 0.5 * dt * product.x(),
         new_quaternion.y() = current_quaternion.y() + 0.5 * dt * product.y(),
         new_quaternion.z() = current_quaternion.z() + 0.5 * dt * product.z();
         // normalizing the quaternion
-        new_quaternion.normalize();
+        new_quaternion.normalize();//space_frame
 }
 
 // void RigidBody::diagonalize_inertia_tensor(Eigen::Matrix3d inertia_tensor, Eigen::Matrix3d& principal_axes, Eigen::Matrix3d& principal_moments) {
@@ -129,12 +129,12 @@ void RigidBody::update_quaternion(Eigen::Quaterniond current_quaternion, Eigen::
 void RigidBody::exyz_to_q(Eigen::Matrix3d R ,Eigen::Quaterniond& quat) {
     // Convert the rotation matrix to a quaternion
     quat = Eigen::Quaterniond(R);
-    quat.normalize();
+    quat.normalize();//space_frame
 }
 void RigidBody::q_to_exyz(Eigen::Quaterniond quat, Eigen::Matrix3d& R)
 {
     // Convert the quaternion to a rotation matrix
-    R = quat.toRotationMatrix();
+    R = quat.toRotationMatrix();//space_frame
 }
 
 //// V= vcm + omega x r  (r= V - com)
@@ -144,11 +144,14 @@ void RigidBody::update_vertex_velocities_positions(Eigen::MatrixXd& V,Eigen::Mat
         // Calculate vertex velocities
         for (int i = 0; i < V.rows(); i++) {
             Eigen::Vector3d r = rot_mat * displace.row(i).transpose(); // Apply rotation to displacement
-            Eigen::Vector3d rotational_velocity = omega.cross(r);      // omega x r
-            node_velocities.row(i) = vcm+ rotational_velocity; // Add translational velocity
+            Eigen::Vector3d rotational_velocity = omega.cross(r);      // ω_space×r_space
+            node_velocities.row(i) = vcm+ rotational_velocity; // v=vcm_space +ω_space×r_space
         }
         // Update vertex positions
-        V = rot_mat*V;
+        //Rotate the vertices
+
+        V = V * rot_mat.transpose();
+
 }
 /*
 // Function to update vertex positions using matrix operations

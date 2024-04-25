@@ -15,9 +15,12 @@ private:
     Eigen::Matrix3d inverse_moment_of_inertia = Eigen::Matrix3d::Zero();
     Eigen::Vector3d center_of_mass;
     Eigen::Vector3d particle_acceleration;
+    //ang_mom_ to omega calculation
+    Eigen::Vector3d mom_body;
+    Eigen::Vector3d omega_body
     // //bool propertiesCalculated = false;
-    Eigen::Quaterniond orientation;
-    Eigen::Matrix3d rotation_matrix;
+    //Eigen::Quaterniond orientation;
+    //Eigen::Matrix3d rotation_matrix;
 public:
     void calculate_properties(Eigen::MatrixXd points, double mass,Eigen::Matrix3d& principal_axes, Eigen::Matrix3d& principal_moments,Eigen::MatrixXd& displace);
      // Accessor methods for moment of inertia
@@ -39,7 +42,7 @@ public:
     void q_to_exyz(Eigen::Quaterniond quat, Eigen::Matrix3d& R);
     //void printTorque(Eigen::MatrixXd force,  Eigen::MatrixXd point_of_application, Eigen::Vector3d center_of_mass);
     // Declare a method to calculate the orientation of the rigid body
-    Eigen::Vector3d  ang_mom,omega; 
+    //Eigen::Vector3d  ang_mom,omega; 
     
 
 };

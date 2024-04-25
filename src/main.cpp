@@ -446,16 +446,16 @@ int main() {
 
     // Update the velocity of the center of mass based on the acceleration
     particle_velocity_com = particle_acceleration_com * dt;
-        //std::cout << "Particle Velocity: " << particle_velocity.transpose() << std::endl;
+    std::cout << "Particle Velocity: " << particle_velocity_com.transpose() << std::endl;
 
     // Update all vertex positions by translating with the velocity
-    //V2.rowwise() += (particle_velocity_com * dt).transpose();
+    V2.rowwise() += (particle_velocity_com * dt).transpose();
     //calculate angular momentum
     body.angular_momentum(torque, dt ,ang_momentum);
     //calculate angular velocity
     body.calculate_omega(ang_momentum, rotation_matrix, idiag, ang_velocity);
-    std::cout << "Angular Momentum: " << ang_momentum.transpose() << std::endl;
-    std::cout << "Angular Velocity: " << ang_velocity.transpose() << std::endl;
+    //std::cout << "Angular Momentum: " << ang_momentum.transpose() << std::endl;
+    //std::cout << "Angular Velocity: " << ang_velocity.transpose() << std::endl;
 
     // Update the quaternion
     body.update_quaternion(current_quaternion, ang_velocity, dt,new_quaternion); ///simple euler update
@@ -464,7 +464,9 @@ int main() {
     std::cout << "Rotation Matrix: \n" << rotation_matrix << std::endl;
 
     //v= vcm + omega x r
-    //body.update_vertex_velocities_positions(V2,rotation_matrix ,particle_velocity_com ,ang_velocity,displace, dt,particle_velocities);
+
+    //rotate the particle based on rotation_matrix
+    body.update_vertex_velocities_positions(V2,rotation_matrix ,particle_velocity_com ,ang_velocity,displace, dt,particle_velocities);
     //std::cout << "Particle Velocity: " << particle_velocity.transpose() << std::endl;
     
     

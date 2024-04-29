@@ -17,7 +17,7 @@ private:
     Eigen::Vector3d particle_acceleration;
     //ang_mom_ to omega calculation
     Eigen::Vector3d mom_body;
-    Eigen::Vector3d omega_body
+    Eigen::Vector3d omega_body;
     // //bool propertiesCalculated = false;
     //Eigen::Quaterniond orientation;
     //Eigen::Matrix3d rotation_matrix;

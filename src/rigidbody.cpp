@@ -66,10 +66,10 @@ void RigidBody::calculate_torque(Eigen::MatrixXd force, Eigen::MatrixXd point_of
         for (int i = 0; i < force.rows(); ++i) {
         Eigen::Vector3d forceVec = force.row(i).transpose();
         // Correctly extracting a point of application vector
-        Eigen::Vector3d pointVec = point_of_application.row(i).transpose();
+        //Eigen::Vector3d pointVec = point_of_application.row(i).transpose();
 
         // Calculate the vector from the center of mass to the point of application
-        Eigen::Vector3d r = pointVec - center_of_mass;
+        Eigen::Vector3d r = point_of_application.row(i).transpose() - center_of_mass;
 
         // Calculate the torque for this force and add it to the total
         torque += r.cross(forceVec);
@@ -106,10 +106,10 @@ void RigidBody::update_quaternion(Eigen::Quaterniond current_quaternion, Eigen::
         // // Calculate the quaternion derivative using quaternion multiplication
          Eigen::Quaterniond product = omega_q*current_quaternion;
         // Update the quaternion using the derivative and time step
-        new_quaternion.w() = current_quaternion.w() + 0.5 * dt* product.w(),
-        new_quaternion.x() = current_quaternion.x() + 0.5 * dt * product.x(),
-        new_quaternion.y() = current_quaternion.y() + 0.5 * dt * product.y(),
-        new_quaternion.z() = current_quaternion.z() + 0.5 * dt * product.z();
+        new_quaternion.w() = current_quaternion.w() + 0.5 *dt* product.w(),
+        new_quaternion.x() = current_quaternion.x() + 0.5 *dt* product.x(),
+        new_quaternion.y() = current_quaternion.y() + 0.5 *dt* product.y(),
+        new_quaternion.z() = current_quaternion.z() + 0.5 *dt* product.z();
         // normalizing the quaternion
         new_quaternion.normalize();//space_frame
 }
@@ -142,11 +142,11 @@ void RigidBody::update_vertex_velocities_positions(Eigen::MatrixXd& V,Eigen::Mat
         // velocities is a matrix with the same dimensions as V
         // Calculate vertex velocities
         // Calculate vertex velocities
-        for (int i = 0; i < V.rows(); i++) {
-            Eigen::Vector3d r = rot_mat * displace.row(i).transpose(); // Apply rotation to displacement
-            Eigen::Vector3d rotational_velocity = omega.cross(r);      // ω_space×r_space
-            node_velocities.row(i) = vcm+ rotational_velocity; // v=vcm_space +ω_space×r_space
-        }
+        // for (int i = 0; i < V.rows(); i++) {
+        //     Eigen::Vector3d r = rot_mat * displace.row(i).transpose(); // Apply rotation to displacement
+        //     Eigen::Vector3d rotational_velocity = omega.cross(r);      // ω_space×r_space
+        //     node_velocities.row(i) = vcm+ rotational_velocity; // v=vcm_space +ω_space×r_space
+        // }
         // Update vertex positions
         //Rotate the vertices
 

@@ -153,6 +153,17 @@ void RigidBody::update_vertex_velocities_positions(Eigen::MatrixXd& V,Eigen::Mat
         V = V * rot_mat.transpose();
 
 }
+
+void RigidBody::rotate_vertices(Eigen::MatrixXd& vertices,Eigen::Vector3d center_of_mass ,Eigen::Matrix3d rot_mat) {
+    // Step 1: Translate vertices to center the COM at the origin
+    vertices.rowwise() -= center_of_mass.transpose();
+
+    // Step 2: Apply the rotation matrix
+    vertices = (vertices * rot_mat.transpose());// V_rotated = Rotation_Matrix * V
+
+    // Step 3: Translate vertices back to the original center of mass
+    vertices.rowwise() += center_of_mass.transpose();
+}
 /*
 // Function to update vertex positions using matrix operations
 void RigidBody::update_vertex_position(Eigen::MatrixXd& V, Eigen::MatrixXd forces,  Eigen::Quaterniond quaternion, double dt, Eigen::Vector3d& particle_velocity_com) {

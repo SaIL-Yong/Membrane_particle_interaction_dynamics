@@ -40,6 +40,7 @@ public:
     //void diagonalize_inertia_tensor(Eigen::Matrix3d inertia_tensor, Eigen::Matrix3d& principal_axes,Eigen::Matrix3d& principal_moments);
     void exyz_to_q(Eigen::Matrix3d R ,Eigen::Quaterniond& quat);
     void q_to_exyz(Eigen::Quaterniond quat, Eigen::Matrix3d& R);
+    void rotate_vertices(Eigen::MatrixXd& vertices,Eigen::Vector3d center_of_mass, Eigen::Matrix3d rot_mat);
     //void printTorque(Eigen::MatrixXd force,  Eigen::MatrixXd point_of_application, Eigen::Vector3d center_of_mass);
     // Declare a method to calculate the orientation of the rigid body
     //Eigen::Vector3d  ang_mom,omega; 

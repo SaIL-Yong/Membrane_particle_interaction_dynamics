@@ -47,7 +47,7 @@ int main() {
   int dumpfrequency = parameter.dumpfrequency;
   int bondfrequency=parameter.bondfrequency;
   int resfrequency = parameter.resfrequency;
-  double dt = parameter.dt, time = 0.0;
+  double dt = parameter.dt, time = 0.0,dtf=dt/2.0;
   double tolerance = parameter.tolerance;
   double force_residual,force_ratio;
   int tolerance_flag = parameter.tolerance_flag;
@@ -85,7 +85,7 @@ int main() {
     logfile<<"Convergence: OFF\n"<<std::endl;
   }
   
-  // paraemters for membrane properties]
+  // paraemters for membrane properties
   double gamma = parameter.gamma;
   double mass = parameter.mass;
   double kbT = parameter.kbT;
@@ -96,6 +96,9 @@ int main() {
   double area_target = 4*PI*Rv*Rv;
   double volume_target = 0.0;
   double rVol; // true reduced volume
+
+  double mass_particle = mass*0.001;
+  double total_mass_particle;
 
   std::cout<<"Vesicle radius: "<<Rv<<std::endl;
   std::cout<<"Membrane drag coefficient: "<<gamma<<std::endl;
@@ -146,6 +149,10 @@ int main() {
     r_equilibrium=parameter.r_equilibrium;
     rc = 5.0*rho;
     angle_flag = parameter.angle_condition_flag;
+    //double mass_particle = mass*0.01;
+    total_mass_particle = mass_particle*V2.rows();
+    std::cout<<"Particle mass coefficient: "<<mass_particle<<std::endl;
+    std::cout<<"Total particle mass: "<<total_mass_particle<<std::endl; 
     
 
     if (parameter.particle_position > 0) {
@@ -300,7 +307,8 @@ int main() {
 
   body.calculate_properties(V2,mass,rotation_matrix,idiag,displace);///space_frame
   // Access and use the calculated properties
-  std::cout << "Center of Mass: " << body.getCenterOfMass().transpose() << std::endl;
+  center_of_mass = body.getCenterOfMass();
+  std::cout << "Center of Mass: " << center_of_mass << std::endl;
   Eigen::Quaterniond current_quaternion; // Initialize the quaternion
   body.exyz_to_q(rotation_matrix,current_quaternion);
   Eigen::Quaterniond new_quaternion;//= Eigen::Quaterniond::Identity();
@@ -344,41 +352,43 @@ int main() {
     //velocity_half_step = velocity_half_step + 0.5 *dt* (acceleration_half_step - (gamma*velocity));// + Force_Random ;
     V1 += velocity * dt + 0.5 * acceleration_half_step * (dt * dt);
     //V1 += velocity * dt + 0.5 * acceleration_half_step * (dt * dt);
-    //ForcesonParticleVertices
+   
+
     //  Rigid Body Calculations 
-        //ForcesonParticleVertices
+    //ForcesonParticleVertices
     if(particle_flag){E1.redistributeAdhesionForce(V2,F2,closest_points, Force_Repulsion, facet_index,ForcesOnVertices);} 
 
     //  Rigid Body Calculations (Initial Integration Step)
-    body.calculate_center_of_mass(V2,F2,center_of_mass);
-    body.calculate_torque(ForcesOnVertices, V2, center_of_mass, torque); //torque calculation
+    
+    
         // Calculate the acceleration of the center of mass based on the net force
-    particle_acceleration_com_halfstep =  ForcesOnVertices.colwise().sum() / V2.rows();
+    particle_acceleration_com_halfstep =  ForcesOnVertices.colwise().sum()/total_mass_particle;
 
-    // // Update the velocity of the center of mass based on the acceleration
-    // particle_velocity_com = particle_acceleration_com * dt;
-    //std::cout << "Particle Velocity: " << particle_velocity_com.transpose() << std::endl;
+
 
     // Update all vertex positions by translating with the velocity
     V2.rowwise() += (particle_velocity_com * dt).transpose() + 0.5 * (particle_acceleration_com_halfstep* (dt * dt)).transpose();
+    //Torques on Particle Vertices
+    body.calculate_torque(ForcesOnVertices, V2, center_of_mass, torque); //torque calculation, Tau = r x F
     //calculate angular momentum
-    body.angular_momentum(torque, dt ,ang_momentum);
-    //calculate angular velocity
+    body.angular_momentum(torque, dtf ,ang_momentum);
+    // //calculate angular velocity
     body.calculate_omega(ang_momentum, rotation_matrix, idiag, ang_velocity);
-    //std::cout << "Angular Momentum: " << ang_momentum.transpose() << std::endl;
-    //std::cout << "Angular Velocity: " << ang_velocity.transpose() << std::endl;
+    // std::cout << "Angular Momentum: " << ang_momentum.transpose() << std::endl;
+    std::cout << "Angular Velocity: " << ang_velocity.transpose() << std::endl;
 
-    // Update the quaternion
+    // // Update the quaternion
     body.update_quaternion(current_quaternion, ang_velocity, dt,new_quaternion); ///simple euler update
     current_quaternion=new_quaternion;
     body.q_to_exyz(new_quaternion, rotation_matrix);
-    //std::cout << "Rotation Matrix: \n" << rotation_matrix << std::endl;
+    std::cout << "Rotation Matrix: \n" << rotation_matrix << std::endl;
 
-    //v= vcm + omega x r
+    // //v= vcm + omega x r
 
-    //rotate the particle based on rotation_matrix
-    //body.update_vertex_velocities_positions(V2,rotation_matrix ,particle_velocity_com ,ang_velocity,displace, dt,particle_velocities);
-    V2 = V2 *rotation_matrix.transpose();
+    // //rotate the particle based on rotation_matrix
+    body.calculate_center_of_mass(V2,F2,center_of_mass);
+
+    body.rotate_vertices(V2,center_of_mass,rotation_matrix); // r_vector_new= Rotation_matrix * r_vector 
 
     
     //Rigid Body Calculations End
@@ -418,39 +428,26 @@ int main() {
     //velocity = velocity_half_step + 0.5 *dt*(acceleration - (gamma * velocity_half_step));// + Force_Random ;
     velocity = 0.5 * (acceleration + acceleration_half_step) * dt;
 
-      //ForcesonParticleVertices
+    //ForcesonParticleVertices
     if(particle_flag){E1.redistributeAdhesionForce(V2,F2,closest_points, Force_Repulsion, facet_index,ForcesOnVertices); } 
 
     //  Rigid Body Calculations 
-    body.calculate_center_of_mass(V2,F2,center_of_mass);
-    body.calculate_torque(ForcesOnVertices, V2, center_of_mass, torque); //torque calculation
-        // Calculate the acceleration of the center of mass based on the net force
-    particle_acceleration_com =  ForcesOnVertices.colwise().sum() / V2.rows();
+    // Calculate the acceleration of the center of mass based on the net force
+    particle_acceleration_com =  ForcesOnVertices.colwise().sum() / total_mass_particle;
 
     // Update the velocity of the center of mass based on the acceleration
     particle_velocity_com = 0.5*(particle_acceleration_com + particle_acceleration_com_halfstep) * dt;
     std::cout << "Particle Velocity: " << particle_velocity_com.transpose() << std::endl;
 
-    //calculate angular momentum
-    body.angular_momentum(torque, dt ,ang_momentum);
+    //Torques on Particle Vertices
+    body.calculate_torque(ForcesOnVertices, V2, center_of_mass, torque); //torque calculation, Tau = r x F
+
+    //calculate angular momentum and velocity
+    body.angular_momentum(torque, dtf ,ang_momentum);
     //calculate angular velocity
     body.calculate_omega(ang_momentum, rotation_matrix, idiag, ang_velocity);
     //std::cout << "Angular Momentum: " << ang_momentum.transpose() << std::endl;
-    //std::cout << "Angular Velocity: " << ang_velocity.transpose() << std::endl;
-
-    // // Update the quaternion
-    // body.update_quaternion(current_quaternion, ang_velocity, dt,new_quaternion); ///simple euler update
-    // current_quaternion=new_quaternion;
-    // body.q_to_exyz(new_quaternion, rotation_matrix);
-    // std::cout << "Rotation Matrix: \n" << rotation_matrix << std::endl;
-
-    // //v= vcm + omega x r
-
-    // //rotate the particle based on rotation_matrix
-    // //body.update_vertex_velocities_positions(V2,rotation_matrix ,particle_velocity_com ,ang_velocity,displace, dt,particle_velocities);
-    // V2 = V2 * rotation_matrix.transpose();
-    // std::cout << "Particle Velocity: " << particle_velocity.transpose() << std::endl;
-     
+    //std::cout << "Angular Velocity: " << ang_velocity.transpose() << std::endl;   
     //Rigid Body Calculations End
 
     rVol = 6 * sqrt(PI) * M1.volume_total * pow(M1.area_total, -1.5);   

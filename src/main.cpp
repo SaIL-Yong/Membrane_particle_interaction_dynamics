@@ -17,7 +17,7 @@ int main() {
   // initialization of simulaiton parameters
   readParameter();
   igl::readOFF(parameter.meshFile, V1, F1);
-  //igl::readOFF(parameter.particleFile, V2, F2);
+  igl::readOFF(parameter.particleFile, V2, F2);
   
   numF = F1.rows();
   numV = V1.rows();
@@ -98,6 +98,7 @@ int main() {
   double rVol; // true reduced volume
 
   double mass_particle = mass*0.001;
+  double gamma_particle = gamma*0.01;
   double total_mass_particle;
 
   std::cout<<"Vesicle radius: "<<Rv<<std::endl;
@@ -259,13 +260,15 @@ int main() {
 
   Energy E1;
 
-  Eigen::MatrixXd Force_Area(numV, 3), Force_Volume(numV, 3), Force_Bending(numV, 3), Force_Adhesion(numV, 3),Force_Random(numV,3),Force_Repulsion(numV,3), velocity(numV, 3), Force_Total(numV, 3),
+  Eigen::MatrixXd Force_Area(numV, 3), Force_Volume(numV, 3), Force_Bending(numV, 3), Force_Adhesion(numV, 3),Force_Random(numV,3),Force_Drag(numV,3),
+                  Force_Repulsion(numV,3), velocity(numV, 3), Force_Total(numV, 3),
                   acceleration(numV,3),acceleration_half_step(numV,3),velocity_half_step(numV,3),ForcesOnVertices; //force components
 
   //Eigen::MatrixXd ForcesOnVertices;
   Force_Adhesion.setZero();
   Force_Random.setZero();
   Force_Repulsion.setZero();
+  Force_Drag.setZero();
   //ForcesOnVertices.setZero();
   velocity.setZero();
   velocity_half_step.setZero();
@@ -305,18 +308,31 @@ int main() {
   Eigen::MatrixXd particle_velocities(V2.rows(),3);
   Eigen::MatrixXd displace(V2.rows(),3);
 
-  body.calculate_properties(V2,mass,rotation_matrix,idiag,displace);///space_frame
+  body.calculate_properties(V2,mass_particle,rotation_matrix,idiag,displace);///space_frame
   // Access and use the calculated properties
   center_of_mass = body.getCenterOfMass();
-  std::cout << "Center of Mass: " << center_of_mass << std::endl;
+  std::cout << "Center of Mass: " << center_of_mass.transpose() << std::endl;
   Eigen::Quaterniond current_quaternion; // Initialize the quaternion
   body.exyz_to_q(rotation_matrix,current_quaternion);
+      // Convert Eigen::Quaterniond to RigidBody::Quaternion
+  //RigidBody::Quaternion (eigenQuat);
   Eigen::Quaterniond new_quaternion;//= Eigen::Quaterniond::Identity();
   std::cout << "Initial Quaternion (Identity): "
                << "w = " <<current_quaternion.w() << ", "
                << "x = " <<current_quaternion.x() << ", "
                << "y = " <<current_quaternion.y() << ", "
                << "z = " <<current_quaternion.z() << std::endl;
+
+  // Eigen::Quaterniond q1(1, 2, 3, 4); // Quaternion (w, x, y, z)
+  // Eigen::Quaterniond q2(5, 6, 7, 8);
+
+  // Eigen::Quaterniond q3 = q1 * q2;
+
+  // std::cout << "Result: " << q3.w() << ", " << q3.x() << ", " << q3.y() << ", " << q3.z() << std::endl;
+  // body.q_to_exyz(q3, rotation_matrix);
+  // std::cout << "Rotation Matrix: \n" << rotation_matrix << std::endl;
+
+    
 
   // Calculate the angular velocity
  // }
@@ -342,22 +358,31 @@ int main() {
     if(particle_flag && i%bondfrequency==0)igl::signed_distance(V1, V2, F2, igl::SIGNED_DISTANCE_TYPE_PSEUDONORMAL, signed_distance, facet_index, closest_points, normals_closest_points);
     if(particle_flag){E1.compute_adhesion_energy_force(V1, F1, closest_points, rho, U,r_equilibrium,rc,angle_flag,
                                     particle_position, Ew_t, Kw,Force_Adhesion,Force_Repulsion,signed_distance, EnergyAdhesion,EnergyBias, M1);}
-    if (random_force_flag)E1.compute_random_force(V1, gamma, kbT, mass, dt, Force_Random);
-    //std::cout << "Force Adhesion" << Force_Adhesion << std::endl;
-    EnergyTotal = EnergyBending + EnergyArea + EnergyVolume + EnergyAdhesion + EnergyBias;
-    Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion+ Force_Random;
 
-    //acceleration = Force_Total/mass;
-    acceleration_half_step = Force_Total / mass;
+    if (random_force_flag) {E1.compute_random_force( gamma, kbT, mass, dt, Force_Random);
+                            E1.compute_drag_force(velocity,gamma, mass, Force_Drag);}
+    //std::cout << "Force Adhesion" << Force_Adhesion << std::endl;
+    
+    EnergyTotal = EnergyBending + EnergyArea + EnergyVolume + EnergyAdhesion + EnergyBias;
+    Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion + Force_Random + Force_Drag;
+
+    //LAMMPS Integration
+    velocity += (Force_Total / mass) * 0.5 * dt;
+    V1 += velocity * dt;
+
+    //old_updater 
+    //acceleration_half_step = Force_Total / mass;
     //velocity_half_step = velocity_half_step + 0.5 *dt* (acceleration_half_step - (gamma*velocity));// + Force_Random ;
-    V1 += velocity * dt + 0.5 * acceleration_half_step * (dt * dt);
     //V1 += velocity * dt + 0.5 * acceleration_half_step * (dt * dt);
+    
    
 
     //  Rigid Body Calculations 
     //ForcesonParticleVertices
     if(particle_flag){E1.redistributeAdhesionForce(V2,F2,closest_points, Force_Repulsion, facet_index,ForcesOnVertices);} 
 
+
+    ///*
     //  Rigid Body Calculations (Initial Integration Step)
     
     
@@ -368,7 +393,7 @@ int main() {
 
     // Update all vertex positions by translating with the velocity
     V2.rowwise() += (particle_velocity_com * dt).transpose() + 0.5 * (particle_acceleration_com_halfstep* (dt * dt)).transpose();
-    //Torques on Particle Vertices
+    // Torques on Particle Vertices
     body.calculate_torque(ForcesOnVertices, V2, center_of_mass, torque); //torque calculation, Tau = r x F
     //calculate angular momentum
     body.angular_momentum(torque, dtf ,ang_momentum);
@@ -380,18 +405,24 @@ int main() {
     // // Update the quaternion
     body.update_quaternion(current_quaternion, ang_velocity, dt,new_quaternion); ///simple euler update
     current_quaternion=new_quaternion;
-    body.q_to_exyz(new_quaternion, rotation_matrix);
+    body.q_to_exyz(new_quaternion, rotation_matrix); 
     std::cout << "Rotation Matrix: \n" << rotation_matrix << std::endl;
 
-    // //v= vcm + omega x r
+    std::cout << "New Quaternion (Identity): "<< "w = " <<current_quaternion.w() << ", "<< "x = " <<current_quaternion.x() << ", "
+               << "y = " <<current_quaternion.y() << ", "<< "z = " <<current_quaternion.z() << std::endl;
 
-    // //rotate the particle based on rotation_matrix
+    //v= vcm + omega x r
+
+    //rotate the particle based on rotation_matrix
     body.calculate_center_of_mass(V2,F2,center_of_mass);
 
-    body.rotate_vertices(V2,center_of_mass,rotation_matrix); // r_vector_new= Rotation_matrix * r_vector 
+    body.rotate_vertices(V2,center_of_mass,displace,rotation_matrix); // r_vector_new= Rotation_matrix * r_vector 
+    
 
     
     //Rigid Body Calculations End
+
+    //*/
 
    //Final Integration Step
 
@@ -416,21 +447,29 @@ int main() {
     }
     if(particle_flag){E1.compute_adhesion_energy_force(V1, F1, closest_points, rho, U,r_equilibrium,rc,angle_flag,
                                     particle_position, Ew_t, Kw,Force_Adhesion,Force_Repulsion,signed_distance, EnergyAdhesion,EnergyBias, M1);}
-    if (random_force_flag)E1.compute_random_force(V1, gamma, kbT, mass, dt, Force_Random);
+    if (random_force_flag) {E1.compute_random_force(gamma, kbT, mass, dt, Force_Random);
+                            E1.compute_drag_force( velocity,gamma, mass, Force_Drag);}
     EnergyTotal = EnergyBending + EnergyArea + EnergyVolume + EnergyAdhesion + EnergyBias;
-    Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion+Force_Random;
+    Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion + Force_Random + Force_Drag;
     force_residual = Force_Total.norm();
-    if (random_force_flag){force_ratio=Force_Random.norm()/(Force_Bending + Force_Area + Force_Volume + Force_Adhesion).norm();
-    std::cout<<"Force Ratio: "<<force_ratio<<std::endl;}
+    //if (random_force_flag){force_ratio=Force_Random.norm()/(Force_Bending + Force_Area + Force_Volume + Force_Adhesion).norm();
+    //std::cout<<"Force Ratio: "<<force_ratio<<std::endl;}
+    
 
-    acceleration = Force_Total / mass;
-    // Update velocities with average acceleration
-    //velocity = velocity_half_step + 0.5 *dt*(acceleration - (gamma * velocity_half_step));// + Force_Random ;
-    velocity = 0.5 * (acceleration + acceleration_half_step) * dt;
+    //LAMMPS Integration
+    velocity += (Force_Total / mass) * 0.5 * dt;
+
+    //old_updater 
+    //acceleration = Force_Total / mass;
+    // // Update velocities with average acceleration
+    // //velocity = velocity_half_step + 0.5 *dt*(acceleration - (gamma * velocity_half_step));// + Force_Random ;
+    //velocity = 0.5 * (acceleration + acceleration_half_step) * dt;
 
     //ForcesonParticleVertices
     if(particle_flag){E1.redistributeAdhesionForce(V2,F2,closest_points, Force_Repulsion, facet_index,ForcesOnVertices); } 
+    
 
+    ///*
     //  Rigid Body Calculations 
     // Calculate the acceleration of the center of mass based on the net force
     particle_acceleration_com =  ForcesOnVertices.colwise().sum() / total_mass_particle;
@@ -449,6 +488,8 @@ int main() {
     //std::cout << "Angular Momentum: " << ang_momentum.transpose() << std::endl;
     //std::cout << "Angular Velocity: " << ang_velocity.transpose() << std::endl;   
     //Rigid Body Calculations End
+
+    //*/
 
     rVol = 6 * sqrt(PI) * M1.volume_total * pow(M1.area_total, -1.5);   
 
@@ -497,9 +538,10 @@ int main() {
       char dumpfilename[128];
       sprintf(dumpfilename, "dump%08d.off", i);
 	    igl::writeOFF(dumpfilename, V1, F1);
+      if(particle_flag){
       char dumpfilename_p[128];
       sprintf(dumpfilename_p, "particle%08d.off", i);
-      igl::writeOFF(dumpfilename_p, V2, F2);
+      igl::writeOFF(dumpfilename_p, V2, F2);}
 	  }
 
     if (i % resfrequency == 0) igl::writeOFF(parameter.resFile, V1, F1);

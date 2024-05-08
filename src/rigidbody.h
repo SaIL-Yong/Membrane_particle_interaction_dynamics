@@ -15,12 +15,15 @@ private:
     Eigen::Matrix3d inverse_moment_of_inertia = Eigen::Matrix3d::Zero();
     Eigen::Vector3d center_of_mass;
     Eigen::Vector3d particle_acceleration;
+    Eigen::Vector3d r;
     //ang_mom_ to omega calculation
     Eigen::Vector3d mom_body;
     Eigen::Vector3d omega_body;
     // //bool propertiesCalculated = false;
     //Eigen::Quaterniond orientation;
     //Eigen::Matrix3d rotation_matrix;
+
+    //Eigen::Quaterniond quaternion_derivative,product;
 public:
     void calculate_properties(Eigen::MatrixXd points, double mass,Eigen::Matrix3d& principal_axes, Eigen::Matrix3d& principal_moments,Eigen::MatrixXd& displace);
      // Accessor methods for moment of inertia
@@ -40,10 +43,37 @@ public:
     //void diagonalize_inertia_tensor(Eigen::Matrix3d inertia_tensor, Eigen::Matrix3d& principal_axes,Eigen::Matrix3d& principal_moments);
     void exyz_to_q(Eigen::Matrix3d R ,Eigen::Quaterniond& quat);
     void q_to_exyz(Eigen::Quaterniond quat, Eigen::Matrix3d& R);
-    void rotate_vertices(Eigen::MatrixXd& vertices,Eigen::Vector3d center_of_mass, Eigen::Matrix3d rot_mat);
+    //void rotate_vertices(Eigen::MatrixXd& vertices,Eigen::Vector3d center_of_mass, Eigen::Matrix3d rot_mat);
+    void rotate_vertices(Eigen::MatrixXd& vertices, Eigen::Vector3d center_of_mass, Eigen::MatrixXd displace, Eigen::Matrix3d rot_mat);
     //void printTorque(Eigen::MatrixXd force,  Eigen::MatrixXd point_of_application, Eigen::Vector3d center_of_mass);
     // Declare a method to calculate the orientation of the rigid body
     //Eigen::Vector3d  ang_mom,omega; 
+
+
+
+    //quaternion opretations
+    struct Quaternion {
+    double w, x, y, z;
+        
+    // Default and parameterized constructor
+    Quaternion(double w = 1.0, double x = 0.0, double y = 0.0, double z = 0.0)
+            : w(w), x(x), y(y), z(z) {}
+
+    // Conversion from Eigen::Quaterniond
+        // Conversion constructor from Eigen::Quaterniond
+    Quaternion(const Eigen::Quaterniond& eq)
+            : w(eq.w()), x(eq.x()), y(eq.y()), z(eq.z()) {}
+
+    // Normalize the quaternion
+    void normalize(); 
+    // Multiply this quaternion by another and return the result
+    Quaternion operator*(const Quaternion& other) const;
+
+    };
+
+    void update_Quaternion(const Quaternion& currentQuaternion, const Eigen::Vector3d& angularVelocity, double dt, Quaternion& newQuaternion);
+    
+
     
 
 };

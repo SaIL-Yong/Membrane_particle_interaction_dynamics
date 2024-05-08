@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include <cmath>
+#include <random>
 #include <igl/readOFF.h>
 #include<igl/centroid.h>
 #include <igl/per_vertex_normals.h>
@@ -33,7 +34,13 @@ class Energy {
 
  void redistributeAdhesionForce(Eigen::MatrixXd V2, Eigen::MatrixXi F2, Eigen::MatrixXd closest_points, Eigen::MatrixXd Force_Adhesion, Eigen::VectorXi facet_index, Eigen::MatrixXd& ForcesOnVertices) ; 
 
- void compute_random_force(Eigen::MatrixXd& V1, double gamma, double kbT, double mass, double dt, Eigen::MatrixXd& Force_Random);
+
+ void compute_drag_force(Eigen::MatrixXd velocity, double gamma, double mass, Eigen::MatrixXd& Force_Drag);
+ std::mt19937 gen;  // Mersenne Twister random number generator
+
+ Energy() : gen(std::random_device{}()) {}
+
+ void compute_random_force(double gamma, double kbT, double mass, double dt, Eigen::MatrixXd& Force_Random);
 
  private:
   // variables for bending energy force calculation

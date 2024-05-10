@@ -83,7 +83,7 @@ void RigidBody::calculate_torque(Eigen::MatrixXd force, Eigen::MatrixXd point_of
         // Calculate the torque for this force and add it to the total
         torque += r.cross(forceVec);
         }
-        std::cout << "Torque: " << torque.transpose() << std::endl;
+        //std::cout << "Torque: " << torque.transpose() << std::endl;
 }
 void RigidBody::angular_momentum (Eigen::Vector3d torque,double dt, Eigen::Vector3d& ang_mom) {
     ang_mom += torque * dt;  // Update angular momentum using ΔL = torque * Δt
@@ -143,7 +143,7 @@ void RigidBody::update_quaternion(Eigen::Quaterniond current_quaternion, Eigen::
 
         // normalizing the quaternion
         new_quaternion.normalize();//space_frame
-        std::cout << "New Quaternion: " << new_quaternion.w() << " " << new_quaternion.x() << " " << new_quaternion.y() << " " << new_quaternion.z() << std::endl;
+        //std::cout << "New Quaternion: " << new_quaternion.w() << " " << new_quaternion.x() << " " << new_quaternion.y() << " " << new_quaternion.z() << std::endl;
 }
 
 

@@ -382,34 +382,35 @@ int main() {
     if(particle_flag){E1.redistributeAdhesionForce(V2,F2,closest_points, Force_Repulsion, facet_index,ForcesOnVertices);} 
 
 
-    ///*
-    //  Rigid Body Calculations (Initial Integration Step)
-    
     
         // Calculate the acceleration of the center of mass based on the net force
-    particle_acceleration_com_halfstep =  ForcesOnVertices.colwise().sum()/total_mass_particle;
-
-
-
+    //Eigen::Vector3d drag_force_particle = particle_velocity_com.transpose() * gamma_particle*mass_particle;    
+    particle_acceleration_com =  ((ForcesOnVertices.colwise().sum()))/total_mass_particle ;
     // Update all vertex positions by translating with the velocity
-    V2.rowwise() += (particle_velocity_com * dt).transpose() + 0.5 * (particle_acceleration_com_halfstep* (dt * dt)).transpose();
+    particle_velocity_com += particle_acceleration_com * dtf;
+    if (i%logfrequency==0)std::cout << "Particle Velocity: " << particle_velocity_com.transpose() << std::endl;
+    V2.rowwise() += (particle_velocity_com* dt).transpose() ;//+ 0.5 * (particle_acceleration_com_halfstep* (dt * dt)).transpose();
+
+    
+    //  Rigid Body Calculations (Initial Integration Step
     // Torques on Particle Vertices
     body.calculate_torque(ForcesOnVertices, V2, center_of_mass, torque); //torque calculation, Tau = r x F
+    if (i%logfrequency==0)std::cout << "Torque: " << torque.transpose() << std::endl;
     //calculate angular momentum
     body.angular_momentum(torque, dtf ,ang_momentum);
     // //calculate angular velocity
     body.calculate_omega(ang_momentum, rotation_matrix, idiag, ang_velocity);
     // std::cout << "Angular Momentum: " << ang_momentum.transpose() << std::endl;
-    std::cout << "Angular Velocity: " << ang_velocity.transpose() << std::endl;
+    if (i%logfrequency==0)std::cout << "Angular Velocity: " << ang_velocity.transpose() << std::endl;
 
     // // Update the quaternion
     body.update_quaternion(current_quaternion, ang_velocity, dt,new_quaternion); ///simple euler update
     current_quaternion=new_quaternion;
     body.q_to_exyz(new_quaternion, rotation_matrix); 
-    std::cout << "Rotation Matrix: \n" << rotation_matrix << std::endl;
+    if (i%logfrequency==0)std::cout << "Rotation Matrix: \n" << rotation_matrix << std::endl;
 
-    std::cout << "New Quaternion (Identity): "<< "w = " <<current_quaternion.w() << ", "<< "x = " <<current_quaternion.x() << ", "
-               << "y = " <<current_quaternion.y() << ", "<< "z = " <<current_quaternion.z() << std::endl;
+    //std::cout << "New Quaternion (Identity): "<< "w = " <<current_quaternion.w() << ", "<< "x = " <<current_quaternion.x() << ", "
+     //          << "y = " <<current_quaternion.y() << ", "<< "z = " <<current_quaternion.z() << std::endl;
 
     //v= vcm + omega x r
 
@@ -422,7 +423,7 @@ int main() {
     
     //Rigid Body Calculations End
 
-    //*/
+    
 
    //Final Integration Step
 
@@ -468,16 +469,15 @@ int main() {
     //ForcesonParticleVertices
     if(particle_flag){E1.redistributeAdhesionForce(V2,F2,closest_points, Force_Repulsion, facet_index,ForcesOnVertices); } 
     
-
-    ///*
-    //  Rigid Body Calculations 
     // Calculate the acceleration of the center of mass based on the net force
-    particle_acceleration_com =  ForcesOnVertices.colwise().sum() / total_mass_particle;
+    //Eigen::Vector3d drag_force_particle = particle_velocity_com.transpose()* gamma_particle*mass_particle;
+    particle_acceleration_com =  ((ForcesOnVertices.colwise().sum()))/total_mass_particle ;
+    // Update all vertex positions by translating with the velocity
+    particle_velocity_com += particle_acceleration_com * dtf;
 
-    // Update the velocity of the center of mass based on the acceleration
-    particle_velocity_com = 0.5*(particle_acceleration_com + particle_acceleration_com_halfstep) * dt;
-    std::cout << "Particle Velocity: " << particle_velocity_com.transpose() << std::endl;
 
+    
+    //  Rigid Body Calculations (Final Integration Step)
     //Torques on Particle Vertices
     body.calculate_torque(ForcesOnVertices, V2, center_of_mass, torque); //torque calculation, Tau = r x F
 
@@ -489,7 +489,7 @@ int main() {
     //std::cout << "Angular Velocity: " << ang_velocity.transpose() << std::endl;   
     //Rigid Body Calculations End
 
-    //*/
+    
 
     rVol = 6 * sqrt(PI) * M1.volume_total * pow(M1.area_total, -1.5);   
 

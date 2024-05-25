@@ -98,7 +98,7 @@ int main() {
   double rVol; // true reduced volume
 
   double mass_particle = mass*0.001;
-  double gamma_particle = gamma*0.01;
+  double gamma_particle = gamma*0.001;
   double total_mass_particle;
 
   std::cout<<"Vesicle radius: "<<Rv<<std::endl;
@@ -143,12 +143,16 @@ int main() {
     int numVp = V2.rows();
     std::cout<<"Number of particle vertices: "<<numVp<<" Number of paticle faces: "<<numFp<<"\n"<<std::endl;
     logfile<<"Number of particle vertices: "<<numVp<<" Number of paticle faces: "<<numFp<<"\n"<<std::endl;
-    Rp = parameter.particle_radius;
+
+    Mesh M2;
+    M2.mesh_cal(V2, F2);
+    //Rp = parameter.particle_radius;
+    Rp=sqrt(M2.area_total/(4*PI));
     u = parameter.adhesion_strength;
     U = (Kb * u) / (Rp * Rp);
     rho =  parameter.potential_range;
     r_equilibrium=parameter.r_equilibrium;
-    rc = 5.0*rho;
+    rc = 10.0*rho;
     angle_flag = parameter.angle_condition_flag;
     //double mass_particle = mass*0.01;
     total_mass_particle = mass_particle*V2.rows();
@@ -207,8 +211,7 @@ int main() {
     }
 
     // parameters for forced wrapping
-    Mesh M2;
-    M2.mesh_cal(V2, F2);
+
 
     Ew_t = 0.0;
     Kw = 0.0;
@@ -379,11 +382,8 @@ int main() {
 
     //  Rigid Body Calculations 
     //ForcesonParticleVertices
-    if(particle_flag){E1.redistributeAdhesionForce(V2,F2,closest_points, Force_Repulsion, facet_index,ForcesOnVertices);} 
-
-
-    
-        // Calculate the acceleration of the center of mass based on the net force
+    if(particle_flag){E1.redistributeAdhesionForce(V2,F2,closest_points, Force_Repulsion, facet_index,ForcesOnVertices);
+    // Calculate the acceleration of the center of mass based on the net force
     //Eigen::Vector3d drag_force_particle = particle_velocity_com.transpose() * gamma_particle*mass_particle;    
     particle_acceleration_com =  ((ForcesOnVertices.colwise().sum()))/total_mass_particle ;
     // Update all vertex positions by translating with the velocity
@@ -419,6 +419,7 @@ int main() {
 
     body.rotate_vertices(V2,center_of_mass,displace,rotation_matrix); // r_vector_new= Rotation_matrix * r_vector 
     
+    }
 
     
     //Rigid Body Calculations End
@@ -467,7 +468,7 @@ int main() {
     //velocity = 0.5 * (acceleration + acceleration_half_step) * dt;
 
     //ForcesonParticleVertices
-    if(particle_flag){E1.redistributeAdhesionForce(V2,F2,closest_points, Force_Repulsion, facet_index,ForcesOnVertices); } 
+    if(particle_flag){E1.redistributeAdhesionForce(V2,F2,closest_points, Force_Repulsion, facet_index,ForcesOnVertices); 
     
     // Calculate the acceleration of the center of mass based on the net force
     //Eigen::Vector3d drag_force_particle = particle_velocity_com.transpose()* gamma_particle*mass_particle;
@@ -489,8 +490,8 @@ int main() {
     //std::cout << "Angular Velocity: " << ang_velocity.transpose() << std::endl;   
     //Rigid Body Calculations End
 
-    
-
+    }
+  
     rVol = 6 * sqrt(PI) * M1.volume_total * pow(M1.area_total, -1.5);   
 
     if (i % logfrequency == 0) {

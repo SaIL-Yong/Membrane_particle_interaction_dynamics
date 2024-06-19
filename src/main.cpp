@@ -158,6 +158,7 @@ int main() {
     total_mass_particle = mass_particle*V2.rows();
     std::cout<<"Particle mass coefficient: "<<mass_particle<<std::endl;
     std::cout<<"Total particle mass: "<<total_mass_particle<<std::endl; 
+    std::cout<<"Particle radius: "<<Rp<<std::endl;
     
 
     if (parameter.particle_position > 0) {
@@ -196,7 +197,7 @@ int main() {
     std::cout<<"Particle adhesion cutoff: "<<rc<<std::endl;
     std::cout<<"distance threshold: "<<distance_threshold<<std::endl;
     logfile<<"Particle position: "<<COM(0)<<", "<<COM(1)<<", "<<COM(2)<<std::endl;
-    //logfile<<"Particle radius: "<<Rp<<std::endl;
+    logfile<<"Particle radius: "<<Rp<<std::endl;
     logfile<<"Particle adhesion strength: "<<U<<std::endl;
     logfile<<"Particle adhesion range: "<<rho<<std::endl;   
     logfile<<"Particle adhesion cutoff: "<<rc<<std::endl;

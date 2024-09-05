@@ -7,7 +7,11 @@
 #include <vector>
 #include <iostream>
 #include "meshops.h"
-
+#include <algorithm>
+#include <set>
+#include <iostream>
+#include <fstream>
+#include <Eigen/Core>
 
 class ParticleAdhesion {
 public:

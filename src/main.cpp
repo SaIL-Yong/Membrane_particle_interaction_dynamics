@@ -266,7 +266,7 @@ int main() {
 
   Eigen::MatrixXd Force_Area(numV, 3), Force_Volume(numV, 3), Force_Bending(numV, 3), Force_Adhesion(numV, 3),Force_Random(numV,3),Force_Drag(numV,3),
                   Force_Repulsion(numV,3), velocity(numV, 3), Force_Total(numV, 3),
-                  acceleration(numV,3),acceleration_half_step(numV,3),velocity_half_step(numV,3),ForcesOnVertices; //force components
+                  acceleration(numV,3),acceleration_half_step(numV,3),velocity_half_step(numV,3),ForcesOnParticle; //force components
 
   //Eigen::MatrixXd ForcesOnVertices;
   Force_Adhesion.setZero();
@@ -351,8 +351,7 @@ int main() {
   // main loop
   int i;
   int toln = 0;
-  for (i = 0; i < iterations; i++)
-  {
+  for (i = 0; i < iterations; i++){
 
     //Initial Integration Step
     M1.mesh_cal(V1, F1);
@@ -383,10 +382,11 @@ int main() {
 
     //  Rigid Body Calculations 
     //ForcesonParticleVertices
-    if(particle_flag){E1.redistributeAdhesionForce(V2,F2,closest_points, Force_Repulsion, facet_index,ForcesOnVertices);
+    //if(particle_flag){E1.redistributeAdhesionForce(V2,F2,closest_points, Force_Repulsion, facet_index,ForcesOnVertices);
+    if(particle_flag){ForcesOnParticle=-Force_Repulsion;
     // Calculate the acceleration of the center of mass based on the net force
     //Eigen::Vector3d drag_force_particle = particle_velocity_com.transpose() * gamma_particle*mass_particle;    
-    particle_acceleration_com =  ((ForcesOnVertices.colwise().sum()))/total_mass_particle ;
+    particle_acceleration_com =  ((ForcesOnParticle.colwise().sum()))/total_mass_particle ;
     // Update all vertex positions by translating with the velocity
     particle_velocity_com += particle_acceleration_com * dtf;
     if (i%logfrequency==0)std::cout << "Particle Velocity: " << particle_velocity_com.transpose() << std::endl;
@@ -395,7 +395,7 @@ int main() {
     
     //  Rigid Body Calculations (Initial Integration Step
     // Torques on Particle Vertices
-    body.calculate_torque(ForcesOnVertices, V2, center_of_mass, torque); //torque calculation, Tau = r x F
+    body.calculate_torque(ForcesOnParticle, closest_points, center_of_mass, torque); //torque calculation, Tau = r x F
     if (i%logfrequency==0)std::cout << "Torque: " << torque.transpose() << std::endl;
     //calculate angular momentum
     body.angular_momentum(torque, dtf ,ang_momentum);
@@ -469,11 +469,12 @@ int main() {
     //velocity = 0.5 * (acceleration + acceleration_half_step) * dt;
 
     //ForcesonParticleVertices
-    if(particle_flag){E1.redistributeAdhesionForce(V2,F2,closest_points, Force_Repulsion, facet_index,ForcesOnVertices); 
-    
+    //if(particle_flag){E1.redistributeAdhesionForce(V2,F2,closest_points, Force_Repulsion, facet_index,ForcesOnVertices); 
+    if(particle_flag){
+    ForcesOnParticle=-Force_Repulsion;
     // Calculate the acceleration of the center of mass based on the net force
     //Eigen::Vector3d drag_force_particle = particle_velocity_com.transpose()* gamma_particle*mass_particle;
-    particle_acceleration_com =  ((ForcesOnVertices.colwise().sum()))/total_mass_particle ;
+    particle_acceleration_com =  ((ForcesOnParticle.colwise().sum()))/total_mass_particle ;
     // Update all vertex positions by translating with the velocity
     particle_velocity_com += particle_acceleration_com * dtf;
 
@@ -481,7 +482,7 @@ int main() {
     
     //  Rigid Body Calculations (Final Integration Step)
     //Torques on Particle Vertices
-    body.calculate_torque(ForcesOnVertices, V2, center_of_mass, torque); //torque calculation, Tau = r x F
+    body.calculate_torque(ForcesOnParticle, closest_points, center_of_mass, torque); //torque calculation, Tau = r x F
 
     //calculate angular momentum and velocity
     body.angular_momentum(torque, dtf ,ang_momentum);
@@ -490,7 +491,6 @@ int main() {
     //std::cout << "Angular Momentum: " << ang_momentum.transpose() << std::endl;
     //std::cout << "Angular Velocity: " << ang_velocity.transpose() << std::endl;   
     //Rigid Body Calculations End
-
     }
   
     rVol = 6 * sqrt(PI) * M1.volume_total * pow(M1.area_total, -1.5);   

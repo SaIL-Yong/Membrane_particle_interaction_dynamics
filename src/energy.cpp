@@ -131,11 +131,15 @@ Eigen::MatrixXd Force_Adhesion, Eigen::VectorXi facet_index, Eigen::MatrixXd& Fo
     // Initialize ForcesOnVertices to be zero
     //ForcesOnVertices.setZero();
     ForcesOnVertices.setZero(V2.rows(), 3);
+    //bool printed = false;
 
     for (size_t i = 0; i < closest_points.rows(); ++i) {
 
         // Inside the loop where you distribute forces:
         force = -Force_Adhesion.row(i); // Access the i-th force vector
+
+                // Check if the force is non-zero
+        if (force.norm() > 1e-10){
         // Proceed to distribute this force using barycentric coordinates
         // Get the indices of the vertices of the triangle
         f_idx = facet_index(i); // Triangle index
@@ -150,12 +154,28 @@ Eigen::MatrixXd Force_Adhesion, Eigen::VectorXi facet_index, Eigen::MatrixXd& Fo
         // Compute the barycentric coordinates of the closest point with respect to the triangle
         Eigen::MatrixXd barycentricCoords;
         igl::barycentric_coordinates(closest_points.row(i), triangle.row(0), triangle.row(1), triangle.row(2), barycentricCoords);
-        //std::cout << "Barycentric coordinates: " << barycentricCoords << std::endl;
+
 
         // Distribute the force according to the barycentric coordinates
         for (int j = 0; j < 3; ++j) {
             ForcesOnVertices.row(face(j)) += force * barycentricCoords(0,j);
+                        // Print out the redistributed force
+            //std::cout << "Redistributed force on vertex " << face(j) << ": " << ForcesOnVertices << std::endl;
         }
+                // Print out details for one case
+        /*if (!printed) {
+            std::cout << "Facet index: " << f_idx << std::endl;
+            std::cout << "Triangle vertices: \n" << triangle << std::endl;
+            std::cout << "Point of application (closest point): " << closest_points.row(i) << std::endl;
+            std::cout << "Original force: " << force << std::endl;
+            std::cout << "Barycentric coordinates: " << barycentricCoords << std::endl;
+            for (int j = 0; j < 3; ++j) {
+                std::cout << "Redistributed force on vertex " << face(j) << ": " << ForcesOnVertices.row(face(j)) << std::endl;
+            }
+            printed = true; // Set printed to true to ensure we only print once
+        }
+        */
+    }
     }
 }
 

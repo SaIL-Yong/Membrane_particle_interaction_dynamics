@@ -2,8 +2,7 @@ clc
 clear all
 close all
 
-frame = 2981000;
-fid1=fopen(sprintf('dump%08d.off',frame));
+fid1=fopen('dump00010000.off');
 
 while feof(fid1)==0
     temp=fgetl(fid1);
@@ -14,22 +13,13 @@ while feof(fid1)==0
     y = x;
     z = x;
     tri = zeros(nF,3);
-    facealphadata = zeros(nV,1);
-    edgealphadata = zeros(nV,1);
     
     for i=1:nV
         temp=fgetl(fid1);
         vertex=sscanf(temp, '%g %g %g');
         x(i)=vertex(1);
         y(i)=vertex(2);
-        z(i)=vertex(3);
-        if y(i)>0
-            facealphadata(i)=1.0;
-            edgealphadata(i)=0.5;
-        else
-            facealphadata(i)=0.2;
-            edgealphadata(i)=0.1;
-        end
+        z(i)=vertex(3);    
     end
     
     for i=1:nF
@@ -43,7 +33,7 @@ fclose(fid1);
 
 fid2=fopen('logfile.txt');
 while feof(fid2)==0
-    for i = 1:22
+    for i = 1:17
         temp=fgetl(fid2);
     end
     if (strcmp(sscanf(temp,"%*s %*s %s"),"outside"))
@@ -52,6 +42,7 @@ while feof(fid2)==0
         particle_position = -1;
     end
     temp=fgetl(fid2);
+    R0 = sscanf(temp,"%*s %*s %f, %f, %f");
     temp=fgetl(fid2);
     Rp = sscanf(temp,"%*s %*s %f");
 
@@ -66,17 +57,6 @@ while feof(fid2)==0
 end
 fclose(fid2);
 
-fid3=fopen('comfile.txt');
-while feof(fid3)==0
-    temp=fgetl(fid3);
-    ni = sscanf(temp,"%d %*f %*f %*f");
-    if ni == frame
-        R0 = sscanf(temp,"%*d %f %f %f");
-        break;
-    end
-end
-fclose(fid3);
-
 F1=figure('color','w');
 set(gcf,'Position',[50 50 1000 1000])
 hold on;
@@ -88,8 +68,8 @@ set(ax,'Fontsize',26,'XMinorTick','on','YMinorTick','on','ZMinorTick','on');
 xlabel('x','Fontsize',30);
 ylabel('y','Fontsize',30);
 zlabel('z','Fontsize',30);
-axis([-1.5 1.5 -1.5 1.5 -1.5 1.5]);
-view(30,10);
+axis([-2.0 2.0 0 2.0 -2.0 2.0]);
+view(0,0);
 
 h = 2*chi;
 Rpp = Rp - 0.01;
@@ -110,9 +90,6 @@ set(S1,'FaceColor',"#A2142F", ...
 S2=surf(X2+R0(1),Y2+R0(2),Z2+R0(3));
 set(S2,'FaceColor',"#0072BD", ...
   'FaceAlpha',1.0,'FaceLighting','gouraud','EdgeColor','none');
-pp1 = patch('Faces',tri,'Vertices',[x,y,z],'FaceColor',"#EDB120",'FaceLighting','gouraud',...
-        'FaceVertexAlphaData',facealphadata,'AlphaDataMapping','none','FaceAlpha','interp','EdgeAlpha',0.0);
-pp2 = patch('Faces',tri,'Vertices',[x,y,z],'FaceColor',"#EDB120",'FaceLighting','gouraud',...
-        'FaceVertexAlphaData',edgealphadata,'AlphaDataMapping','none','FaceAlpha',0.0,'EdgeAlpha','interp');
+pp = patch('Faces',tri,'Vertices',[x,y,z],'FaceColor',"#EDB120",'FaceLighting','gouraud','FaceAlpha',1.0,'EdgeColor','k');
 %lightangle(45,30);
 title(['R_p = ', num2str(Rp), ' \chi = ', num2str(chi)]);

@@ -96,8 +96,7 @@ int main() {
   double area_target = 4*PI*Rv*Rv;
   double volume_target = 0.0;
   double rVol; // true reduced volume
-
-  double mass_particle = mass*0.001;
+  double mass_particle = mass*parameter.mass_particle_ratio;
   double gamma_particle = gamma*0.001;
   double total_mass_particle;
 
@@ -283,8 +282,9 @@ int main() {
   acceleration_half_step.setZero();
  
 
-  double EnergyVolume = 0.0, EnergyArea = 0.0, EnergyBending = 0.0, EnergyAdhesion = 0.0,  EnergyBias = 0.0,
+  double EnergyVolume = 0.0, EnergyArea = 0.0, EnergyBending = 0.0, EnergyAdhesion = 0.0,  EnergyBias = 0.0, EnergyPotential=0.0,EnergyKinetic=0.0,
          EnergyTotal = 0.0, EnergyTotalold_log = 0.0, EnergyChangeRate_log = 0.0, EnergyChangeRate_avg = 0.0;  //energy components
+  double EnergyParticleKinetic=0.0,EnergyParticleKineticTranslation=0.0,EnergyParticleKineticRotation=0.0;
   Eigen::MatrixXd l;
   std::cout<<"Simulation Start:\n"<<std::endl;
   logfile<<"Simulation Start:\n"<<std::endl;
@@ -293,11 +293,11 @@ int main() {
   // initiate logfile output
   if (particle_flag) {
     if (parameter.forced_wrapping_flag)
-      logfile<<"Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  AdhesionEnergy  BiasedWrappingEnergy  TotalEnergy  EnergyChangeRate  ForceResidual"<<std::endl;
+      logfile<<"Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  AdhesionEnergy  BiasedWrappingEnergy  PotentialEnergy TotalEnergy  KineticEnergy  ParticleKineticEnergy  EnergyChangeRate  ForceResidual"<<std::endl;
     else
-      logfile<<"Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  AdhesionEnergy  TotalEnergy  EnergyChangeRate  ForceResidual"<<std::endl;
+      logfile<<"Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  AdhesionEnergy  PotentialEnergy TotalEnergy  KineticEnergy ParticleKineticEnergy EnergyChangeRate  ForceResidual"<<std::endl;
   } else {
-    logfile<<"Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  TotalEnergy  EnergyChangeRate  ForceResidual"<<std::endl;
+    logfile<<"Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  PotentialEnergy  TotalEnergy  KineticEnergy  EnergyChangeRate  ForceResidual"<<std::endl;
   }
   
 
@@ -313,6 +313,7 @@ int main() {
   Eigen::MatrixXd displace(V2.rows(),3);
 
   body.calculate_properties(V2,mass_particle,rotation_matrix,idiag,displace);///space_frame
+  std::cout << "Principal moments of inertia (Diagonal):\n" << idiag << std::endl;
   // Access and use the calculated properties
   center_of_mass = body.getCenterOfMass();
   std::cout << "Center of Mass: " << center_of_mass.transpose() << std::endl;
@@ -326,22 +327,6 @@ int main() {
                << "x = " <<current_quaternion.x() << ", "
                << "y = " <<current_quaternion.y() << ", "
                << "z = " <<current_quaternion.z() << std::endl;
-
-  // Eigen::Quaterniond q1(1, 2, 3, 4); // Quaternion (w, x, y, z)
-  // Eigen::Quaterniond q2(5, 6, 7, 8);
-
-  // Eigen::Quaterniond q3 = q1 * q2;
-
-  // std::cout << "Result: " << q3.w() << ", " << q3.x() << ", " << q3.y() << ", " << q3.z() << std::endl;
-  // body.q_to_exyz(q3, rotation_matrix);
-  // std::cout << "Rotation Matrix: \n" << rotation_matrix << std::endl;
-
-    
-
-  // Calculate the angular velocity
- // }
-  
-///
 
   // initiate screen output
   if (particle_flag) std::cout<<"Iteration  ReducedVolume  BendingEnergy  AdhesionEnergy  TotalEnergy  EnergyChangeRate ForceResidual"<<std::endl;
@@ -365,10 +350,11 @@ int main() {
     if (random_force_flag) {E1.compute_random_force( gamma, kbT, mass, dt, Force_Random);
                             E1.compute_drag_force(velocity,gamma, mass, Force_Drag);}
     //std::cout << "Force Adhesion" << Force_Adhesion << std::endl;
-    
-    EnergyTotal = EnergyBending + EnergyArea + EnergyVolume + EnergyAdhesion + EnergyBias;
+    EnergyPotential= EnergyBending + EnergyArea + EnergyVolume + EnergyAdhesion + EnergyBias;
+    EnergyKinetic= 0.5 * mass * (velocity.rowwise().squaredNorm().sum());
+    EnergyTotal = EnergyPotential + EnergyKinetic;
     Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion + Force_Random + Force_Drag;
-
+    
     //LAMMPS Integration
     velocity += (Force_Total / mass) * 0.5 * dt;
     V1 += velocity * dt;
@@ -378,7 +364,6 @@ int main() {
     //velocity_half_step = velocity_half_step + 0.5 *dt* (acceleration_half_step - (gamma*velocity));// + Force_Random ;
     //V1 += velocity * dt + 0.5 * acceleration_half_step * (dt * dt);
     
-   
 
     //  Rigid Body Calculations 
     //ForcesonParticleVertices
@@ -393,7 +378,7 @@ int main() {
     V2.rowwise() += (particle_velocity_com* dt).transpose() ;//+ 0.5 * (particle_acceleration_com_halfstep* (dt * dt)).transpose();
 
     
-    //  Rigid Body Calculations (Initial Integration Step
+    //  Rigid Body Calculations (Initial Integration Step)
     // Torques on Particle Vertices
     body.calculate_torque(ForcesOnParticle, closest_points, center_of_mass, torque); //torque calculation, Tau = r x F
     if (i%logfrequency==0)std::cout << "Torque: " << torque.transpose() << std::endl;
@@ -409,17 +394,18 @@ int main() {
     current_quaternion=new_quaternion;
     body.q_to_exyz(new_quaternion, rotation_matrix); 
     if (i%logfrequency==0)std::cout << "Rotation Matrix: \n" << rotation_matrix << std::endl;
-
-    //std::cout << "New Quaternion (Identity): "<< "w = " <<current_quaternion.w() << ", "<< "x = " <<current_quaternion.x() << ", "
-     //          << "y = " <<current_quaternion.y() << ", "<< "z = " <<current_quaternion.z() << std::endl;
-
+    // // Update the particle vertices based on the rotation matrix
     //v= vcm + omega x r
-
     //rotate the particle based on rotation_matrix
     body.calculate_center_of_mass(V2,F2,center_of_mass);
-
     body.rotate_vertices(V2,center_of_mass,displace,rotation_matrix); // r_vector_new= Rotation_matrix * r_vector 
     
+    //Particle Kinetic Energy
+    EnergyParticleKineticTranslation=0.5*total_mass_particle*(particle_velocity_com.rowwise().squaredNorm().sum());
+    EnergyParticleKineticRotation=0.5*ang_velocity.transpose()*idiag*ang_velocity;
+    EnergyParticleKinetic=EnergyParticleKineticTranslation+EnergyParticleKineticRotation;
+
+
     }
 
     
@@ -452,7 +438,9 @@ int main() {
                                     particle_position, Ew_t, Kw,Force_Adhesion,Force_Repulsion,signed_distance, EnergyAdhesion,EnergyBias, M1);}
     if (random_force_flag) {E1.compute_random_force(gamma, kbT, mass, dt, Force_Random);
                             E1.compute_drag_force( velocity,gamma, mass, Force_Drag);}
-    EnergyTotal = EnergyBending + EnergyArea + EnergyVolume + EnergyAdhesion + EnergyBias;
+    EnergyPotential= EnergyBending + EnergyArea + EnergyVolume + EnergyAdhesion + EnergyBias;
+    EnergyKinetic= 0.5 * mass * (velocity.rowwise().squaredNorm().sum());
+    EnergyTotal = EnergyPotential + EnergyKinetic;
     Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion + Force_Random + Force_Drag;
     force_residual = Force_Total.norm();
     //if (random_force_flag){force_ratio=Force_Random.norm()/(Force_Bending + Force_Area + Force_Volume + Force_Adhesion).norm();
@@ -461,6 +449,8 @@ int main() {
 
     //LAMMPS Integration
     velocity += (Force_Total / mass) * 0.5 * dt;
+
+
 
     //old_updater 
     //acceleration = Force_Total / mass;
@@ -491,6 +481,9 @@ int main() {
     //std::cout << "Angular Momentum: " << ang_momentum.transpose() << std::endl;
     //std::cout << "Angular Velocity: " << ang_velocity.transpose() << std::endl;   
     //Rigid Body Calculations End
+
+
+
     }
   
     rVol = 6 * sqrt(PI) * M1.volume_total * pow(M1.area_total, -1.5);   
@@ -518,9 +511,11 @@ int main() {
         logfile<<EnergyAdhesion<<"  "; 
         if (parameter.forced_wrapping_flag) logfile<<EnergyBias<<"  ";
       }
+      logfile<<EnergyPotential<<"  ";
       logfile<<EnergyTotal<<"  ";
+      logfile<<EnergyKinetic<<"  ";
+      logfile<<EnergyParticleKinetic<<"  ";
       logfile<<EnergyChangeRate_log<<"  ";
-      logfile<<force_ratio<<"  ";
       logfile<<force_residual<<std::endl;
     }
 
@@ -688,6 +683,9 @@ void readParameter()
     getline(runfile, line);
     getline(runfile, line);
     runfile >> parameter.adhesion_strength;
+    getline(runfile, line);
+    getline(runfile, line);
+    runfile >> parameter.mass_particle_ratio;
     getline(runfile, line);
     getline(runfile, line);
     runfile >> parameter.potential_range;

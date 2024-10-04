@@ -1,5 +1,5 @@
 iterations
-5000000
+100000000
 dt
 0.01
 Kb
@@ -21,17 +21,19 @@ gamma
 mass
 1.0
 kbT
-0.1
+0.0
 particle_flag 
 1
 particle_position // -1 inside 1 outside
 1
 particle_coord_flag //takes the initial particle
-0
+1
 particle_radius
 0.3
 adhesion_strength
 2.0
+mass_particle_ratio
+0.001
 potential_range
 0.01
 r_equilibrium
@@ -45,9 +47,9 @@ wrapping_fraction
 forced_wrapping_constant
 100
 meshfile
-./equilibrated.off
+./equilibrated_20480.off
 particlefile
-./particle_sphere_03.off
+./hauser_cube_r020.off
 outfile
 ./equilibrium.off
 resfile
@@ -57,11 +59,11 @@ logfrequency
 dumpfrequency
 10000
 resfrequency
-100000
+100
 mesh_reg_frequency
 1
 bondfrequency
-100
+1
 vertex_smoothing_flag
 1
 delaunay_triangulation_flag

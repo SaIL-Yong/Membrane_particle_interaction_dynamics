@@ -55,7 +55,7 @@ void RigidBody::calculate_properties(Eigen::MatrixXd points, double mass,Eigen::
 
 
    std::cout << "Principal axes:\n" << principal_axes << std::endl;
-   std::cout << "Principal moments of inertia (Diagonal):\n" << principal_moments << std::endl;
+   //std::cout << "Principal moments of inertia (Diagonal):\n" << principal_moments << std::endl;
    // Optionally: Ensure the rotation matrix follows the right-hand rule
    // rotation_matrix.col(2) = rotation_matrix.col(0).cross(rotation_matrix.col(1));
 // Return the calculated properties
@@ -206,59 +206,3 @@ void RigidBody::update_Quaternion(const Quaternion& currentQuaternion, const Eig
     newQuaternion.normalize();
 }
 //// V= vcm + omega x r  (r= V - com)
-/*
-void RigidBody::update_vertex_velocities_positions(Eigen::MatrixXd& V,Eigen::Matrix3d rot_mat,Eigen::Vector3d vcm,Eigen::Vector3d omega,Eigen::MatrixXd displace,double dt, Eigen::MatrixXd& node_velocities) {
-        // velocities is a matrix with the same dimensions as V
-        // Calculate vertex velocities
-        // Calculate vertex velocities
-        // for (int i = 0; i < V.rows(); i++) {
-        //     Eigen::Vector3d r = rot_mat * displace.row(i).transpose(); // Apply rotation to displacement
-        //     Eigen::Vector3d rotational_velocity = omega.cross(r);      // ω_space×r_space
-        //     node_velocities.row(i) = vcm+ rotational_velocity; // v=vcm_space +ω_space×r_space
-        // }
-        // Update vertex positions
-        //Rotate the vertices
-
-        V = V * rot_mat.transpose();
-
-}
-*/
-// void RigidBody::diagonalize_inertia_tensor(Eigen::Matrix3d inertia_tensor, Eigen::Matrix3d& principal_axes, Eigen::Matrix3d& principal_moments) {
-//     Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eigensolver(inertia_tensor);
-//     if (eigensolver.info() != Eigen::Success) abort();
-    
-//     principal_axes = eigensolver.eigenvectors();
-//     principal_moments = eigensolver.eigenvalues().asDiagonal();
-    
-//     std::cout << "Principal axes:\n" << principal_axes << std::endl;
-//     std::cout << "Principal moments of inertia (Diagonal):\n" << principal_moments << std::endl;
-//     // Optionally: Ensure the rotation matrix follows the right-hand rule
-//     // rotation_matrix.col(2) = rotation_matrix.col(0).cross(rotation_matrix.col(1)); 
-// }
-/*
-// Function to update vertex positions using matrix operations
-void RigidBody::update_vertex_position(Eigen::MatrixXd& V, Eigen::MatrixXd forces,  Eigen::Quaterniond quaternion, double dt, Eigen::Vector3d& particle_velocity_com) {
-        // Calculate the net force (assuming each column in forces is a force vector for the corresponding vertex)
-        //Eigen::Vector3d net_force = forces.rowwise().sum();
-        //std::cout << "Net Force: " << net_force.transpose() << std::endl;
-
-        // Calculate the acceleration of the center of mass based on the net force
-        particle_acceleration_com =  forces.colwise().sum() / V.rows();
-
-        // Update the velocity of the center of mass based on the acceleration
-        particle_velocity_com += particle_acceleration * dt;
-        //std::cout << "Particle Velocity: " << particle_velocity.transpose() << std::endl;
-
-        // Update all vertex positions by translating with the velocity
-        V.rowwise() += (particle_velocity * dt).transpose();
-
-        // Calculate the rotation matrix from the quaternion
-        rotation_matrix = quaternion.toRotationMatrix();
-        //Affine3d T = quaternion * Translation3d(V);
-
-               // Apply the rotation to all vertex positions
-        V = (rotation_matrix * V.transpose()).transpose();
-        //V= T * V;
-}
-*/
-

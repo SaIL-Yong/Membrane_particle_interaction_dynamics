@@ -352,7 +352,7 @@ int main() {
     //std::cout << "Force Adhesion" << Force_Adhesion << std::endl;
     EnergyPotential= EnergyBending + EnergyArea + EnergyVolume + EnergyAdhesion + EnergyBias;
     EnergyKinetic= 0.5 * mass * (velocity.rowwise().squaredNorm().sum());
-    EnergyTotal = EnergyPotential + EnergyKinetic;
+    EnergyTotal = EnergyPotential + EnergyKinetic+EnergyParticleKinetic;
     Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion + Force_Random + Force_Drag;
     
     //LAMMPS Integration
@@ -405,7 +405,6 @@ int main() {
     EnergyParticleKineticRotation=0.5*ang_velocity.transpose()*idiag*ang_velocity;
     EnergyParticleKinetic=EnergyParticleKineticTranslation+EnergyParticleKineticRotation;
 
-
     }
 
     
@@ -440,7 +439,7 @@ int main() {
                             E1.compute_drag_force( velocity,gamma, mass, Force_Drag);}
     EnergyPotential= EnergyBending + EnergyArea + EnergyVolume + EnergyAdhesion + EnergyBias;
     EnergyKinetic= 0.5 * mass * (velocity.rowwise().squaredNorm().sum());
-    EnergyTotal = EnergyPotential + EnergyKinetic;
+    EnergyTotal = EnergyPotential + EnergyKinetic+EnergyParticleKinetic;
     Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion + Force_Random + Force_Drag;
     force_residual = Force_Total.norm();
     //if (random_force_flag){force_ratio=Force_Random.norm()/(Force_Bending + Force_Area + Force_Volume + Force_Adhesion).norm();

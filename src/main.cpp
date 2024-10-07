@@ -293,9 +293,9 @@ int main() {
   // initiate logfile output
   if (particle_flag) {
     if (parameter.forced_wrapping_flag)
-      logfile<<"Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  AdhesionEnergy  BiasedWrappingEnergy  PotentialEnergy TotalEnergy  KineticEnergy  ParticleKineticEnergy  EnergyChangeRate  ForceResidual"<<std::endl;
+      logfile<<"Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  AdhesionEnergy  BiasedWrappingEnergy  PotentialEnergy  TotalEnergy  KineticEnergy  ParticleKineticEnergy  EnergyChangeRate  ForceResidual"<<std::endl;
     else
-      logfile<<"Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  AdhesionEnergy  PotentialEnergy TotalEnergy  KineticEnergy ParticleKineticEnergy EnergyChangeRate  ForceResidual"<<std::endl;
+      logfile<<"Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  AdhesionEnergy  PotentialEnergy  TotalEnergy  KineticEnergy  ParticleKineticEnergy  EnergyChangeRate  ForceResidual"<<std::endl;
   } else {
     logfile<<"Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  PotentialEnergy  TotalEnergy  KineticEnergy  EnergyChangeRate  ForceResidual"<<std::endl;
   }

@@ -359,7 +359,7 @@ int main() {
     E1.compute_areaenergy_force(V1, F1, Ka, area_target, Force_Area, EnergyArea, M1);
     E1.compute_volumeenergy_force(V1, F1, Kv, volume_target, Force_Volume, EnergyVolume, M1);
     if(particle_flag && i%bondfrequency==0)igl::signed_distance(V1, V2, F2, igl::SIGNED_DISTANCE_TYPE_PSEUDONORMAL, signed_distance, facet_index, closest_points, normals_closest_points);
-    if(particle_flag){E1.compute_adhesion_energy_force(V1, F1, closest_points, rho, U,r_equilibrium,rc,angle_flag,
+    if(particle_flag && i%bondfrequency==0){E1.compute_adhesion_energy_force(V1, F1, closest_points, rho, U,r_equilibrium,rc,angle_flag,
                                     particle_position, Ew_t, Kw,Force_Adhesion,Force_Repulsion,signed_distance, EnergyAdhesion,EnergyBias, M1);}
 
     if (random_force_flag) {E1.compute_random_force( gamma, kbT, mass, dt, Force_Random);
@@ -448,7 +448,7 @@ int main() {
       std::cout << "Error: cannot open adhesion force file." <<std::endl;
       }
     }
-    if(particle_flag){E1.compute_adhesion_energy_force(V1, F1, closest_points, rho, U,r_equilibrium,rc,angle_flag,
+    if(particle_flag && i%bondfrequency==0){E1.compute_adhesion_energy_force(V1, F1, closest_points, rho, U,r_equilibrium,rc,angle_flag,
                                     particle_position, Ew_t, Kw,Force_Adhesion,Force_Repulsion,signed_distance, EnergyAdhesion,EnergyBias, M1);}
     if (random_force_flag) {E1.compute_random_force(gamma, kbT, mass, dt, Force_Random);
                             E1.compute_drag_force( velocity,gamma, mass, Force_Drag);}

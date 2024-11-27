@@ -6,618 +6,47 @@
 #include "energy.h"
 #include "parameters.h"
 #include "rigidbody.h"
+#include "simulation.h"
+#include "integrate.h"
 using namespace std::chrono;
-int numV;                                               // number of vertices
-int numF;                                               // number of faces
-Eigen::MatrixXd V1,V2;                                      // matrix storing vertice coordinates
-Eigen::MatrixXi F1,F2;
-Parameter parameter;
 
+
+Parameter parameter;
 int main() {
   // initialization of simulaiton parameters
+
+
   readParameter();
-  igl::readOFF(parameter.meshFile, V1, F1);
-  igl::readOFF(parameter.particleFile, V2, F2);
-  
-  numF = F1.rows();
-  numV = V1.rows();
+  //SimulationData sim_data;
+  SimulationData sim_data;
 
-
-
-  Eigen::VectorXi nearest;              // Nearest neighbor of each vertex in V1 in V2
-  std::vector<std::pair<int, int>> bonds;
-
-  /**
-   * @brief The threshold distance used for determining if two particles are close enough to interact with each other.
-   */
-  double distance_threshold = 0.1;
-
-  // screen and log output of simulation settings
-  std::fstream logfile;
-  logfile.open("logfile.txt",std::ios::out);
-  if (logfile.is_open())
-  {
-    logfile<<"This is logfile for simulation"<<std::endl;
-  } else {
-    std::cout<<"ERROR: cannot access logfile."<<std::endl;
-  }
-
-  int iterations = parameter.iterations;
-  int logfrequency = parameter.logfrequency;
-  int dumpfrequency = parameter.dumpfrequency;
-  int bondfrequency=parameter.bondfrequency;
-  int resfrequency = parameter.resfrequency;
-  double dt = parameter.dt, time = 0.0,dtf=dt/2.0;
-  double tolerance = parameter.tolerance;
-  double force_residual,force_ratio;
-  int tolerance_flag = parameter.tolerance_flag;
-  double tolfrequency = parameter.tolfrequency;
-  int tolsteps = floor(tolfrequency / dt);
-  int tolmean_steps = floor(tolsteps/logfrequency);
-  Eigen::VectorXd etol;
-  etol.resize(floor(iterations/logfrequency));
-  etol.setZero();
-
-  std::cout<<"Mesh info:"<<std::endl;
-  std::cout<<"Number of vertices: "<<numV<<" Number of faces: "<<numF<<"\n"<<std::endl;
-  //if(particle_flag)std::cout<<"Number of particle vertices: "<<numVp<<" Number of paticle faces: "<<numFp<<"\n"<<std::endl;
-  std::cout<<"Max number of iterations: "<<iterations<<std::endl;
-  std::cout<<"Log output frequency: "<<logfrequency<<std::endl;
-  std::cout<<"Mesh dump frequency: "<<dumpfrequency<<std::endl;
-  std::cout<<"Restart save frequency: "<<resfrequency<<std::endl;
-  std::cout<<"Time step: "<<dt<<std::endl;
-  logfile<<"Mesh info:"<<std::endl;
-  logfile<<"Number of vertices: "<<numV<<" Number of faces: "<<numF<<"\n"<<std::endl;
-  logfile<<"Max number of iterations: "<<iterations<<std::endl;
-  logfile<<"Log output frequency: "<<logfrequency<<std::endl;
-  logfile<<"Mesh dump frequency: "<<dumpfrequency<<std::endl;
-  logfile<<"Restart save frequency: "<<resfrequency<<std::endl;
-  logfile<<"Time step: "<<dt<<std::endl;
-
-  if (tolerance_flag) {
-    std::cout<<"Convergence: ON, Tolerance: "<<tolerance<<std::endl;
-    std::cout<<"Tolerance check frequency: "<<tolfrequency<<" time units\n"<<std::endl;
-    logfile<<"Convergence: ON, Tolerance: "<<tolerance<<std::endl;
-    logfile<<"Tolerance check frequency: "<<tolfrequency<<" time units\n"<<std::endl;
-  }
-  else {
-    std::cout<<"Convergence: OFF\n"<<std::endl;
-    logfile<<"Convergence: OFF\n"<<std::endl;
-  }
-  
-  // paraemters for membrane properties
-  double gamma = parameter.gamma;
-  double mass = parameter.mass;
-  double kbT = parameter.kbT;
-  double Kb = parameter.Kb;
-  double Kv = 0.0;
-  double Ka = parameter.Ka;
-  double Rv = 1.0;
-  double area_target = 4*PI*Rv*Rv;
-  double volume_target = 0.0;
-  double rVol; // true reduced volume
-  double mass_particle = mass*parameter.mass_particle_ratio;
-  double gamma_particle = gamma*0.001;
-  double total_mass_particle;
-
-  std::cout<<"Vesicle radius: "<<Rv<<std::endl;
-  std::cout<<"Membrane drag coefficient: "<<gamma<<std::endl;
-  std::cout<<"Membrane mass coefficient: "<<mass<<std::endl;
-  std::cout<<"Membrane bending modulus: "<<Kb<<std::endl;
-  std::cout<<"Membrane stretching modulus: "<<Ka<<std::endl;
-  logfile<<"Vesicle radius: "<<Rv<<std::endl;
-  logfile<<"Membrane drag coefficient: "<<gamma<<std::endl;
-  logfile<<"Membrane mass coefficient: "<<mass<<std::endl;
-  logfile<<"Membrane bending modulus: "<<Kb<<std::endl;
-  logfile<<"Membrane stretching modulus: "<<Ka<<std::endl;
-
-  if (std::abs(parameter.Kv) > EPS) {
-    double rVol_t = parameter.reduced_volume;
-    Kv = parameter.Kv;
-    volume_target = rVol_t*(4.0/3.0)*PI*pow(Rv,3);
-    std::cout<<"Target vesicle reduced volume: "<<rVol_t<<std::endl;
-    std::cout<<"Vesicle osmotic strength constant: "<<Kv<<"\n"<<std::endl;
-    logfile<<"Target vesicle reduced volume: "<<rVol_t<<std::endl;
-    logfile<<"Vesicle osmotic strength constant: "<<Kv<<"\n"<<std::endl;
-  }
-
-  // parameters for particle adhesion
-  int particle_flag = parameter.particle_flag;
-  int particle_position = parameter.particle_position;
-  double Rp, u, U, rho, rc, X0, Y0, Z0, Ew_t, Kw,r_equilibrium,epsilon,sigma;
-  int angle_flag;
-
-  // Declaration and initialization of COM
-  Eigen::Vector3d COM(0.0, 0.0, 0.0),center_of_mass;
-  Eigen::MatrixXd signed_distance;  // Matrix to store signed distances
-  Eigen::MatrixXi facet_index;  // Matrix to store facet indices
-  Eigen::MatrixXd closest_points;  // Matrix to store closest points
-  Eigen::MatrixXd normals_closest_points;  // Matrix to store closest normals (if needed)
-
-  int random_force_flag = parameter.random_force_flag;
-
-  if (particle_flag) {
-    igl::readOFF(parameter.particleFile, V2, F2);
-    int numFp = F2.rows();
-    int numVp = V2.rows();
-    std::cout<<"Number of particle vertices: "<<numVp<<" Number of paticle faces: "<<numFp<<"\n"<<std::endl;
-    logfile<<"Number of particle vertices: "<<numVp<<" Number of paticle faces: "<<numFp<<"\n"<<std::endl;
-
-    Mesh M2;
-    M2.mesh_cal(V2, F2);
-    //Rp = parameter.particle_radius;
-    Rp=sqrt(M2.area_total/(4*PI));
-    u = parameter.adhesion_strength;
-    U = (Kb * u) / (Rp * Rp);
-    rho =  parameter.potential_range;
-    r_equilibrium=parameter.r_equilibrium;
-    rc = 10.0*rho;
-    angle_flag = parameter.angle_condition_flag;
-    //double mass_particle = mass*0.01;
-    total_mass_particle = mass_particle*V2.rows();
-    std::cout<<"Particle mass coefficient: "<<mass_particle<<std::endl;
-    std::cout<<"Total particle mass: "<<total_mass_particle<<std::endl; 
-    std::cout<<"Particle radius: "<<Rp<<std::endl;
-    
-
-    if (parameter.particle_position > 0) {
-      std::cout<<"Particle position: outside"<<std::endl;
-      logfile<<"Particle position: outside"<<std::endl;
-    } 
-    else if (parameter.particle_position < 0){
-      std::cout<<"Particle position: inside"<<std::endl;
-      logfile<<"Particle position: inside"<<std::endl;
+  std::fstream logfile("logfile.txt", std::ios::out);
+    if (!logfile.is_open()) {
+        std::cerr << "ERROR: cannot access logfile." << std::endl;
+        return 1;
     }
-    
-    // position of the particle
-    // if (!parameter.particle_coord_flag) {
-    //   X0 = 0.0, Y0 = 0.0, Z0 = V1.col(2).maxCoeff() + parameter.particle_position * (Rp + 1.0*rho);
-    // }
-    // else {
-    //   X0 = parameter.X0, Y0 = parameter.Y0, Z0 = parameter.Z0;
-    // }
+  // Initialize the simulation based on the number of vertices
 
-    if (parameter.particle_coord_flag==0){//to check if the given mesh would be taken or added
-    double Z0 = V1.col(2).maxCoeff() + 1.0*(parameter.particle_position* (V2.col(2).maxCoeff()+1.0*rho));
-    Eigen::ArrayXd v2_col = V2.col(2).array();
-    v2_col += Z0;
-    V2.col(2) = v2_col.matrix();
-    }
-    std::string initialparticle="initialparticle.off";
-    igl::writeOFF(initialparticle, V2, F2);   //storing initial particle mesh file
-    igl::centroid(V2, F2, COM);
+    // Start timing simulation
+    auto start = std::chrono::system_clock::now();
+    std::cout << "Simulation Start:\n";
 
+    // Log file setup
 
+    // Initialize the simulation based on the number of vertices
+  initialize_simulation(sim_data, parameter, logfile);
 
-    std::cout<<"Particle position: "<<COM(0)<<", "<<COM(1)<<", "<<COM(2)<<std::endl;
-    //std::cout<<"Particle radius: "<<Rp<<std::endl;
-    std::cout<<"Particle adhesion strength: "<<U<<std::endl;
-    std::cout<<"Particle adhesion range: "<<rho<<std::endl;   
-    std::cout<<"Particle adhesion cutoff: "<<rc<<std::endl;
-    std::cout<<"distance threshold: "<<distance_threshold<<std::endl;
-    logfile<<"Particle position: "<<COM(0)<<", "<<COM(1)<<", "<<COM(2)<<std::endl;
-    logfile<<"Particle radius: "<<Rp<<std::endl;
-    logfile<<"Particle adhesion strength: "<<U<<std::endl;
-    logfile<<"Particle adhesion range: "<<rho<<std::endl;   
-    logfile<<"Particle adhesion cutoff: "<<rc<<std::endl;
-    logfile<<"distance threshold: "<<distance_threshold<<std::endl;
-    if (angle_flag) {
-      std::cout<<"Angle criterion: ON\n"<<std::endl;
-      logfile<<"Angle criterion: ON\n"<<std::endl;
-    }
-    else {
-      std::cout<<"Angle criterion: OFF\n"<<std::endl;
-      logfile<<"Angle criterion: OFF\n"<<std::endl;
-    }
-
-    // parameters for forced wrapping
-
-
-    Ew_t = 0.0;
-    Kw = 0.0;
-    if (parameter.forced_wrapping_flag) {
-        double chi = parameter.wrapping_fraction;
-        Kw = parameter.wrapping_bias_strength;
-        double Area_w_t = chi*M2.area_total;
-        Ew_t = -U*Area_w_t;
-        std::cout<<"Forced wrapping fraction: "<<chi<<std::endl;
-        std::cout<<"Forced wrapping strength constant: "<<Kw<<"\n"<<std::endl;
-        std::cout<<"Particle Surface Area: "<<M2.area_total<<std::endl;
-        std::cout<<"target adhesion energy: "<<Ew_t<<std::endl;
-        logfile<<"Forced wrapping fraction: "<<chi<<std::endl;
-        logfile<<"Forced wrapping strength constant: "<<Kw<<"\n"<<std::endl;
-        logfile<<"Particle Surface Area: "<<M2.area_total<<std::endl;
-        logfile<<"target adhesion energy: "<<Ew_t<<std::endl;
-    }
-  }
-
-  // mesh regularization flag
-  int v_smooth_flag = parameter.vertex_smoothing_flag;
-  int delaunay_tri_flag = parameter.delaunay_triangulation_flag;
-  if (v_smooth_flag) {
-    std::cout<<"Vertex smoothing: ON"<<std::endl;
-    logfile<<"Vertex smoothing: ON"<<std::endl;
-  }
-  else {
-    std::cout<<"Vertex smoothing: OFF"<<std::endl;
-    logfile<<"Vertex smoothing: OFF"<<std::endl;
-  }
-  if (delaunay_tri_flag) {
-    std::cout<<"Delaunay triangulation: ON"<<std::endl;
-    logfile<<"Delaunay triangulation: ON"<<std::endl;
-  }
-  else {
-    std::cout<<"Delaunay triangulation: OFF"<<std::endl;
-    logfile<<"Delaunay triangulation: OFF"<<std::endl;
-  }
-  int mesh_reg_frequency = parameter.mesh_reg_frequency;
-  if (v_smooth_flag || delaunay_tri_flag) {
-    std::cout<<"Mesh regularization frequency: "<<mesh_reg_frequency<<"\n"<<std::endl;
-    logfile<<"Mesh regularization frequency: "<<mesh_reg_frequency<<"\n"<<std::endl;
-  }
-  
-  // Calculate the distances between each pair of vertices
-  ParticleAdhesion P1;
-  //P1.find_pairs(V1, F1, V2, F2, distance_threshold, bonds);
-  Mesh M1;
-
-  Energy E1;
-
-  Eigen::MatrixXd Force_Area(numV, 3), Force_Volume(numV, 3), Force_Bending(numV, 3), Force_Adhesion(numV, 3),Force_Random(numV,3),Force_Drag(numV,3),
-                  Force_Repulsion(numV,3), velocity(numV, 3), Force_Total(numV, 3),
-                  acceleration(numV,3),acceleration_half_step(numV,3),velocity_half_step(numV,3),ForcesOnParticle; //force components
-
-  //Eigen::MatrixXd ForcesOnVertices;
-  Force_Adhesion.setZero();
-  Force_Random.setZero();
-  Force_Repulsion.setZero();
-  Force_Drag.setZero();
-  //ForcesOnVertices.setZero();
-  velocity.setZero();
-  velocity_half_step.setZero();
-  
-  Force_Total.setZero();
-  //Force_Total_old.setZero();
-  acceleration.setZero();
-  acceleration_half_step.setZero();
- 
-
-  double EnergyVolume = 0.0, EnergyArea = 0.0, EnergyBending = 0.0, EnergyAdhesion = 0.0,  EnergyBias = 0.0, EnergyPotential=0.0,EnergyKinetic=0.0,
-         EnergyTotal = 0.0, EnergyTotalold_log = 0.0, EnergyChangeRate_log = 0.0, EnergyChangeRate_avg = 0.0;  //energy components
-  double EnergyParticleKinetic=0.0,EnergyParticleKineticTranslation=0.0,EnergyParticleKineticRotation=0.0;
-  Eigen::MatrixXd l;
-  std::cout<<"Simulation Start:\n"<<std::endl;
-  logfile<<"Simulation Start:\n"<<std::endl;
-  auto start = system_clock::now();
-
-  // initiate logfile output
-  if (particle_flag) {
-    if (parameter.forced_wrapping_flag)
-      logfile<<"Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  AdhesionEnergy  BiasedWrappingEnergy  PotentialEnergy  TotalEnergy  KineticEnergy  ParticleKineticEnergy  EnergyChangeRate  ForceResidual"<<std::endl;
-    else
-      logfile<<"Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  AdhesionEnergy  PotentialEnergy  TotalEnergy  KineticEnergy  ParticleKineticEnergy  EnergyChangeRate  ForceResidual"<<std::endl;
-  } else {
-    logfile<<"Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  PotentialEnergy  TotalEnergy  KineticEnergy  EnergyChangeRate  ForceResidual"<<std::endl;
-  }
-  
+  verlet_integration(sim_data,logfile);
 
   
-  //RigidBodyCalculations and particl motions
-  //if (particle_flag){
-  RigidBody body;
-  Eigen::Matrix3d rotation_matrix,idiag;
-  Eigen::Matrix3d moment_of_inertia;
-  //Eigen::Matrix3d inverse_moment_of_inertia;
-  Eigen::Vector3d torque,ang_momentum,ang_velocity,particle_velocity_com,particle_acceleration_com_halfstep,particle_acceleration_com;
-  Eigen::MatrixXd particle_velocities(V2.rows(),3);
-  Eigen::MatrixXd displace(V2.rows(),3);
-
-  body.calculate_properties(V2,mass_particle,rotation_matrix,idiag,displace);///space_frame
-  std::cout << "Principal moments of inertia (Diagonal):\n" << idiag << std::endl;
-  // Access and use the calculated properties
-  center_of_mass = body.getCenterOfMass();
-  std::cout << "Center of Mass: " << center_of_mass.transpose() << std::endl;
-  Eigen::Quaterniond current_quaternion; // Initialize the quaternion
-  body.exyz_to_q(rotation_matrix,current_quaternion);
-      // Convert Eigen::Quaterniond to RigidBody::Quaternion
-  //RigidBody::Quaternion (eigenQuat);
-  Eigen::Quaterniond new_quaternion;//= Eigen::Quaterniond::Identity();
-  std::cout << "Initial Quaternion (Identity): "
-               << "w = " <<current_quaternion.w() << ", "
-               << "x = " <<current_quaternion.x() << ", "
-               << "y = " <<current_quaternion.y() << ", "
-               << "z = " <<current_quaternion.z() << std::endl;
-
-  // initiate screen output
-  if (particle_flag) std::cout<<"Iteration  ReducedVolume  BendingEnergy  AdhesionEnergy  TotalEnergy  EnergyChangeRate ForceResidual"<<std::endl;
-  else std::cout<<"Iteration  ReducedVolume  BendingEnergy  TotalEnergy  EnergyChangeRate  ForceResidual"<<std::endl;
-  //P1.find_pairs(V1, F1, V2, F2, distance_threshold, bonds);
-  //std::cout << "bond is updated." << std::endl;
-  // main loop
-  int i;
-  int toln = 0;
-  for (i = 0; i < iterations; i++){
-
-    //Initial Integration Step
-    M1.mesh_cal(V1, F1);
-    E1.compute_bendingenergy_force(V1, F1, Kb, Force_Bending, EnergyBending, M1);
-    E1.compute_areaenergy_force(V1, F1, Ka, area_target, Force_Area, EnergyArea, M1);
-    E1.compute_volumeenergy_force(V1, F1, Kv, volume_target, Force_Volume, EnergyVolume, M1);
-    if(particle_flag && i%bondfrequency==0)igl::signed_distance(V1, V2, F2, igl::SIGNED_DISTANCE_TYPE_PSEUDONORMAL, signed_distance, facet_index, closest_points, normals_closest_points);
-    if(particle_flag && i%bondfrequency==0){E1.compute_adhesion_energy_force(V1, F1, closest_points, rho, U,r_equilibrium,rc,angle_flag,
-                                    particle_position, Ew_t, Kw,Force_Adhesion,Force_Repulsion,signed_distance, EnergyAdhesion,EnergyBias, M1);}
-
-    if (random_force_flag) {E1.compute_random_force( gamma, kbT, mass, dt, Force_Random);
-                            E1.compute_drag_force(velocity,gamma, mass, Force_Drag);}
-    //std::cout << "Force Adhesion" << Force_Adhesion << std::endl;
-    EnergyPotential= EnergyBending + EnergyArea + EnergyVolume + EnergyAdhesion + EnergyBias;
-    EnergyKinetic= 0.5 * mass * (velocity.rowwise().squaredNorm().sum());
-    EnergyTotal = EnergyPotential + EnergyKinetic+EnergyParticleKinetic;
-    Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion + Force_Random + Force_Drag;
-    
-    //LAMMPS Integration
-    velocity += (Force_Total / mass) * 0.5 * dt;
-    V1 += velocity * dt;
-
-    //old_updater 
-    //acceleration_half_step = Force_Total / mass;
-    //velocity_half_step = velocity_half_step + 0.5 *dt* (acceleration_half_step - (gamma*velocity));// + Force_Random ;
-    //V1 += velocity * dt + 0.5 * acceleration_half_step * (dt * dt);
-    
-
-    //  Rigid Body Calculations 
-    //ForcesonParticleVertices
-    //if(particle_flag){E1.redistributeAdhesionForce(V2,F2,closest_points, Force_Repulsion, facet_index,ForcesOnVertices);
-    if(particle_flag){ForcesOnParticle=-Force_Repulsion;
-    // Calculate the acceleration of the center of mass based on the net force
-    //Eigen::Vector3d drag_force_particle = particle_velocity_com.transpose() * gamma_particle*mass_particle;    
-    particle_acceleration_com =  ((ForcesOnParticle.colwise().sum()))/total_mass_particle ;
-    // Update all vertex positions by translating with the velocity
-    particle_velocity_com += particle_acceleration_com * dtf;
-    if (i%logfrequency==0)std::cout << "Particle Velocity: " << particle_velocity_com.transpose() << std::endl;
-    V2.rowwise() += (particle_velocity_com* dt).transpose() ;//+ 0.5 * (particle_acceleration_com_halfstep* (dt * dt)).transpose();
-
-    
-    //  Rigid Body Calculations (Initial Integration Step)
-    // Torques on Particle Vertices
-    body.calculate_torque(ForcesOnParticle, closest_points, center_of_mass, torque); //torque calculation, Tau = r x F
-    if (i%logfrequency==0)std::cout << "Torque: " << torque.transpose() << std::endl;
-    //calculate angular momentum
-    body.angular_momentum(torque, dtf ,ang_momentum);
-    // //calculate angular velocity
-    body.calculate_omega(ang_momentum, rotation_matrix, idiag, ang_velocity);
-    // std::cout << "Angular Momentum: " << ang_momentum.transpose() << std::endl;
-    if (i%logfrequency==0)std::cout << "Angular Velocity: " << ang_velocity.transpose() << std::endl;
-
-    // // Update the quaternion
-    body.update_quaternion(current_quaternion, ang_velocity, dt,new_quaternion); ///simple euler update
-    current_quaternion=new_quaternion;
-    body.q_to_exyz(new_quaternion, rotation_matrix); 
-    if (i%logfrequency==0)std::cout << "Rotation Matrix: \n" << rotation_matrix << std::endl;
-    // // Update the particle vertices based on the rotation matrix
-    //v= vcm + omega x r
-    //rotate the particle based on rotation_matrix
-    body.calculate_center_of_mass(V2,F2,center_of_mass);
-    body.rotate_vertices(V2,center_of_mass,displace,rotation_matrix); // r_vector_new= Rotation_matrix * r_vector 
-    
-    //Particle Kinetic Energy
-    EnergyParticleKineticTranslation=0.5*total_mass_particle*(particle_velocity_com.rowwise().squaredNorm().sum());
-    EnergyParticleKineticRotation=0.5*ang_velocity.transpose()*idiag*ang_velocity;
-    EnergyParticleKinetic=EnergyParticleKineticTranslation+EnergyParticleKineticRotation;
-
-    }
-
-    
-    //Rigid Body Calculations End
-
-    
-
-   //Final Integration Step
-
-    //Repeat the force calucaltion here//Final Integration Step
-    M1.mesh_cal(V1, F1);
-    E1.compute_bendingenergy_force(V1, F1, Kb, Force_Bending, EnergyBending, M1);
-    E1.compute_areaenergy_force(V1, F1, Ka, area_target, Force_Area, EnergyArea, M1);
-    E1.compute_volumeenergy_force(V1, F1, Kv, volume_target, Force_Volume, EnergyVolume, M1);
-    if(particle_flag && i%bondfrequency==0){igl::signed_distance(V1, V2, F2, igl::SIGNED_DISTANCE_TYPE_PSEUDONORMAL, signed_distance, facet_index, closest_points, normals_closest_points);
-
-   //std::cout << "Facet Index" << facet_index<<std::endl;
-    std::ofstream outfile("signed_distance.txt");
-   // Check if the file was successfully opened
-    if (outfile.is_open()) {
-      outfile << signed_distance << std::endl;
-      outfile << facet_index << std::endl;
-      outfile.close();
-      } 
-      else {
-      std::cout << "Error: cannot open adhesion force file." <<std::endl;
-      }
-    }
-    if(particle_flag && i%bondfrequency==0){E1.compute_adhesion_energy_force(V1, F1, closest_points, rho, U,r_equilibrium,rc,angle_flag,
-                                    particle_position, Ew_t, Kw,Force_Adhesion,Force_Repulsion,signed_distance, EnergyAdhesion,EnergyBias, M1);}
-    if (random_force_flag) {E1.compute_random_force(gamma, kbT, mass, dt, Force_Random);
-                            E1.compute_drag_force( velocity,gamma, mass, Force_Drag);}
-    EnergyPotential= EnergyBending + EnergyArea + EnergyVolume + EnergyAdhesion + EnergyBias;
-    EnergyKinetic= 0.5 * mass * (velocity.rowwise().squaredNorm().sum());
-    EnergyTotal = EnergyPotential + EnergyKinetic+EnergyParticleKinetic;
-    Force_Total = Force_Bending + Force_Area + Force_Volume + Force_Adhesion + Force_Random + Force_Drag;
-    force_residual = Force_Total.norm();
-    //if (random_force_flag){force_ratio=Force_Random.norm()/(Force_Bending + Force_Area + Force_Volume + Force_Adhesion).norm();
-    //std::cout<<"Force Ratio: "<<force_ratio<<std::endl;}
-    
-
-    //LAMMPS Integration
-    velocity += (Force_Total / mass) * 0.5 * dt;
-
-
-
-    //old_updater 
-    //acceleration = Force_Total / mass;
-    // // Update velocities with average acceleration
-    // //velocity = velocity_half_step + 0.5 *dt*(acceleration - (gamma * velocity_half_step));// + Force_Random ;
-    //velocity = 0.5 * (acceleration + acceleration_half_step) * dt;
-
-    //ForcesonParticleVertices
-    //if(particle_flag){E1.redistributeAdhesionForce(V2,F2,closest_points, Force_Repulsion, facet_index,ForcesOnVertices); 
-    if(particle_flag){
-    ForcesOnParticle=-Force_Repulsion;
-    // Calculate the acceleration of the center of mass based on the net force
-    //Eigen::Vector3d drag_force_particle = particle_velocity_com.transpose()* gamma_particle*mass_particle;
-    particle_acceleration_com =  ((ForcesOnParticle.colwise().sum()))/total_mass_particle ;
-    // Update all vertex positions by translating with the velocity
-    particle_velocity_com += particle_acceleration_com * dtf;
-
-
-    
-    //  Rigid Body Calculations (Final Integration Step)
-    //Torques on Particle Vertices
-    body.calculate_torque(ForcesOnParticle, closest_points, center_of_mass, torque); //torque calculation, Tau = r x F
-
-    //calculate angular momentum and velocity
-    body.angular_momentum(torque, dtf ,ang_momentum);
-    //calculate angular velocity
-    body.calculate_omega(ang_momentum, rotation_matrix, idiag, ang_velocity);
-    //std::cout << "Angular Momentum: " << ang_momentum.transpose() << std::endl;
-    //std::cout << "Angular Velocity: " << ang_velocity.transpose() << std::endl;   
-    //Rigid Body Calculations End
-
-
-
-    }
-  
-    rVol = 6 * sqrt(PI) * M1.volume_total * pow(M1.area_total, -1.5);   
-
-    if (i % logfrequency == 0) {
-      EnergyChangeRate_log = (EnergyTotal - EnergyTotalold_log) / (logfrequency * dt);
-      EnergyTotalold_log = EnergyTotal;
-      etol(toln++) = EnergyChangeRate_log;
-
-      // screen output
-      if (particle_flag)
-        std::cout<<i<<"  "<<rVol<<"  "<<EnergyBending<<"  "<<EnergyAdhesion<<"  "<<EnergyTotal<<"  "<<EnergyChangeRate_log<<"  "<<force_residual<<"  "<<std::endl;
-      else
-        std::cout<<i<<"  "<<rVol<<"  "<<EnergyBending<<"  "<<EnergyTotal<<"  "<<EnergyChangeRate_log<<"  "<<force_residual<<"  "<<std::endl;
-      // logfile output
-      logfile<<i<<"  ";
-      logfile<<time<<"  ";
-      logfile<<M1.area_total<<"  ";
-      logfile<<M1.volume_total<<"  ";
-      logfile<<rVol<<"  ";
-      logfile<<EnergyBending<<"  ";
-      logfile<<EnergyArea<<"  ";   
-      logfile<<EnergyVolume<<"  ";
-      if (particle_flag) {
-        logfile<<EnergyAdhesion<<"  "; 
-        if (parameter.forced_wrapping_flag) logfile<<EnergyBias<<"  ";
-      }
-      logfile<<EnergyPotential<<"  ";
-      logfile<<EnergyTotal<<"  ";
-      logfile<<EnergyKinetic<<"  ";
-      logfile<<EnergyParticleKinetic<<"  ";
-      logfile<<EnergyChangeRate_log<<"  ";
-      logfile<<force_residual<<std::endl;
-    }
-
-    if (i % tolsteps == 0) {
-      if (i != 0) {
-        EnergyChangeRate_avg = etol(Eigen::seq(toln-1-tolmean_steps,toln-1)).mean();
-
-        if (std::abs(EnergyChangeRate_avg) < tolerance && tolerance_flag) {
-          std::cout<<"Energy change rate reaches the threshold."<<std::endl;
-          std::cout<<"Simulation reaches equilibrium state."<<std::endl;
-          break;
-        }
-      }
-    }
-
-    if (i % dumpfrequency == 0) {
-      char dumpfilename[128];
-      sprintf(dumpfilename, "dump%08d.off", i);
-	    igl::writeOFF(dumpfilename, V1, F1);
-      if(particle_flag){
-      char dumpfilename_p[128];
-      sprintf(dumpfilename_p, "particle%08d.off", i);
-      igl::writeOFF(dumpfilename_p, V2, F2);}
-	  }
-
-    if (i % resfrequency == 0) igl::writeOFF(parameter.resFile, V1, F1);
-
-
-
-    //velocity = Force_Total / gamma;
-    //V1 += velocity * dt;
-
-    if (v_smooth_flag || delaunay_tri_flag) {
-      if ((i+1) % mesh_reg_frequency == 0) {
-        if (v_smooth_flag) V1 = M1.vertex_smoothing(V1, F1);
-        if (delaunay_tri_flag) {
-          igl::edge_lengths(V1, F1, l);
-          igl::intrinsic_delaunay_triangulation(l, F1, l, F1);
-        }
-      }
-    }
-
-    time += dt;
-
-  }
-
-  if ((i+1) == iterations) std::cout<<"Simulation reaches max iterations."<<std::endl;
-
+  // End timing simulation
   auto end = system_clock::now();
   auto duration = duration_cast<minutes>(end - start);
-  //main loop ends here
-
-  // logfile output
-  logfile<<i<<"  ";
-  logfile<<time<<"  ";
-  logfile<<M1.area_total<<"  ";
-  logfile<<M1.volume_total<<"  ";
-  logfile<<rVol<<"  ";
-  logfile<<EnergyBending<<"  ";
-  logfile<<EnergyArea<<"  ";   
-  logfile<<EnergyVolume<<"  ";
-  if (particle_flag) {
-    logfile<<EnergyAdhesion<<"  ";
-    if (parameter.forced_wrapping_flag) logfile<<EnergyBias<<"  ";
-  }
-  logfile<<EnergyTotal<<"  ";
-  logfile<<force_residual<<std::endl;
   logfile<<"Total run time: "<<duration.count()<<" mins"<<std::endl;
   logfile.close();
-      
-  igl::writeOFF(parameter.outFile, V1, F1);
+  return 0;
 
-  //Storing force components to text file after equilibrium
-  std::ofstream file1("Adhesion_Force.txt");
-  // Check if the file was successfully opened
-  if (file1.is_open()) {
-    file1 << Force_Adhesion << std::endl;
-    file1.close();
-    std::cout << "Adhesion force successfully saved to file." << std::endl;
-  }
-  else {
-    std::cout << "Error: cannot open adhesion force file." <<std::endl;
-  }
-  std::ofstream file2("Bending_Force.txt");
-  if (file2.is_open()) {
-    file2 << Force_Bending << std::endl;
-    file2.close();
-    std::cout << "Bending force successfully saved to file." << std::endl;
-  }
-  else {
-    std::cout << "Error: cannot open bending force file." << std::endl;
-  }
-  std::ofstream file3("Area_Force.txt");
-  if (file3.is_open()) {
-    file3<< Force_Area << std::endl;
-    file3.close();
-    std::cout << "Area force successfully saved to file." << std::endl;
-  }
-  else {
-    std::cout << "Error: cannot open area force file." << std::endl;
-  }
 }
-
 void readParameter()
 {
   std::string line;
@@ -738,3 +167,220 @@ void readParameter()
   runfile >> parameter.random_force_flag;
   runfile.close();
 }
+
+
+    /*
+    logfile << "Simulation Start:\n";
+    // Dynamic logging depending on flags
+    if (sim_data.particle_flag) {
+          logfile << "Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  AdhesionEnergy  BiasedWrappingEnergy  PotentialEnergy  TotalEnergy  KineticEnergy  ParticleKineticEnergy  EnergyChangeRate  ForceResidual" << std::endl;
+      } else {
+          logfile << "Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  PotentialEnergy  TotalEnergy  KineticEnergy  EnergyChangeRate  ForceResidual" << std::endl;
+    }
+ 
+    // Initialize the rigid body dynamics
+    RigidBody body;
+    body.calculate_properties(sim_data.V2, sim_data.mass_particle, sim_data.rotation_matrix, sim_data.idiag, sim_data.displace);
+    std::cout << "Principal moments of inertia (Diagonal):\n" << sim_data.idiag << std::endl;
+    sim_data.center_of_mass = body.getCenterOfMass();
+    std::cout << "Center of Mass: " << sim_data.center_of_mass.transpose() << std::endl;
+
+    //Eigen::Quaterniond current_quaternion;
+    body.exyz_to_q(sim_data.rotation_matrix, sim_data.current_quaternion);
+    std::cout << "Initial Quaternion (Identity): "
+              << "w = " << sim_data.current_quaternion.w() << ", "
+              << "x = " << sim_data.current_quaternion.x() << ", "
+              << "y = " << sim_data.current_quaternion.y() << ", "
+              << "z = " << sim_data.current_quaternion.z() << std::endl;
+
+    // Display initial simulation output
+    if (sim_data.particle_flag) {
+        std::cout << "Iteration  ReducedVolume  BendingEnergy  AdhesionEnergy  TotalEnergy  EnergyChangeRate ForceResidual" << std::endl;
+    } else {
+        std::cout << "Iteration  ReducedVolume  BendingEnergy  TotalEnergy  EnergyChangeRate  ForceResidual" << std::endl;
+    }
+
+  */
+  // Main simulation loop
+
+  /*
+  
+    igl::readOFF(parameter.meshFile,sim_data.V1,sim_data.F1);
+  igl::readOFF(parameter.particleFile,sim_data.V2, sim_data.F2);
+  
+  sim_data.numF = sim_data.F1.rows();
+  sim_data.numV = sim_data.V1.rows();
+  sim_data.distance_threshold = 0.1;
+  sim_data.initialize(sim_data.numV);
+  // screen and log output of simulation settings
+
+  std::fstream logfile("logfile.txt", std::ios::out); // Open for writing and to append | std::ios::app
+  if (!logfile.is_open()) {
+        std::cerr << "ERROR: cannot access logfile." << std::endl;
+        return 1;
+    }
+
+    // Write initial log
+  logfile << "This is logfile for simulation" << std::endl;
+
+  sim_data.iterations = parameter.iterations;
+  sim_data.logfrequency = parameter.logfrequency;
+  sim_data.dumpfrequency = parameter.dumpfrequency;
+  sim_data.bondfrequency=parameter.bondfrequency;
+  sim_data.resfrequency = parameter.resfrequency;
+  sim_data.dt = parameter.dt;
+  sim_data.time =0.0;
+  sim_data.dtf=sim_data.dt/2.0;
+  sim_data.tolerance = parameter.tolerance;
+  //sim_data.force_residual,force_ratio;
+  sim_data.tolerance_flag = parameter.tolerance_flag;
+  sim_data.tolfrequency = parameter.tolfrequency;
+  sim_data.tolsteps = floor(sim_data.tolfrequency /sim_data.dt);
+  sim_data.tolmean_steps = floor(sim_data.tolsteps/sim_data.logfrequency);
+  sim_data.etol;
+  sim_data.etol.resize(floor(sim_data.iterations/sim_data.logfrequency));
+  sim_data.etol.setZero();
+
+  std::cout<<"Mesh info:"<<std::endl;
+  std::cout<<"Number of vertices: "<<sim_data.numV<<" Number of faces: "<<sim_data.numF<<"\n"<<std::endl;
+  std::cout<<"Max number of iterations: "<<sim_data.iterations<<std::endl;
+  std::cout<<"Log output frequency: "<<sim_data.logfrequency<<std::endl;
+  std::cout<<"Mesh dump frequency: "<<sim_data.dumpfrequency<<std::endl;
+  std::cout<<"Restart save frequency: "<<sim_data.resfrequency<<std::endl;
+  std::cout<<"Time step: "<<sim_data.dt<<std::endl;
+  logfile<<"Mesh info:"<<std::endl;
+  logfile<<"Number of vertices: "<<sim_data.numV<<" Number of faces: "<<sim_data.numF<<"\n"<<std::endl;
+  logfile<<"Max number of iterations: "<<sim_data.iterations<<std::endl;
+  logfile<<"Log output frequency: "<<sim_data.logfrequency<<std::endl;
+  logfile<<"Mesh dump frequency: "<<sim_data.dumpfrequency<<std::endl;
+  logfile<<"Restart save frequency: "<<sim_data.resfrequency<<std::endl;
+  logfile<<"Time step: "<<sim_data.dt<<std::endl;
+
+  if (sim_data.tolerance_flag) {
+    std::cout<<"Convergence: ON, Tolerance: "<<sim_data.tolerance<<std::endl;
+    std::cout<<"Tolerance check frequency: "<<sim_data.tolfrequency<<" time units\n"<<std::endl;
+    logfile<<"Convergence: ON, Tolerance: "<<sim_data.tolerance<<std::endl;
+    logfile<<"Tolerance check frequency: "<<sim_data.tolfrequency<<" time units\n"<<std::endl;
+  }
+  else {
+    std::cout<<"Convergence: OFF\n"<<std::endl;
+    logfile<<"Convergence: OFF\n"<<std::endl;
+  }
+  
+  // paraemters for membrane properties
+  sim_data.gamma = parameter.gamma;
+  sim_data.mass = parameter.mass;
+  sim_data.kbT = parameter.kbT;
+  sim_data.Kb = parameter.Kb;
+  sim_data.Kv = 0.0;
+  sim_data.Ka = parameter.Ka;
+  sim_data.Rv = 1.0;
+  sim_data.area_target = 4*PI*sim_data.Rv*sim_data.Rv;
+  sim_data.volume_target = 0.0;
+  sim_data.rVol; // true reduced volume
+  
+
+  std::cout<<"Vesicle radius: "<<sim_data.Rv<<std::endl;
+  std::cout<<"Membrane drag coefficient: "<<sim_data.gamma<<std::endl;
+  std::cout<<"Membrane mass coefficient: "<<sim_data.mass<<std::endl;
+  std::cout<<"Membrane bending modulus: "<<sim_data.Kb<<std::endl;
+  std::cout<<"Membrane stretching modulus: "<<sim_data.Ka<<std::endl;
+  logfile<<"Vesicle radius: "<<sim_data.Rv<<std::endl;
+  logfile<<"Membrane drag coefficient: "<<sim_data.gamma<<std::endl;
+  logfile<<"Membrane mass coefficient: "<<sim_data.mass<<std::endl;
+  logfile<<"Membrane bending modulus: "<<sim_data.Kb<<std::endl;
+  logfile<<"Membrane stretching modulus: "<<sim_data.Ka<<std::endl;
+
+  if (std::abs(parameter.Kv) > EPS) {
+    sim_data.rVol_t = parameter.reduced_volume;
+    sim_data.Kv = parameter.Kv;
+    sim_data.volume_target = sim_data.rVol_t*(4.0/3.0)*PI*pow(sim_data.Rv,3);
+    std::cout<<"Target vesicle reduced volume: "<<sim_data.rVol_t<<std::endl;
+    std::cout<<"Vesicle osmotic strength constant: "<<sim_data.Kv<<"\n"<<std::endl;
+    logfile<<"Target vesicle reduced volume: "<<sim_data.rVol_t<<std::endl;
+    logfile<<"Vesicle osmotic strength constant: "<<sim_data.Kv<<"\n"<<std::endl;
+  }
+  ///Flags
+  sim_data.angle_flag = parameter.angle_condition_flag;
+  sim_data.random_force_flag = parameter.random_force_flag;
+  sim_data.particle_flag = parameter.particle_flag;
+  sim_data.forced_wrapping_flag = parameter.forced_wrapping_flag;
+
+  //file input/oupout
+  sim_data.meshFile = parameter.meshFile;
+  sim_data.outFile = parameter.outFile;
+
+  if (sim_data.particle_flag) {
+        igl::readOFF(parameter.particleFile, sim_data.V2, sim_data.F2);
+        sim_data.numVp = sim_data.V2.rows();
+        sim_data.numFp = sim_data.F2.rows();
+        std::cout << "Number of particle vertices: " << sim_data.numVp << " Number of particle faces: " << sim_data.numFp << "\n";
+        
+        Mesh M2;
+        M2.mesh_cal(sim_data.V2, sim_data.F2);
+        sim_data.Rp = sqrt(M2.area_total / (4 * PI));
+        sim_data.u = parameter.adhesion_strength;
+        sim_data.U = (sim_data.Kb * sim_data.u) / (sim_data.Rp * sim_data.Rp);
+        sim_data.rho = parameter.potential_range;
+        sim_data.r_equilibrium = parameter.r_equilibrium;
+        sim_data.rc = 10.0 * sim_data.rho;
+        sim_data.mass_particle = sim_data.mass*parameter.mass_particle_ratio;
+        sim_data.total_mass_particle = sim_data.mass_particle * sim_data.V2.rows();
+        sim_data.particle_position = parameter.particle_position;
+
+        igl::centroid(sim_data.V2, sim_data.F2, sim_data.COM);
+        std::cout << "Particle position: " << sim_data.COM.transpose() << std::endl;
+        std::cout << "Particle adhesion strength: " << sim_data.U << std::endl;
+        std::cout << "Particle adhesion range: " << sim_data.rho << std::endl;
+        std::cout << "Particle adhesion cutoff: " << sim_data.rc << std::endl;
+        std::cout << "Distance threshold: " << sim_data.distance_threshold << std::endl;
+        std::cout << "Particle mass: " << sim_data.total_mass_particle << std::endl;
+        //std::fstream logfile("logfile.txt", std::ios::out);
+        
+        logfile << "Particle properties and interactions:" << std::endl;
+        logfile << "Particle position: " << sim_data.COM.transpose() << std::endl;
+        logfile << "Particle radius: " << sim_data.Rp << std::endl;
+        logfile << "Particle adhesion strength: " << sim_data.U << std::endl;
+        logfile << "Particle adhesion range: " << sim_data.rho << std::endl;
+        logfile << "Particle adhesion cutoff: " << sim_data.rc << std::endl;
+        logfile << "Distance threshold: " << sim_data.distance_threshold << std::endl;
+        if (sim_data.angle_flag) {
+                logfile << "Angle criterion: ON" << std::endl;
+          } else {
+                logfile << "Angle criterion: OFF" << std::endl;
+        }    
+    
+
+
+    // parameters for forced wrapping
+    if (parameter.forced_wrapping_flag) {
+        sim_data.forced_wrapping_fraction = parameter.wrapping_fraction;
+        sim_data.Kw = parameter.wrapping_bias_strength;
+        double Area_w_t = sim_data.forced_wrapping_fraction * M2.area_total;  // Ensure M2 is defined and area_total is calculated earlier
+        sim_data.Ew_t = -sim_data.U * Area_w_t;
+
+        std::cout << "Forced wrapping fraction: " << sim_data.forced_wrapping_fraction << std::endl;
+        std::cout << "Forced wrapping strength constant: " << sim_data.Kw << "\n";
+        std::cout << "Particle Surface Area: " << M2.area_total << std::endl;
+        std::cout << "Target adhesion energy: " << sim_data.Ew_t << std::endl;
+
+        logfile << "Forced wrapping fraction: " << sim_data.forced_wrapping_fraction << std::endl;
+        logfile << "Forced wrapping strength constant: " << sim_data.Kw << "\n";
+        logfile << "Particle Surface Area: " << M2.area_total << std::endl;
+        logfile << "Target adhesion energy: " << sim_data.Ew_t << std::endl;
+      }
+    }
+    // Mesh regularization settings
+    sim_data.v_smooth_flag = parameter.vertex_smoothing_flag;
+    sim_data.delaunay_tri_flag = parameter.delaunay_triangulation_flag;
+    sim_data.mesh_reg_frequency = parameter.mesh_reg_frequency;
+    sim_data.bondfrequency = parameter.bondfrequency;
+    std::cout << "Vertex smoothing: " << (sim_data.v_smooth_flag ? "ON" : "OFF") << std::endl;
+    std::cout << "Delaunay triangulation: " << (sim_data.delaunay_tri_flag ? "ON" : "OFF") << std::endl;
+    std::cout << "Mesh regularization frequency: " << sim_data.mesh_reg_frequency << "\n";
+
+    logfile << "Vertex smoothing: " << (sim_data.v_smooth_flag ? "ON" : "OFF") << std::endl;
+    logfile << "Delaunay triangulation: " << (sim_data.delaunay_tri_flag ? "ON" : "OFF") << std::endl;
+    logfile << "Mesh regularization frequency: " << sim_data.mesh_reg_frequency << "\n";
+
+  */

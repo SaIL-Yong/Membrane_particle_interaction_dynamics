@@ -45,30 +45,14 @@ void verlet_integration(SimulationData& sim_data,std::fstream &logfile) {
 
   Mesh M1;
   Energy E1;
-  //RigidBody body;
   int i=0;
   int toln = 0;
-  for (i = 0; i < sim_data.iterations; i++){
+  calculate_forces(sim_data, M1, E1,i);
 
-    //Initial Integration Step
-    M1.mesh_cal(sim_data.V1, sim_data.F1);
-    E1.compute_bendingenergy_force(sim_data.V1,sim_data. F1,sim_data. Kb,sim_data. Force_Bending, sim_data.EnergyBending, M1);
-    E1.compute_areaenergy_force(sim_data.V1, sim_data.F1, sim_data.Ka, sim_data.area_target, sim_data.Force_Area, sim_data.EnergyArea, M1);
-    E1.compute_volumeenergy_force(sim_data.V1, sim_data.F1, sim_data.Kv, sim_data.volume_target, sim_data.Force_Volume, sim_data.EnergyVolume, M1);
-    if(sim_data.particle_flag && i%sim_data.bondfrequency==0)igl::signed_distance(sim_data.V1, sim_data.V2, sim_data.F2, igl::SIGNED_DISTANCE_TYPE_PSEUDONORMAL, sim_data.signed_distance, sim_data.facet_index, sim_data.closest_points, sim_data.normals_closest_points);
-    if(sim_data.particle_flag && i%sim_data.bondfrequency==0){E1.compute_adhesion_energy_force(sim_data.V1, sim_data.F1, sim_data.closest_points, sim_data.rho, sim_data.U,sim_data.r_equilibrium,sim_data.rc,sim_data.angle_flag,
-                                    sim_data.particle_position, sim_data.Ew_t, sim_data.Kw,sim_data.Force_Adhesion,sim_data.Force_Repulsion,sim_data.signed_distance, sim_data.EnergyAdhesion,sim_data.EnergyBias, M1);}
-    
-    if (sim_data.random_force_flag) {E1.compute_random_force( sim_data.gamma,sim_data. kbT, sim_data.mass, sim_data.dt, sim_data.Force_Random);
-                            E1.compute_drag_force(sim_data.velocity,sim_data.gamma, sim_data.mass, sim_data.Force_Drag);}
-    //std::cout << "Force Adhesion" << Force_Adhesion << std::endl;
-    sim_data.EnergyPotential= sim_data.EnergyBending + sim_data.EnergyArea + sim_data.EnergyVolume + sim_data.EnergyAdhesion + sim_data.EnergyBias;
-    sim_data.EnergyKinetic= 0.5 * sim_data.mass * (sim_data.velocity.rowwise().squaredNorm().sum());
-    sim_data.EnergyTotal =sim_data. EnergyPotential + sim_data.EnergyKinetic+sim_data.EnergyParticleKinetic;
-    sim_data.Force_Total =sim_data. Force_Bending + sim_data.Force_Area + sim_data.Force_Volume + sim_data.Force_Adhesion + sim_data.Force_Random + sim_data.Force_Drag;
-    
-    //LAMMPS Integration
+  for (i = 0; i < sim_data.iterations; i++){
+    //LAMMPS Integration / Verlet Integration First step
     sim_data.velocity += (sim_data.Force_Total / sim_data.mass) * 0.5 * sim_data.dt;
+    //position update
     sim_data.V1 += sim_data.velocity * sim_data.dt;
 
     //old_updater 
@@ -76,9 +60,18 @@ void verlet_integration(SimulationData& sim_data,std::fstream &logfile) {
     //velocity_half_step = velocity_half_step + 0.5 *dt* (acceleration_half_step - (gamma*velocity));// + Force_Random ;
     //V1 += velocity * dt + 0.5 * acceleration_half_step * (dt * dt);
     
+    //Mesh Regularization
+    if (sim_data.v_smooth_flag || sim_data.delaunay_tri_flag) {
+      if ((i+1) %sim_data.mesh_reg_frequency == 0) {
+        if (sim_data.v_smooth_flag) sim_data.V1 = M1.vertex_smoothing(sim_data.V1, sim_data.F1);
+        if (sim_data.delaunay_tri_flag) {
+          igl::edge_lengths(sim_data.V1, sim_data.F1, sim_data.l);
+          igl::intrinsic_delaunay_triangulation(sim_data.l, sim_data.F1, sim_data.l, sim_data.F1);
+        }
+      }
+    }
 
-    //  Rigid Body Calculations 
-    //ForcesonParticleVertices
+    //  Rigid Body Calculations (Initial Integration Step)
     if (sim_data.particle_flag) {
       sim_data.ForcesOnParticle = -sim_data.Force_Repulsion;
       // Calculate the acceleration of the center of mass based on the net force
@@ -105,9 +98,9 @@ void verlet_integration(SimulationData& sim_data,std::fstream &logfile) {
     sim_data.current_quaternion=sim_data.new_quaternion;
     body.q_to_exyz(sim_data.new_quaternion, sim_data.rotation_matrix); 
     if (i % sim_data.logfrequency == 0) std::cout << "Rotation Matrix: \n" << sim_data.rotation_matrix << std::endl;
-    // // Update the particle vertices based on the rotation matrix
-    //v= vcm + omega x r
-    //rotate the particle based on rotation_matrix
+    /* Update the particle vertices based on the rotation matrix
+    v= vcm + omega x r
+    rotate the particle based on rotation_matrix*/
     body.calculate_center_of_mass(sim_data.V2,sim_data.F2,sim_data.center_of_mass);
     body.rotate_vertices(sim_data.V2,sim_data.center_of_mass,sim_data.displace,sim_data.rotation_matrix); // r_vector_new= Rotation_matrix * r_vector 
     
@@ -118,61 +111,23 @@ void verlet_integration(SimulationData& sim_data,std::fstream &logfile) {
 
     //Rigid Body Calculations End
     }
-   
-
-    
-
    //Final Integration Step
 
     //Repeat the force calucaltion here//Final Integration Step
-    M1.mesh_cal(sim_data.V1, sim_data.F1);
-    E1.compute_bendingenergy_force(sim_data.V1, sim_data.F1, sim_data.Kb, sim_data.Force_Bending, sim_data.EnergyBending, M1);
-    E1.compute_areaenergy_force(sim_data.V1, sim_data.F1, sim_data.Ka, sim_data.area_target, sim_data.Force_Area, sim_data.EnergyArea, M1);
-    E1.compute_volumeenergy_force(sim_data.V1, sim_data.F1, sim_data.Kv, sim_data.volume_target, sim_data.Force_Volume, sim_data.EnergyVolume, M1);
-    if(sim_data.particle_flag && i % sim_data.bondfrequency == 0) {
-      igl::signed_distance(sim_data.V1, sim_data.V2, sim_data.F2, igl::SIGNED_DISTANCE_TYPE_PSEUDONORMAL, sim_data.signed_distance, sim_data.facet_index, sim_data.closest_points, sim_data.normals_closest_points);
-    }
 
+    calculate_forces(sim_data, M1, E1,i);
 
-  
-    if (sim_data.particle_flag && i % sim_data.bondfrequency == 0) {
-          E1.compute_adhesion_energy_force(sim_data.V1, sim_data.F1, sim_data.closest_points, sim_data.rho, sim_data.U,sim_data.r_equilibrium,sim_data.rc,sim_data.angle_flag,
-                                    sim_data.particle_position, sim_data.Ew_t, sim_data.Kw,sim_data.Force_Adhesion,sim_data.Force_Repulsion,sim_data.signed_distance, sim_data.EnergyAdhesion,sim_data.EnergyBias, M1);
-        }
-    if (sim_data.random_force_flag) {
-      E1.compute_random_force(sim_data.gamma, sim_data.kbT, sim_data.mass, sim_data.dt, sim_data.Force_Random);
-      E1.compute_drag_force(sim_data.velocity, sim_data.gamma, sim_data.mass, sim_data.Force_Drag);
-        }
-    sim_data.EnergyPotential = sim_data.EnergyBending + sim_data.EnergyArea + sim_data.EnergyVolume + sim_data.EnergyAdhesion + sim_data.EnergyBias;
-    sim_data.EnergyKinetic = 0.5 * sim_data.mass * (sim_data.velocity.rowwise().squaredNorm().sum());
-    sim_data.EnergyTotal = sim_data.EnergyPotential + sim_data.EnergyKinetic + sim_data.EnergyParticleKinetic;
-    sim_data.Force_Total = sim_data.Force_Bending + sim_data.Force_Area + sim_data.Force_Volume + sim_data.Force_Adhesion + sim_data.Force_Random + sim_data.Force_Drag;
-    sim_data.force_residual = sim_data.Force_Total.norm();
-
-    //LAMMPS Integration
+   //Velocity Update Final Step
     sim_data.velocity += (sim_data.Force_Total / sim_data.mass) * 0.5 * sim_data.dt;
 
-    //old_updater 
-    //acceleration = Force_Total / mass;
-    // // Update velocities with average acceleration
-    // //velocity = velocity_half_step + 0.5 *dt*(acceleration - (gamma * velocity_half_step));// + Force_Random ;
-    //velocity = 0.5 * (acceleration + acceleration_half_step) * dt;
-
-    //ForcesonParticleVertices
+    //  Rigid Body Calculations (Final Integration Step)
     //if(particle_flag){E1.redistributeAdhesionForce(V2,F2,closest_points, Force_Repulsion, facet_index,ForcesOnVertices); 
     if(sim_data.particle_flag){
     sim_data.ForcesOnParticle = -sim_data.Force_Repulsion;
-
     sim_data.particle_acceleration_com = (sim_data.ForcesOnParticle.colwise().sum()) / sim_data.total_mass_particle;
-
     sim_data.particle_velocity_com += sim_data.particle_acceleration_com * sim_data.dtf; // update the particle velocity
-
-    
-    //  Rigid Body Calculations (Final Integration Step)
     body.calculate_torque(sim_data.ForcesOnParticle, sim_data.closest_points, sim_data.center_of_mass, sim_data.torque); // torque calculation, Tau = r x F
-
     body.angular_momentum(sim_data.torque, sim_data.dtf, sim_data.ang_momentum);
-
     body.calculate_omega(sim_data.ang_momentum, sim_data.rotation_matrix, sim_data.idiag, sim_data.ang_velocity);
     //Rigid Body Calculations End
 
@@ -210,7 +165,7 @@ void verlet_integration(SimulationData& sim_data,std::fstream &logfile) {
       logfile<<sim_data.EnergyChangeRate_log<<"  ";
       logfile<<sim_data.force_residual<<std::endl;
     }
-
+    //Energy Change Rate Calculation
     if (i % sim_data.tolsteps == 0) {
       if (i != 0) {
         sim_data.EnergyChangeRate_avg = sim_data.etol(Eigen::seq(toln-1-sim_data.tolmean_steps, toln-1)).mean();
@@ -233,45 +188,37 @@ void verlet_integration(SimulationData& sim_data,std::fstream &logfile) {
       igl::writeOFF(dumpfilename_p, sim_data.V2, sim_data.F2);}
 	  }
 
-    if (sim_data.v_smooth_flag || sim_data.delaunay_tri_flag) {
-      if ((i+1) %sim_data.mesh_reg_frequency == 0) {
-        if (sim_data.v_smooth_flag) sim_data.V1 = M1.vertex_smoothing(sim_data.V1, sim_data.F1);
-        if (sim_data.delaunay_tri_flag) {
-          igl::edge_lengths(sim_data.V1, sim_data.F1, sim_data.l);
-          igl::intrinsic_delaunay_triangulation(sim_data.l, sim_data.F1, sim_data.l, sim_data.F1);
-        }
-      }
-    }
 
     sim_data.time += sim_data.dt;
 
-  
-
     if ((i+1) == sim_data.iterations) std::cout<<"Simulation reaches max iterations."<<std::endl;
 
-
-    //main loop ends here
-
-    // // logfile output
-    // logfile<<i<<"  ";
-    // logfile<<sim_data.time<<"  ";
-    // logfile<<M1.area_total<<"  ";
-    // logfile<<M1.volume_total<<"  ";
-    // logfile<<sim_data.rVol<<"  ";
-    // logfile<<sim_data.EnergyBending<<"  ";
-    // logfile<<sim_data.EnergyArea<<"  ";   
-    // logfile<<sim_data.EnergyVolume<<"  ";
-    // if (sim_data.particle_flag) {
-    //   logfile<<sim_data.EnergyAdhesion<<"  ";
-    //   if (sim_data.forced_wrapping_flag) logfile<<sim_data.EnergyBias<<"  ";
-    // }
-    // logfile<<sim_data.EnergyTotal<<"  ";
-    // logfile<<sim_data.force_residual<<std::endl;
-    //logfile<<"Total run time: "<<duration.count()<<" mins"<<std::endl;
-    // logfile.close();   
     igl::writeOFF(sim_data.outFile, sim_data.V1, sim_data.F1);
   }
 
+}
+
+void calculate_forces(SimulationData& sim_data, Mesh& M1, Energy& E1,int current_iteration) {
+    M1.mesh_cal(sim_data.V1, sim_data.F1);
+    E1.compute_bendingenergy_force(sim_data.V1, sim_data.F1, sim_data.Kb, sim_data.Force_Bending, sim_data.EnergyBending, M1);
+    E1.compute_areaenergy_force(sim_data.V1, sim_data.F1, sim_data.Ka, sim_data.area_target, sim_data.Force_Area, sim_data.EnergyArea, M1);
+    E1.compute_volumeenergy_force(sim_data.V1, sim_data.F1, sim_data.Kv, sim_data.volume_target, sim_data.Force_Volume, sim_data.EnergyVolume, M1);
+
+    if (sim_data.particle_flag && current_iteration % sim_data.bondfrequency == 0) {
+        igl::signed_distance(sim_data.V1, sim_data.V2, sim_data.F2, igl::SIGNED_DISTANCE_TYPE_PSEUDONORMAL, sim_data.signed_distance, sim_data.facet_index, sim_data.closest_points, sim_data.normals_closest_points);
+        E1.compute_adhesion_energy_force(sim_data.V1, sim_data.F1, sim_data.closest_points, sim_data.rho, sim_data.U, sim_data.r_equilibrium, sim_data.rc, sim_data.angle_flag, sim_data.particle_position, sim_data.Ew_t, sim_data.Kw, sim_data.Force_Adhesion, sim_data.Force_Repulsion, sim_data.signed_distance, sim_data.EnergyAdhesion, sim_data.EnergyBias, M1);
+    }
+
+    if (sim_data.random_force_flag) {
+        E1.compute_random_force(sim_data.gamma, sim_data.kbT, sim_data.mass, sim_data.dt, sim_data.Force_Random);
+        E1.compute_drag_force(sim_data.velocity, sim_data.gamma, sim_data.mass, sim_data.Force_Drag);
+    }
+
+    sim_data.EnergyPotential = sim_data.EnergyBending + sim_data.EnergyArea + sim_data.EnergyVolume + sim_data.EnergyAdhesion + sim_data.EnergyBias;
+    sim_data.EnergyKinetic = 0.5 * sim_data.mass * (sim_data.velocity.rowwise().squaredNorm().sum());
+    sim_data.EnergyTotal = sim_data.EnergyPotential + sim_data.EnergyKinetic + sim_data.EnergyParticleKinetic;
+    sim_data.Force_Total = sim_data.Force_Bending + sim_data.Force_Area + sim_data.Force_Volume + sim_data.Force_Adhesion + sim_data.Force_Random + sim_data.Force_Drag;
+    sim_data.force_residual = sim_data.Force_Total.norm();
 }
 
 void initialize_simulation(SimulationData& sim_data, Parameter& parameter,std::fstream& logfile){

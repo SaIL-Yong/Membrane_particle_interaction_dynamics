@@ -19,25 +19,20 @@ int main() {
   readParameter();
   //SimulationData sim_data;
   SimulationData sim_data;
-
+  // Log file setup
   std::fstream logfile("logfile.txt", std::ios::out);
     if (!logfile.is_open()) {
         std::cerr << "ERROR: cannot access logfile." << std::endl;
         return 1;
     }
-  // Initialize the simulation based on the number of vertices
+  // Start timing simulation
+  auto start = std::chrono::system_clock::now();
+  std::cout << "Simulation Start:\n";
 
-    // Start timing simulation
-    auto start = std::chrono::system_clock::now();
-    std::cout << "Simulation Start:\n";
-
-    // Log file setup
-
-    // Initialize the simulation based on the number of vertices
+  // Initialize the simulation
   initialize_simulation(sim_data, parameter, logfile);
-
+  //call the integration function
   verlet_integration(sim_data,logfile);
-
   
   // End timing simulation
   auto end = system_clock::now();

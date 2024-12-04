@@ -51,14 +51,12 @@ void verlet_integration(SimulationData& sim_data,std::fstream &logfile) {
 
   for (i = 0; i < sim_data.iterations; i++){
     //LAMMPS Integration / Verlet Integration First step
-    sim_data.velocity += (sim_data.Force_Total / sim_data.mass) * 0.5 * sim_data.dt;
+    sim_data.velocity += (sim_data.Force_Total / sim_data.mass) * 0.5 * sim_data.dt;//with damping fricon gamma*velocity
+    
     //position update
     sim_data.V1 += sim_data.velocity * sim_data.dt;
 
-    //old_updater 
-    //acceleration_half_step = Force_Total / mass;
-    //velocity_half_step = velocity_half_step + 0.5 *dt* (acceleration_half_step - (gamma*velocity));// + Force_Random ;
-    //V1 += velocity * dt + 0.5 * acceleration_half_step * (dt * dt);
+    //with damping fricon gamma*velocity
     
     //Mesh Regularization
     if (sim_data.v_smooth_flag || sim_data.delaunay_tri_flag) {
@@ -79,7 +77,7 @@ void verlet_integration(SimulationData& sim_data,std::fstream &logfile) {
       // Update all vertex positions by translating with the velocity
       sim_data.particle_velocity_com += sim_data.particle_acceleration_com * sim_data.dtf;
       if (i % sim_data.logfrequency == 0) std::cout << "Particle Velocity: " << sim_data.particle_velocity_com.transpose() << std::endl;
-      sim_data.V2.rowwise() += (sim_data.particle_velocity_com * sim_data.dt).transpose();
+      sim_data.V2.rowwise() += (sim_data.particle_velocity_com *sim_data.dt).transpose();
   
     
     //  Rigid Body Calculations (Initial Integration Step)
@@ -117,8 +115,9 @@ void verlet_integration(SimulationData& sim_data,std::fstream &logfile) {
 
     calculate_forces(sim_data, M1, E1,i);
 
-   //Velocity Update Final Step
-    sim_data.velocity += (sim_data.Force_Total / sim_data.mass) * 0.5 * sim_data.dt;
+    //Velocity Update Final Step
+    sim_data.velocity += (sim_data.Force_Total / sim_data.mass ) * 0.5 * sim_data.dt;//with damping fricon gamma*velocity
+    
 
     //  Rigid Body Calculations (Final Integration Step)
     //if(particle_flag){E1.redistributeAdhesionForce(V2,F2,closest_points, Force_Repulsion, facet_index,ForcesOnVertices); 
@@ -211,8 +210,8 @@ void calculate_forces(SimulationData& sim_data, Mesh& M1, Energy& E1,int current
 
     if (sim_data.random_force_flag) {
         E1.compute_random_force(sim_data.gamma, sim_data.kbT, sim_data.mass, sim_data.dt, sim_data.Force_Random);
-        E1.compute_drag_force(sim_data.velocity, sim_data.gamma, sim_data.mass, sim_data.Force_Drag);
     }
+    E1.compute_drag_force(sim_data.velocity, sim_data.gamma, sim_data.mass, sim_data.Force_Drag);
 
     sim_data.EnergyPotential = sim_data.EnergyBending + sim_data.EnergyArea + sim_data.EnergyVolume + sim_data.EnergyAdhesion + sim_data.EnergyBias;
     sim_data.EnergyKinetic = 0.5 * sim_data.mass * (sim_data.velocity.rowwise().squaredNorm().sum());

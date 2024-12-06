@@ -186,5 +186,9 @@ void Energy::compute_random_force(double gamma, double kbT, double mass, double 
 }
 
 void Energy::compute_drag_force(Eigen::MatrixXd velocity, double gamma, double mass, Eigen::MatrixXd& Force_Drag) {
-    Force_Drag = -gamma *mass* velocity;
+    Force_Drag = -gamma * velocity;
+} 
+
+void Energy::compute_drag_force_particle(Eigen::Vector3d velocity, double gamma, double mass, Eigen::Vector3d& Force_Drag_Particle) {
+    Force_Drag_Particle = -gamma *velocity;
 } 

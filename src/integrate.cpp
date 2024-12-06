@@ -12,11 +12,13 @@
 #include "meshops.h"
 
 void verlet_integration(SimulationData& sim_data,std::fstream &logfile) {
-// main loop
     logfile << "Simulation Start:\n";
     // Dynamic logging depending on flags
     if (sim_data.particle_flag) {
-          logfile << "Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  AdhesionEnergy  BiasedWrappingEnergy  PotentialEnergy  TotalEnergy  KineticEnergy  ParticleKineticEnergy  EnergyChangeRate  ForceResidual" << std::endl;
+      if (sim_data.forced_wrapping_flag){
+        logfile << "Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  AdhesionEnergy  BiasedWrappingEnergy  PotentialEnergy  TotalEnergy  KineticEnergy  ParticleKineticEnergy  EnergyChangeRate  ForceResidual" << std::endl;
+      }
+          logfile << "Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  AdhesionEnergy  PotentialEnergy  TotalEnergy  KineticEnergy  ParticleKineticEnergy  EnergyChangeRate  ForceResidual" << std::endl;
       } else {
           logfile << "Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  PotentialEnergy  TotalEnergy  KineticEnergy  EnergyChangeRate  ForceResidual" << std::endl;
     }
@@ -47,7 +49,7 @@ void verlet_integration(SimulationData& sim_data,std::fstream &logfile) {
   Energy E1;
   int i=0;
   int toln = 0;
-  calculate_forces(sim_data, M1, E1,i);
+  calculate_forces(sim_data, M1, E1,body,i);
 
   for (i = 0; i < sim_data.iterations; i++){
     //LAMMPS Integration / Verlet Integration First step
@@ -56,9 +58,7 @@ void verlet_integration(SimulationData& sim_data,std::fstream &logfile) {
     //position update
     sim_data.V1 += sim_data.velocity * sim_data.dt;
 
-    //with damping fricon gamma*velocity
-    
-    //Mesh Regularization
+    //Mesh Regularization for vesicle
     if (sim_data.v_smooth_flag || sim_data.delaunay_tri_flag) {
       if ((i+1) %sim_data.mesh_reg_frequency == 0) {
         if (sim_data.v_smooth_flag) sim_data.V1 = M1.vertex_smoothing(sim_data.V1, sim_data.F1);
@@ -71,23 +71,21 @@ void verlet_integration(SimulationData& sim_data,std::fstream &logfile) {
 
     //  Rigid Body Calculations (Initial Integration Step)
     if (sim_data.particle_flag) {
-      sim_data.ForcesOnParticle = -sim_data.Force_Repulsion;
-      // Calculate the acceleration of the center of mass based on the net force
-      sim_data.particle_acceleration_com = (sim_data.ForcesOnParticle.colwise().sum()) / sim_data.total_mass_particle;
-      // Update all vertex positions by translating with the velocity
-      sim_data.particle_velocity_com += sim_data.particle_acceleration_com * sim_data.dtf;
-      if (i % sim_data.logfrequency == 0) std::cout << "Particle Velocity: " << sim_data.particle_velocity_com.transpose() << std::endl;
-      sim_data.V2.rowwise() += (sim_data.particle_velocity_com *sim_data.dt).transpose();
+    sim_data.particle_acceleration_com = (sim_data.ForcesOnParticle.colwise().sum().transpose() + sim_data.Force_Drag_Particle) / sim_data.total_mass_particle;
+    //sim_data.particle_acceleration_com = (sim_data.ForcesOnParticle.colwise().sum()) / sim_data.total_mass_particle;
+    
+    // Update all vertex positions by translating with the velocity
+    sim_data.particle_velocity_com += sim_data.particle_acceleration_com * 0.5 * sim_data.dt;
+    if (i % sim_data.logfrequency == 0) std::cout << "Particle Velocity: " << sim_data.particle_velocity_com.transpose() << std::endl;
+    
+    sim_data.V2.rowwise() += (sim_data.particle_velocity_com *sim_data.dt).transpose();
   
     
     //  Rigid Body Calculations (Initial Integration Step)
-    
-    body.calculate_torque(sim_data.ForcesOnParticle, sim_data.closest_points, sim_data.center_of_mass, sim_data.torque); // torque calculation, Tau = r x F
-    if (i%sim_data.logfrequency==0)std::cout << "Torque: " << sim_data.torque.transpose() << std::endl;
     //calculate angular momentum
     body.angular_momentum(sim_data.torque, sim_data.dtf ,sim_data.ang_momentum);
     // //calculate angular velocity
-    body.calculate_omega(sim_data.ang_momentum, sim_data.rotation_matrix, sim_data.idiag, sim_data.ang_velocity);
+    body.calculate_omega(sim_data.ang_momentum, sim_data.rotation_matrix, sim_data.idiag, sim_data.ang_velocity, sim_data.omega_body);
 
     if (i % sim_data.logfrequency == 0) std::cout << "Angular Velocity: " << sim_data.ang_velocity.transpose() << std::endl;
 
@@ -102,18 +100,13 @@ void verlet_integration(SimulationData& sim_data,std::fstream &logfile) {
     body.calculate_center_of_mass(sim_data.V2,sim_data.F2,sim_data.center_of_mass);
     body.rotate_vertices(sim_data.V2,sim_data.center_of_mass,sim_data.displace,sim_data.rotation_matrix); // r_vector_new= Rotation_matrix * r_vector 
     
-    //Particle Kinetic Energy
-    sim_data.EnergyParticleKineticTranslation = 0.5 * sim_data.total_mass_particle * (sim_data.particle_velocity_com.rowwise().squaredNorm().sum());
-    sim_data.EnergyParticleKineticRotation = 0.5 * sim_data.ang_velocity.transpose() * sim_data.idiag * sim_data.ang_velocity;
-    sim_data.EnergyParticleKinetic = sim_data.EnergyParticleKineticTranslation + sim_data.EnergyParticleKineticRotation;
 
     //Rigid Body Calculations End
     }
-   //Final Integration Step
-
+  
     //Repeat the force calucaltion here//Final Integration Step
 
-    calculate_forces(sim_data, M1, E1,i);
+    calculate_forces(sim_data, M1, E1,body,i);
 
     //Velocity Update Final Step
     sim_data.velocity += (sim_data.Force_Total / sim_data.mass ) * 0.5 * sim_data.dt;//with damping fricon gamma*velocity
@@ -122,14 +115,13 @@ void verlet_integration(SimulationData& sim_data,std::fstream &logfile) {
     //  Rigid Body Calculations (Final Integration Step)
     //if(particle_flag){E1.redistributeAdhesionForce(V2,F2,closest_points, Force_Repulsion, facet_index,ForcesOnVertices); 
     if(sim_data.particle_flag){
-    sim_data.ForcesOnParticle = -sim_data.Force_Repulsion;
-    sim_data.particle_acceleration_com = (sim_data.ForcesOnParticle.colwise().sum()) / sim_data.total_mass_particle;
-    sim_data.particle_velocity_com += sim_data.particle_acceleration_com * sim_data.dtf; // update the particle velocity
-    body.calculate_torque(sim_data.ForcesOnParticle, sim_data.closest_points, sim_data.center_of_mass, sim_data.torque); // torque calculation, Tau = r x F
+    sim_data.particle_acceleration_com = (sim_data.ForcesOnParticle.colwise().sum().transpose() + sim_data.Force_Drag_Particle) / sim_data.total_mass_particle;
+    //sim_data.particle_acceleration_com = (sim_data.ForcesOnParticle.colwise().sum()) / sim_data.total_mass_particle;
+    // Update all vertex  velocity
+    sim_data.particle_velocity_com += sim_data.particle_acceleration_com * 0.5 * sim_data.dt; // update the particle velocity
     body.angular_momentum(sim_data.torque, sim_data.dtf, sim_data.ang_momentum);
-    body.calculate_omega(sim_data.ang_momentum, sim_data.rotation_matrix, sim_data.idiag, sim_data.ang_velocity);
+    body.calculate_omega(sim_data.ang_momentum, sim_data.rotation_matrix, sim_data.idiag, sim_data.ang_velocity,sim_data.omega_body);
     //Rigid Body Calculations End
-
     }
   
     sim_data.rVol = 6 * sqrt(PI) * M1.volume_total * pow(M1.area_total, -1.5);   
@@ -197,7 +189,8 @@ void verlet_integration(SimulationData& sim_data,std::fstream &logfile) {
 
 }
 
-void calculate_forces(SimulationData& sim_data, Mesh& M1, Energy& E1,int current_iteration) {
+
+void calculate_forces(SimulationData& sim_data, Mesh& M1, Energy& E1,RigidBody& body,int current_iteration) {
     M1.mesh_cal(sim_data.V1, sim_data.F1);
     E1.compute_bendingenergy_force(sim_data.V1, sim_data.F1, sim_data.Kb, sim_data.Force_Bending, sim_data.EnergyBending, M1);
     E1.compute_areaenergy_force(sim_data.V1, sim_data.F1, sim_data.Ka, sim_data.area_target, sim_data.Force_Area, sim_data.EnergyArea, M1);
@@ -212,13 +205,33 @@ void calculate_forces(SimulationData& sim_data, Mesh& M1, Energy& E1,int current
         E1.compute_random_force(sim_data.gamma, sim_data.kbT, sim_data.mass, sim_data.dt, sim_data.Force_Random);
     }
     E1.compute_drag_force(sim_data.velocity, sim_data.gamma, sim_data.mass, sim_data.Force_Drag);
+    
 
+    //membrane energy and forces
     sim_data.EnergyPotential = sim_data.EnergyBending + sim_data.EnergyArea + sim_data.EnergyVolume + sim_data.EnergyAdhesion + sim_data.EnergyBias;
     sim_data.EnergyKinetic = 0.5 * sim_data.mass * (sim_data.velocity.rowwise().squaredNorm().sum());
-    sim_data.EnergyTotal = sim_data.EnergyPotential + sim_data.EnergyKinetic + sim_data.EnergyParticleKinetic;
+    //sim_data.EnergyTotal = sim_data.EnergyPotential + sim_data.EnergyKinetic + sim_data.EnergyParticleKinetic;
     sim_data.Force_Total = sim_data.Force_Bending + sim_data.Force_Area + sim_data.Force_Volume + sim_data.Force_Adhesion + sim_data.Force_Random + sim_data.Force_Drag;
     sim_data.force_residual = sim_data.Force_Total.norm();
+    //particle Forces and torques
+    if (sim_data.particle_flag) {
+      sim_data.ForcesOnParticle = -sim_data.Force_Repulsion;
+      E1.compute_drag_force_particle(sim_data.particle_velocity_com,sim_data.total_gamma_particle,sim_data.total_mass_particle,sim_data.Force_Drag_Particle);
+      body.calculate_torque(sim_data.ForcesOnParticle, sim_data.closest_points, sim_data.center_of_mass, sim_data.torque); // torque calculation, Tau = r x F
+      body.calculate_drag_torque(sim_data.omega_body, sim_data.rotation_matrix,sim_data.idiag, sim_data.total_gamma_particle, sim_data.drag_torque);
+      sim_data.torque += sim_data.drag_torque;
+    }
+
+        //Particle Kinetic Energy
+    sim_data.EnergyParticleKineticTranslation = 0.5 * sim_data.total_mass_particle * (sim_data.particle_velocity_com.rowwise().squaredNorm().sum());
+    sim_data.EnergyParticleKineticRotation = 0.5 * sim_data.ang_velocity.transpose() * sim_data.idiag * sim_data.ang_velocity;
+    sim_data.EnergyParticleKinetic = sim_data.EnergyParticleKineticTranslation + sim_data.EnergyParticleKineticRotation;
+    
+    //Total Energy
+    sim_data.EnergyTotal = sim_data.EnergyPotential + sim_data.EnergyKinetic + sim_data.EnergyParticleKinetic;
+
 }
+
 
 void initialize_simulation(SimulationData& sim_data, Parameter& parameter,std::fstream& logfile){
 
@@ -348,7 +361,9 @@ void initialize_simulation(SimulationData& sim_data, Parameter& parameter,std::f
         sim_data.r_equilibrium = parameter.r_equilibrium;
         sim_data.rc = 10.0 * sim_data.rho;
         sim_data.mass_particle = sim_data.mass*parameter.mass_particle_ratio;
+        sim_data.gamma_particle = parameter.gamma*parameter.mass_particle_ratio;
         sim_data.total_mass_particle = sim_data.mass_particle * sim_data.V2.rows();
+        sim_data.total_gamma_particle = sim_data.gamma_particle * sim_data.V2.rows();
         sim_data.particle_position = parameter.particle_position;
 
         igl::centroid(sim_data.V2, sim_data.F2, sim_data.COM);

@@ -36,6 +36,8 @@ class Energy {
 
 
  void compute_drag_force(Eigen::MatrixXd velocity, double gamma, double mass, Eigen::MatrixXd& Force_Drag);
+
+ void compute_drag_force_particle(Eigen::Vector3d velocity, double gamma, double mass, Eigen::Vector3d& Force_Drag_Particle);
  std::mt19937 gen;  // Mersenne Twister random number generator
 
  Energy() : gen(std::random_device{}()) {}

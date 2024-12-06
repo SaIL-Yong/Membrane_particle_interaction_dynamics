@@ -35,12 +35,15 @@ struct SimulationData {
     // Physical Membrane properties
     double gamma, mass, kbT, Kb, Kv, Ka, Rv, area_target, volume_target, rVol;
     double Rp, u, U, rho, rc, r_equilibrium;
-    double mass_particle, total_mass_particle;
+    double mass_particle, total_mass_particle,gamma_particle,total_gamma_particle;
     double force_residual, distance_threshold;
     double rVol_t; // true reduced volume
+
     // Rigid body dynamics properties
     Eigen::Matrix3d rotation_matrix, idiag;
-    Eigen::Vector3d torque, ang_momentum, ang_velocity, particle_velocity_com, particle_acceleration_com;
+    Eigen::Vector3d torque,drag_torque,ang_momentum, ang_velocity, particle_velocity_com, particle_acceleration_com,omega_body;
+    Eigen::Vector3d Force_Drag_Particle;
+    //Eigen::Vector3d omega_body.setZero();
     Eigen::Quaterniond current_quaternion, new_quaternion;
     Eigen::Vector3d COM,center_of_mass;
     // Simulation control parameters
@@ -55,6 +58,7 @@ struct SimulationData {
     int particle_position;
     double Ew_t, Kw;  // Energy and strength for wrapping
     double forced_wrapping_fraction;
+    
 
     // Mesh regularization properties
     int v_smooth_flag, delaunay_tri_flag, mesh_reg_frequency;
@@ -101,6 +105,7 @@ struct SimulationData {
         particle_acceleration_com.setZero();
         center_of_mass.setZero();
         current_quaternion.setIdentity();
+        EnergyBias=0;
 
     }
 };

@@ -90,21 +90,24 @@ void RigidBody::angular_momentum (Eigen::Vector3d torque,double dt, Eigen::Vecto
 }
 
 
-void RigidBody::calculate_omega(Eigen::Vector3d angular_momentum, Eigen::Matrix3d rot_mat, Eigen::Matrix3d idiag, Eigen::Vector3d& angular_velocity) {
+void RigidBody::calculate_omega(Eigen::Vector3d angular_momentum, Eigen::Matrix3d rot_mat, Eigen::Matrix3d idiag, Eigen::Vector3d& angular_velocity, Eigen::Vector3d& omega_body) {
         // Transform angular momentum from space to body frame
-        mom_body = rot_mat.transpose() * angular_momentum;  // P^T * Angular_Momentum_space
-
-        // Compute angular velocity in the body frame
-        // omega_body;//space_frame
-        // for (int i = 0; i < 3; ++i) {
-        //     // Check if diagonal inertia (inverse inertia component) is zero to prevent division by zero
-        //     omega_body(i) = idiag(i, i) != 0 ? mom_body(i) / idiag(i, i) : 0.0;
-        // }
+        mom_body = rot_mat.transpose() * angular_momentum;  // P^T * Angular_Momentum_space_frame
         omega_body = mom_body.array() / idiag.diagonal().array(); // Safe division
         omega_body = omega_body.unaryExpr([](double v) { return std::isfinite(v) ? v : 0.0; }); // Handling division by zero
 
         // Transform angular velocity back to the space frame
         angular_velocity = rot_mat * omega_body;  // P * ω_body(body_frame) 
+}
+
+// Calculate the drag torque in the body frame based on velocity and drag coefficient
+void RigidBody::calculate_drag_torque(Eigen::Vector3d omega_body, Eigen::Matrix3d rot_mat,Eigen::Matrix3d idiag, double gamma, Eigen::Vector3d& drag_torque) {
+    // Compute the drag torque in the body frame based on angular velocity and inertia
+    drag_torque[0] = -idiag(0, 0) * gamma * omega_body[0];
+    drag_torque[1] = -idiag(1, 1) * gamma * omega_body[1];
+    drag_torque[2] = -idiag(2, 2) * gamma * omega_body[2];
+
+    drag_torque= rot_mat * drag_torque; // Transform the drag torque to the space frame
 }
 
 

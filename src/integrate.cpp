@@ -18,7 +18,7 @@ void verlet_integration(SimulationData& sim_data,std::fstream &logfile) {
       if (sim_data.forced_wrapping_flag){
         logfile << "Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  AdhesionEnergy  BiasedWrappingEnergy  PotentialEnergy  TotalEnergy  KineticEnergy  ParticleKineticEnergy  EnergyChangeRate  ForceResidual" << std::endl;
       }
-          logfile << "Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  AdhesionEnergy  PotentialEnergy  TotalEnergy  KineticEnergy  ParticleKineticEnergy  EnergyChangeRate  ForceResidual" << std::endl;
+        else logfile << "Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  AdhesionEnergy  PotentialEnergy  TotalEnergy  KineticEnergy  ParticleKineticEnergy  EnergyChangeRate  ForceResidual" << std::endl;
       } else {
           logfile << "Iteration  Time  Area  Volume  ReducedVolume  BendingEnergy  AreaEnergy  VolumeEnergy  PotentialEnergy  TotalEnergy  KineticEnergy  EnergyChangeRate  ForceResidual" << std::endl;
     }
@@ -79,28 +79,19 @@ void verlet_integration(SimulationData& sim_data,std::fstream &logfile) {
     if (i % sim_data.logfrequency == 0) std::cout << "Particle Velocity: " << sim_data.particle_velocity_com.transpose() << std::endl;
     
     sim_data.V2.rowwise() += (sim_data.particle_velocity_com *sim_data.dt).transpose();
-  
-    
     //  Rigid Body Calculations (Initial Integration Step)
-    //calculate angular momentum
-    body.angular_momentum(sim_data.torque, sim_data.dtf ,sim_data.ang_momentum);
-    // //calculate angular velocity
-    body.calculate_omega(sim_data.ang_momentum, sim_data.rotation_matrix, sim_data.idiag, sim_data.ang_velocity, sim_data.omega_body);
-
+    body.angular_momentum(sim_data.torque, sim_data.dtf ,sim_data.ang_momentum); //calculate angular momentum
+    body.calculate_omega(sim_data.ang_momentum, sim_data.rotation_matrix, sim_data.idiag, sim_data.ang_velocity, sim_data.omega_body); //calculate angular velocity
     if (i % sim_data.logfrequency == 0) std::cout << "Angular Velocity: " << sim_data.ang_velocity.transpose() << std::endl;
-
     // Update the quaternion
     body.update_quaternion(sim_data.current_quaternion, sim_data.ang_velocity, sim_data.dt, sim_data.new_quaternion);
     sim_data.current_quaternion=sim_data.new_quaternion;
     body.q_to_exyz(sim_data.new_quaternion, sim_data.rotation_matrix); 
     if (i % sim_data.logfrequency == 0) std::cout << "Rotation Matrix: \n" << sim_data.rotation_matrix << std::endl;
-    /* Update the particle vertices based on the rotation matrix
-    v= vcm + omega x r
-    rotate the particle based on rotation_matrix*/
+    /* Update the particle vertices based on the rotation matrix rotate the particle based on rotation_matrix*/
     body.calculate_center_of_mass(sim_data.V2,sim_data.F2,sim_data.center_of_mass);
     body.rotate_vertices(sim_data.V2,sim_data.center_of_mass,sim_data.displace,sim_data.rotation_matrix); // r_vector_new= Rotation_matrix * r_vector 
     
-
     //Rigid Body Calculations End
     }
   
@@ -109,14 +100,11 @@ void verlet_integration(SimulationData& sim_data,std::fstream &logfile) {
     calculate_forces(sim_data, M1, E1,body,i);
 
     //Velocity Update Final Step
-    sim_data.velocity += (sim_data.Force_Total / sim_data.mass ) * 0.5 * sim_data.dt;//with damping fricon gamma*velocity
-    
-
+    sim_data.velocity += (sim_data.Force_Total / sim_data.mass ) * 0.5 * sim_data.dt;//with damping fricon gamma*velocity 
     //  Rigid Body Calculations (Final Integration Step)
     //if(particle_flag){E1.redistributeAdhesionForce(V2,F2,closest_points, Force_Repulsion, facet_index,ForcesOnVertices); 
     if(sim_data.particle_flag){
     sim_data.particle_acceleration_com = (sim_data.ForcesOnParticle.colwise().sum().transpose() + sim_data.Force_Drag_Particle) / sim_data.total_mass_particle;
-    //sim_data.particle_acceleration_com = (sim_data.ForcesOnParticle.colwise().sum()) / sim_data.total_mass_particle;
     // Update all vertex  velocity
     sim_data.particle_velocity_com += sim_data.particle_acceleration_com * 0.5 * sim_data.dt; // update the particle velocity
     body.angular_momentum(sim_data.torque, sim_data.dtf, sim_data.ang_momentum);

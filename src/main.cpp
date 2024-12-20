@@ -23,6 +23,15 @@ int main() {
         std::cerr << "ERROR: cannot access logfile." << std::endl;
         return 1;
     }
+  // Setup output file to redirect std::cout output
+  // std::ofstream output("output.txt");
+  //   if (!output.is_open()) {
+  //       std::cerr << "ERROR: cannot access output file." << std::endl;
+  //       return 1;
+  //   }
+  // Redirect cout to output file
+  //std::streambuf* coutBuf = std::cout.rdbuf();  // Save old buffer
+  //std::cout.rdbuf(output.rdbuf());              // Redirect std::cout to output.txt
   // Start timing simulation
   auto start = std::chrono::system_clock::now();
   std::cout << "Simulation Start:\n";
@@ -36,7 +45,13 @@ int main() {
   auto end = system_clock::now();
   auto duration = duration_cast<minutes>(end - start);
   logfile<<"Total run time: "<<duration.count()<<" mins"<<std::endl;
+
+  // Restore cout to its original state
+  //std::cout.rdbuf(coutBuf);  // Restore the old buffer
+
+  // Close files
   logfile.close();
+  //output.close();
   return 0;
 }
 void readParameter()

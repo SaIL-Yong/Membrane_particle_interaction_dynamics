@@ -261,6 +261,8 @@ void initialize_simulation(SimulationData& sim_data, Parameter& parameter,std::f
   sim_data.tolfrequency = parameter.tolfrequency;
   sim_data.tolsteps = floor(sim_data.tolfrequency /sim_data.dt);
   sim_data.tolmean_steps = floor(sim_data.tolsteps/sim_data.logfrequency);
+  std::cout<<"Tolerance check steps: "<<sim_data.tolsteps<<std::endl; 
+  logfile<<"Tolerance check steps: "<<sim_data.tolsteps<<std::endl; 
   sim_data.etol;
   sim_data.etol.resize(floor(sim_data.iterations/sim_data.logfrequency));
   sim_data.etol.setZero();
@@ -361,6 +363,7 @@ void initialize_simulation(SimulationData& sim_data, Parameter& parameter,std::f
         std::cout << "Particle adhesion cutoff: " << sim_data.rc << std::endl;
         std::cout << "Distance threshold: " << sim_data.distance_threshold << std::endl;
         std::cout << "Particle mass: " << sim_data.total_mass_particle << std::endl;
+        std::cout << "Particle mass/ Vesicle mass: "<<(sim_data.total_mass_particle)/(sim_data.mass*sim_data.V1.rows())<<std::endl;
         //std::fstream logfile("logfile.txt", std::ios::out);
         
         logfile << "Particle properties and interactions:" << std::endl;
@@ -370,6 +373,8 @@ void initialize_simulation(SimulationData& sim_data, Parameter& parameter,std::f
         logfile << "Particle adhesion range: " << sim_data.rho << std::endl;
         logfile << "Particle adhesion cutoff: " << sim_data.rc << std::endl;
         logfile << "Distance threshold: " << sim_data.distance_threshold << std::endl;
+        logfile << "Particle mass: " << sim_data.total_mass_particle << std::endl;
+        logfile << "Particle mass/ Vesicle mass: "<<(sim_data.total_mass_particle)/(sim_data.mass*sim_data.V1.rows())<<std::endl;
         if (sim_data.angle_flag) {
                 logfile << "Angle criterion: ON" << std::endl;
           } else {
@@ -389,7 +394,7 @@ void initialize_simulation(SimulationData& sim_data, Parameter& parameter,std::f
         std::cout << "Forced wrapping strength constant: " << sim_data.Kw << "\n";
         std::cout << "Particle Surface Area: " << M2.area_total << std::endl;
         std::cout << "Target adhesion energy: " << sim_data.Ew_t << std::endl;
-
+        //logfile
         logfile << "Forced wrapping fraction: " << sim_data.forced_wrapping_fraction << std::endl;
         logfile << "Forced wrapping strength constant: " << sim_data.Kw << "\n";
         logfile << "Particle Surface Area: " << M2.area_total << std::endl;

@@ -261,8 +261,6 @@ void initialize_simulation(SimulationData& sim_data, Parameter& parameter,std::f
   sim_data.tolfrequency = parameter.tolfrequency;
   sim_data.tolsteps = floor(sim_data.tolfrequency /sim_data.dt);
   sim_data.tolmean_steps = floor(sim_data.tolsteps/sim_data.logfrequency);
-  std::cout<<"Tolerance check steps: "<<sim_data.tolsteps<<std::endl; 
-  logfile<<"Tolerance check steps: "<<sim_data.tolsteps<<std::endl; 
   sim_data.etol;
   sim_data.etol.resize(floor(sim_data.iterations/sim_data.logfrequency));
   sim_data.etol.setZero();
@@ -285,8 +283,10 @@ void initialize_simulation(SimulationData& sim_data, Parameter& parameter,std::f
   if (sim_data.tolerance_flag) {
     std::cout<<"Convergence: ON, Tolerance: "<<sim_data.tolerance<<std::endl;
     std::cout<<"Tolerance check frequency: "<<sim_data.tolfrequency<<" time units\n"<<std::endl;
+    std::cout<<"Tolerance check steps: "<<sim_data.tolsteps<<std::endl; 
     logfile<<"Convergence: ON, Tolerance: "<<sim_data.tolerance<<std::endl;
     logfile<<"Tolerance check frequency: "<<sim_data.tolfrequency<<" time units\n"<<std::endl;
+    logfile<<"Tolerance check steps: "<<sim_data.tolsteps<<std::endl; 
   }
   else {
     std::cout<<"Convergence: OFF\n"<<std::endl;

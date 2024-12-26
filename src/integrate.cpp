@@ -90,7 +90,7 @@ void verlet_integration(SimulationData& sim_data,std::fstream &logfile) {
     if (i % sim_data.logfrequency == 0) std::cout << "Rotation Matrix: \n" << sim_data.rotation_matrix << std::endl;
     /* Update the particle vertices based on the rotation matrix rotate the particle based on rotation_matrix*/
     body.calculate_center_of_mass(sim_data.V2,sim_data.F2,sim_data.center_of_mass);
-    if(i % sim_data.logfrequency == 0) std::cout << "Center of Mass: " << sim_data.center_of_mass.transpose();
+    if(i % sim_data.logfrequency == 0) std::cout << "Center of Mass: \n" << sim_data.center_of_mass.transpose();
     body.rotate_vertices(sim_data.V2,sim_data.center_of_mass,sim_data.displace,sim_data.rotation_matrix); // r_vector_new= Rotation_matrix * r_vector 
     
     //Rigid Body Calculations End

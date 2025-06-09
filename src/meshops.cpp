@@ -1,3 +1,4 @@
+//meshops.cpp
 #include "energy.h"
 #include "meshops.h"
 #include "parameters.h"
@@ -27,6 +28,7 @@ void Mesh::mesh_cal(Eigen::MatrixXd V, Eigen::MatrixXi F)
   sign_of_H = abc.array().sign();
   H_signed = H.array() * sign_of_H.array();
   H_squared = H.array().square();
+  area_voronoi.resize(numV);
   area_voronoi = M.diagonal();
 
   volume_total = cal_volume2(V, F);

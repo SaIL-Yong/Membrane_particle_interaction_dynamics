@@ -57,7 +57,7 @@ resfile
 logfrequency
 100
 dumpfrequency
-10000
+1
 resfrequency
 100
 mesh_reg_frequency

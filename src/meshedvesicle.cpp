@@ -1,4 +1,4 @@
-#include "meshedparticle.h"
+#include "meshedvesicle.h"
 #include "meshops.h"
 #include "energy.h"
 #include <cstdlib>
@@ -9,11 +9,11 @@
 
 
 // //Temporary Bond Creation based on surface distance
-// void ParticleAdhesion::find_pairs(Eigen::MatrixXd V,Eigen::MatrixXi F, Eigen::MatrixXd V_particle, Eigen::VectorXd signed_distance,
+// void vesicleAdhesion::find_pairs(Eigen::MatrixXd V,Eigen::MatrixXi F, Eigen::MatrixXd V_vesicle, Eigen::VectorXd signed_distance,
 //                 /**
-//                  * @brief The maximum distance between two particles for them to form a bond.
+//                  * @brief The maximum distance between two vesicles for them to form a bond.
 //                  * 
-//                  * If the distance between two particles is less than or equal to this threshold,
+//                  * If the distance between two vesicles is less than or equal to this threshold,
 //                  * they will form a bond.
 //                  */
 //                 const double distance_threshold, Eigen::Vector3d center_of_mass,std::vector<std::pair<int, int>>& bonds)
@@ -40,10 +40,10 @@
 //         double min_distance = std::numeric_limits<double>::max();
 //         int nearest_index = -1;
 
-//         for (int j = 0; j < V_particle.rows(); j++) {
-//             double distance = sqrt(pow(V(i, 0) - V_particle(j, 0), 2)
-//                 + pow(V(i, 1) - V_particle(j, 1), 2)
-//                 + pow(V(i, 2) - V_particle(j, 2), 2));
+//         for (int j = 0; j < V_vesicle.rows(); j++) {
+//             double distance = sqrt(pow(V(i, 0) - V_vesicle(j, 0), 2)
+//                 + pow(V(i, 1) - V_vesicle(j, 1), 2)
+//                 + pow(V(i, 2) - V_vesicle(j, 2), 2));
 
 //             if (distance < min_distance) {
 //                 min_distance = distance;
@@ -68,9 +68,9 @@
 //         int vertex2_idx = bond.second;
 
 //         // Write the bond information to the file
-//         double distance = sqrt(pow(V(vertex1_idx, 0) - V_particle(vertex2_idx, 0), 2)
-//             + pow(V(vertex1_idx, 1) - V_particle(vertex2_idx, 1), 2)
-//             + pow(V(vertex1_idx, 2) - V_particle(vertex2_idx, 2), 2));
+//         double distance = sqrt(pow(V(vertex1_idx, 0) - V_vesicle(vertex2_idx, 0), 2)
+//             + pow(V(vertex1_idx, 1) - V_vesicle(vertex2_idx, 1), 2)
+//             + pow(V(vertex1_idx, 2) - V_vesicle(vertex2_idx, 2), 2));
 
 //         outputFile << "Bond: (" << vertex1_idx << ", " << vertex2_idx << "), Distance: " << distance << std::endl;
 //     }
@@ -124,7 +124,7 @@
 // }
 
 
-void ParticleAdhesion::find_pairs(Eigen::MatrixXd V, Eigen::MatrixXi F, Eigen::MatrixXd V_particle, Eigen::VectorXd signed_distance,
+void vesicleAdhesion::find_pairs(Eigen::MatrixXd V, Eigen::MatrixXi F, Eigen::MatrixXd V_vesicle, Eigen::VectorXd signed_distance,
                                   const double distance_threshold, Eigen::Vector3d center_of_mass, std::vector<std::pair<int, int>>& bonds)
 {
     bonds.clear(); // Clear any existing bonds since you don't want to keep them
@@ -132,10 +132,10 @@ void ParticleAdhesion::find_pairs(Eigen::MatrixXd V, Eigen::MatrixXi F, Eigen::M
 
     // Compute all distances
     for (int i = 0; i < V.rows(); i++) {
-        for (int j = 0; j < V_particle.rows(); j++) {
-            double distance = sqrt(pow(V(i, 0) - V_particle(j, 0), 2)
-                + pow(V(i, 1) - V_particle(j, 1), 2)
-                + pow(V(i, 2) - V_particle(j, 2), 2));
+        for (int j = 0; j < V_vesicle.rows(); j++) {
+            double distance = sqrt(pow(V(i, 0) - V_vesicle(j, 0), 2)
+                + pow(V(i, 1) - V_vesicle(j, 1), 2)
+                + pow(V(i, 2) - V_vesicle(j, 2), 2));
             if (distance < distance_threshold) {
                 distances.emplace_back(distance, i, j);
             }
@@ -147,14 +147,14 @@ void ParticleAdhesion::find_pairs(Eigen::MatrixXd V, Eigen::MatrixXi F, Eigen::M
 
     // Create sets to keep track of bonded vertices
     std::set<int> bonded_V;
-    std::set<int> bonded_V_particle;
+    std::set<int> bonded_V_vesicle;
 
     // Form bonds from the shortest distance
     for (const auto& [distance, i, j] : distances) {
-        if (bonded_V.find(i) == bonded_V.end() && bonded_V_particle.find(j) == bonded_V_particle.end()) {
+        if (bonded_V.find(i) == bonded_V.end() && bonded_V_vesicle.find(j) == bonded_V_vesicle.end()) {
             bonds.emplace_back(i, j);
             bonded_V.insert(i);
-            bonded_V_particle.insert(j);
+            bonded_V_vesicle.insert(j);
         }
     }
 
@@ -170,9 +170,9 @@ void ParticleAdhesion::find_pairs(Eigen::MatrixXd V, Eigen::MatrixXi F, Eigen::M
         int vertex2_idx = bond.second;
 
         // Write the bond information to the file
-        double distance = sqrt(pow(V(vertex1_idx, 0) - V_particle(vertex2_idx, 0), 2)
-            + pow(V(vertex1_idx, 1) - V_particle(vertex2_idx, 1), 2)
-            + pow(V(vertex1_idx, 2) - V_particle(vertex2_idx, 2), 2));
+        double distance = sqrt(pow(V(vertex1_idx, 0) - V_vesicle(vertex2_idx, 0), 2)
+            + pow(V(vertex1_idx, 1) - V_vesicle(vertex2_idx, 1), 2)
+            + pow(V(vertex1_idx, 2) - V_vesicle(vertex2_idx, 2), 2));
 
         outputFile << "Bond: (" << vertex1_idx << ", " << vertex2_idx << "), Distance: " << distance << std::endl;
     }
@@ -182,7 +182,7 @@ void ParticleAdhesion::find_pairs(Eigen::MatrixXd V, Eigen::MatrixXi F, Eigen::M
 
 
 //Temporary Bond Creation
-/*void ParticleAdhesion::find_pairs(Eigen::MatrixXd V,Eigen::MatrixXi F, Eigen::MatrixXd V_particle, double distance_threshold, std::vector<std::pair<int, int>>& bonds)
+/*void vesicleAdhesion::find_pairs(Eigen::MatrixXd V,Eigen::MatrixXi F, Eigen::MatrixXd V_vesicle, double distance_threshold, std::vector<std::pair<int, int>>& bonds)
 {
     bonds.clear(); // Clear any existing bonds since you don't want to keep them
 
@@ -190,10 +190,10 @@ void ParticleAdhesion::find_pairs(Eigen::MatrixXd V, Eigen::MatrixXi F, Eigen::M
         double min_distance = std::numeric_limits<double>::max();
         int nearest_index = -1;
 
-        for (int j = 0; j < V_particle.rows(); j++) {
-            double distance = sqrt(pow(V(i, 0) - V_particle(j, 0), 2)
-                + pow(V(i, 1) - V_particle(j, 1), 2)
-                + pow(V(i, 2) - V_particle(j, 2), 2));
+        for (int j = 0; j < V_vesicle.rows(); j++) {
+            double distance = sqrt(pow(V(i, 0) - V_vesicle(j, 0), 2)
+                + pow(V(i, 1) - V_vesicle(j, 1), 2)
+                + pow(V(i, 2) - V_vesicle(j, 2), 2));
 
             if (distance < min_distance) {
                 min_distance = distance;
@@ -218,9 +218,9 @@ void ParticleAdhesion::find_pairs(Eigen::MatrixXd V, Eigen::MatrixXi F, Eigen::M
         int vertex2_idx = bond.second;
 
         // Write the bond information to the file
-        double distance = sqrt(pow(V(vertex1_idx, 0) - V_particle(vertex2_idx, 0), 2)
-            + pow(V(vertex1_idx, 1) - V_particle(vertex2_idx, 1), 2)
-            + pow(V(vertex1_idx, 2) - V_particle(vertex2_idx, 2), 2));
+        double distance = sqrt(pow(V(vertex1_idx, 0) - V_vesicle(vertex2_idx, 0), 2)
+            + pow(V(vertex1_idx, 1) - V_vesicle(vertex2_idx, 1), 2)
+            + pow(V(vertex1_idx, 2) - V_vesicle(vertex2_idx, 2), 2));
 
         outputFile << "Bond: (" << vertex1_idx << ", " << vertex2_idx << "), Distance: " << distance << std::endl;
     }
@@ -230,7 +230,7 @@ void ParticleAdhesion::find_pairs(Eigen::MatrixXd V, Eigen::MatrixXi F, Eigen::M
 
 */
 
-void ParticleAdhesion::remove_long_bonds(std::vector<std::pair<int, int>>& bonds, Eigen::MatrixXd& V, Eigen::MatrixXd& V_particle, double max_bond_length)
+void vesicleAdhesion::remove_long_bonds(std::vector<std::pair<int, int>>& bonds, Eigen::MatrixXd& V, Eigen::MatrixXd& V_vesicle, double max_bond_length)
 {
     // Create a new vector to store the updated bonds
     std::vector<std::pair<int, int>> updated_bonds;
@@ -240,7 +240,7 @@ void ParticleAdhesion::remove_long_bonds(std::vector<std::pair<int, int>>& bonds
         int vertex2_idx = bond.second;
 
         // Calculate the bond length between the two vertices
-        double bond_length = (V.row(vertex1_idx) - V_particle.row(vertex2_idx)).norm();
+        double bond_length = (V.row(vertex1_idx) - V_vesicle.row(vertex2_idx)).norm();
 
         // Check if the bond length is less than or equal to the maximum allowed length
         if (bond_length <= max_bond_length) {

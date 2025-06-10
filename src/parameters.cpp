@@ -43,9 +43,9 @@ void Parameter::readParameter()
 
     // --- Vesicle-adhesion flags ---
     runfile >> key >> vesicle_flag;
-    runfile >> key >> vesicle_position;
-    runfile >> key >> vesicle_coord_flag;
-    runfile >> key >> vesicle_radius;
+    // runfile >> key >> vesicle_position;
+    // runfile >> key >> vesicle_coord_flag;
+    // runfile >> key >> vesicle_radius;
 
     runfile >> key >> adhesion_strength;
     runfile >> key >> mass_vesicle_ratio;

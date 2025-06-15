@@ -3,11 +3,11 @@ iterations
 dt
 0.01
 Kb1
-0.0001
+0.01
 Ka1
 1.0
 Kv1
-0.0
+2.0
 reduced_volume1
 0.65
 tolerance
@@ -15,7 +15,7 @@ tolerance
 tolerance_flag
 1
 tol_frequency
-10
+1000
 gamma
 1.0
 mass
@@ -25,15 +25,15 @@ kbT
 Kb2
 0.01
 Ka2
-1.0
+100.0
 Kv2
 2.0
 reduced_volume2
-0.95
+0.90
 vesicle_flag
 1
 adhesion_strength
-2.0
+10.0
 mass_vesicle_ratio
 1.0
 potential_range
@@ -43,7 +43,7 @@ r_equilibrium
 angle_condition_flag
 0
 forced_wrapping
-1
+0
 wrapping_fraction
 0.5
 wrapping_bias_strength
@@ -51,7 +51,7 @@ wrapping_bias_strength
 meshFile1
 ./equilibrated.off
 meshFile2
-./initialparticle.off
+./vesicle_2.off
 outFile1
 ./out_membrane.off
 outFile2
@@ -63,7 +63,7 @@ resFile2
 logfrequency
 100
 dumpfrequency
-10000
+1000
 resfrequency
 1000
 mesh_reg_frequency
@@ -75,4 +75,4 @@ vertex_smoothing_flag
 delaunay_triangulation_flag
 1
 random_force_flag
-0
+1

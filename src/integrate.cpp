@@ -623,8 +623,8 @@ void initialize_simulation(
     // ─── Copy vesicle‐adhesion info into sim_data ────────────────────────────
     sim_data.vesicle_flag         = parameter.vesicle_flag;
     sim_data.vesicle_position     = parameter.vesicle_position;
-    sim_data.vesicle_coord_flag   = parameter.vesicle_coord_flag;
-    sim_data.vesicle_radius       = parameter.vesicle_radius;
+    //sim_data.vesicle_coord_flag   = parameter.vesicle_coord_flag;
+    //sim_data.vesicle_radius       = parameter.vesicle_radius;
 
     // Log vesicle-adhesion info
     logfile << "--- Vesicle-Adhesion Info ---\n";

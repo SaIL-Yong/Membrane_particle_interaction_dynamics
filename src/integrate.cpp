@@ -354,12 +354,22 @@ void calculate_forces(
             sim_data.EnergyBias,
             M1
         );
+   // now redistribute that same force *onto* mesh2
+    
+    E1.redistributeAdhesionForce(
+    sim_data.V2,
+    sim_data.F2,
+    sim_data.closest_points,
+    sim_data.Force_Adhesion,
+    sim_data.facet_index,
+    sim_data.Force_Adhesion2
+);
     } else {
-        // If no vesicle, zero out adhesion
-        sim_data.Force_Adhesion.setZero(sim_data.numV1, 3);
-        sim_data.EnergyAdhesion = 0.0;
-        sim_data.EnergyBias = 0.0;
-    }
+  sim_data.Force_Adhesion.setZero(sim_data.numV1,3);
+  sim_data.Force_Adhesion2.setZero(sim_data.numV2,3);
+  sim_data.EnergyAdhesion = 0.0;
+  sim_data.EnergyBias    = 0.0;
+}
 
     // ─── ASSEMBLE ENERGIES FOR MESH 1 ────────────────────────────────────────
     sim_data.EnergyPotential1 =
@@ -405,7 +415,8 @@ void calculate_forces(
             sim_data.Force_Area2 +
             sim_data.Force_Volume2 +
             sim_data.Force_Random2 +
-            sim_data.Force_Drag2;
+            sim_data.Force_Drag2+
+            sim_data.Force_Adhesion2;
     } else {
         sim_data.Force_Total2.setZero(sim_data.numV2, 3);
     }

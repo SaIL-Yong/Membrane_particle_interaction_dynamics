@@ -27,18 +27,26 @@ list(PREPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 option(LIBIGL_GLFW "Build target igl::glfw" OFF)
 include(libigl)
 
+# ——————————————————————————————————————————————————————————————
+#  2) fetch GeometryCentral from GitHub
+# ——————————————————————————————————————————————————————————————
+
+
 # Add your project files
 file(GLOB INC_FILES "${PROJECT_SOURCE_DIR}/src/*.h")
 file(GLOB SRC_FILES "${PROJECT_SOURCE_DIR}/src/*.cpp")
 list(REMOVE_ITEM SRC_FILES "${PROJECT_SOURCE_DIR}/src/test.cpp")
 add_executable(${PROJECT_NAME} ${INC_FILES} ${SRC_FILES})
 set_target_properties(${PROJECT_NAME} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
-
+#Linking
 target_link_libraries(${PROJECT_NAME} PUBLIC igl::core)
 if (LIBIGL_GLFW)
   target_link_libraries(${PROJECT_NAME} PUBLIC igl::glfw)
 endif()
-
+# link against GeometryCentral’s “surface” module (brings in core too)
+#target_link_libraries(${PROJECT_NAME}
+#  PUBLIC geometrycentral::surface
+#)
 # add the binary tree to the search path for include files
 # so that we will find VersionConfig.h
 target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}")

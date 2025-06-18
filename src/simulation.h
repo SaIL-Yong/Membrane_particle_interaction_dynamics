@@ -59,6 +59,7 @@ struct SimulationData
     Eigen::MatrixXd Force_Random2;    // (#V2 × 3)
     Eigen::MatrixXd Force_Drag2;      // (#V2 × 3)
     Eigen::MatrixXd Force_Repulsion;  // (#V2 × 3)
+    Eigen::MatrixXd Force_Adhesion2;  // (#V2 × 3)
     Eigen::MatrixXd Force_Total2;     // (#V2 × 3)
 
     // Velocities (mesh 2)
@@ -176,8 +177,8 @@ struct SimulationData
         Force_Random2.setZero(numV2, 3);
         Force_Drag2.setZero(numV2, 3);
         Force_Repulsion.setZero(numV2, 3);
+        Force_Adhesion2.setZero(numV2, 3);
         Force_Total2.setZero(numV2, 3);
-
         velocity2.setZero(numV2, 3);
     }
 };

@@ -76,6 +76,9 @@ void readParameter()
   runfile >> parameter.Kv;
   getline(runfile, line);
   getline(runfile, line);
+  runfile >> parameter.C_0;  
+  getline(runfile, line);
+  getline(runfile, line);
   runfile >> parameter.reduced_volume;
   getline(runfile, line);
   getline(runfile, line);

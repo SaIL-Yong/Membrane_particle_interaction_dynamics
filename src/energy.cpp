@@ -5,15 +5,18 @@
 #include "meshops.h"
 
 
-void Energy::compute_bendingenergy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, double Kb, Eigen::MatrixXd& Force_Bending, double& bending_energy, Mesh m)
+void Energy::compute_bendingenergy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, double Kb, double C_0,Eigen::MatrixXd& Force_Bending, double& bending_energy, Mesh m)
 {
   bending_energy = 0.0;
   Force_Bending.setZero();
-  EB = 2.0 * Kb * (m.H_squared.transpose() * m.area_voronoi).diagonal();
+  //EB = 2.0 * Kb * (m.H_squared.transpose() * m.area_voronoi).diagonal();
+  EB = 2.0 * Kb * (m.H_C0_squared.transpose() * m.area_voronoi).diagonal();
   bending_energy = EB.sum();
 
   Lap_H = m.Minv * (m.L * m.H_signed);
-  force_density = (2.0 * m.H_signed.array() * (m.H_squared - m.K).array()) + Lap_H.array();
+  //force_density = (2.0 * m.H_signed.array() * (m.H_squared - m.K).array()) + Lap_H.array();
+  force_density = (2.0 * (m.H_C0.array()) * (m.H_squared +  0.5 * C_0 * m.H_signed - m.K).array()) 
+                 + Lap_H.array();
   vector_term = force_density.array() * m.area_voronoi.array();
   Force_Bending = (2.0 *Kb)*(m.V_normals.array().colwise() * vector_term.array());
 }

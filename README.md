@@ -1,25 +1,42 @@
-###Membrane_Dynamcs_Code_Development
-To run the code in Unix/mac system, run the following commands:
-mkdir build
+### **Step-1: Copying/Downloading the source code**
 
-cd build
 
-cmake ..
 
-cmake --build .
+Clone the repository in you local machine/cluster using the following command line:
 
-to compile a debug version
+git clone [https://github.com/SaIL-Yong/Membrane\_particle\_interaction\_dynamics.git](https://github.com/SaIL-Yong/Membrane_particle_interaction_dynamics.git)
 
-mkdir debug
 
-cd debug
 
-cmake -DCMAKE_BUILD_TYPE=Debug ..
+### **Step-2: Compiling and Building Executable**
 
-cmake --build .
 
-###Two existing branch : 1) For membrane dynamics/energy minimization only.
-###                      2) For Particle Interaction.
+
+1. cd "path\_to\_git\_repo/code\_base"
+2. mkdir build
+3. cd build
+4. cmake ..
+5. make -j N ### N=1.4.8, ...
+
+
+
+This process will generate an executable **MemDynamics**
+
+
+
+### **Step-3: Running Simulation**
+
+
+
+1. Copy MemDynamics to the folder you want to run the simulation
+2. Save **run\_parameters.txt**  file in the same folder (For detailed parameter choice and selection, see our manuscript)
+3. Save you particle mesh file and vesicle mesh file in **.off** format
+
+4\. For running in local machine: type in the command line : ./MemDynamics
+
+
+
+
 
 For generating video from image sequence, using ffmpeg
 example syntax

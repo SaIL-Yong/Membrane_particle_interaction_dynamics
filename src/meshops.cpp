@@ -4,7 +4,7 @@
 #include <omp.h>
 
 
-void Mesh::mesh_cal(Eigen::MatrixXd V, Eigen::MatrixXi F)
+void Mesh::mesh_cal(Eigen::MatrixXd V, Eigen::MatrixXi F,double C0)
 {
   numV = V.rows();
   numF = F.rows();
@@ -27,6 +27,8 @@ void Mesh::mesh_cal(Eigen::MatrixXd V, Eigen::MatrixXi F)
   sign_of_H = abc.array().sign();
   H_signed = H.array() * sign_of_H.array();
   H_squared = H.array().square();
+  H_C0 = H_signed.array() - 0.5*C0;
+  H_C0_squared = H_C0.array().square();
   area_voronoi = M.diagonal();
 
   volume_total = cal_volume2(V, F);

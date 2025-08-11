@@ -180,8 +180,8 @@ void verlet_integration(SimulationData& sim_data,std::fstream &logfile) {
 
 
 void calculate_forces(SimulationData& sim_data, Mesh& M1, Energy& E1,RigidBody& body,int current_iteration) {
-    M1.mesh_cal(sim_data.V1, sim_data.F1);
-    E1.compute_bendingenergy_force(sim_data.V1, sim_data.F1, sim_data.Kb, sim_data.Force_Bending, sim_data.EnergyBending, M1);
+    M1.mesh_cal(sim_data.V1, sim_data.F1,sim_data.C_0 );
+    E1.compute_bendingenergy_force(sim_data.V1, sim_data.F1, sim_data.Kb,sim_data.C_0 , sim_data.Force_Bending, sim_data.EnergyBending, M1);
     E1.compute_areaenergy_force(sim_data.V1, sim_data.F1, sim_data.Ka, sim_data.area_target, sim_data.Force_Area, sim_data.EnergyArea, M1);
     E1.compute_volumeenergy_force(sim_data.V1, sim_data.F1, sim_data.Kv, sim_data.volume_target, sim_data.Force_Volume, sim_data.EnergyVolume, M1);
 
@@ -301,6 +301,9 @@ void initialize_simulation(SimulationData& sim_data, Parameter& parameter,std::f
   sim_data.Kb = parameter.Kb;
   sim_data.Kv = 0.0;
   sim_data.Ka = parameter.Ka;
+  sim_data.particle_radius = parameter.particle_radius;
+  sim_data.C_0 = parameter.C_0/parameter.particle_radius; 
+
   sim_data.Rv = 1.0;
   sim_data.area_target = 4*PI*sim_data.Rv*sim_data.Rv;
   sim_data.volume_target = 0.0;
@@ -317,7 +320,7 @@ void initialize_simulation(SimulationData& sim_data, Parameter& parameter,std::f
   logfile<<"Membrane mass coefficient: "<<sim_data.mass<<std::endl;
   logfile<<"Membrane bending modulus: "<<sim_data.Kb<<std::endl;
   logfile<<"Membrane stretching modulus: "<<sim_data.Ka<<std::endl;
-
+  logfile<<"Reduced Spontaneous curvature: "<<sim_data.C_0<<std::endl;
   if (std::abs(parameter.Kv) > EPS) {
     sim_data.rVol_t = parameter.reduced_volume;
     sim_data.Kv = parameter.Kv;
@@ -344,7 +347,7 @@ void initialize_simulation(SimulationData& sim_data, Parameter& parameter,std::f
         std::cout << "Number of particle vertices: " << sim_data.numVp << " Number of particle faces: " << sim_data.numFp << "\n";
         
         Mesh M2;
-        M2.mesh_cal(sim_data.V2, sim_data.F2);
+        M2.mesh_cal(sim_data.V2, sim_data.F2,0.0);
         sim_data.Rp = sqrt(M2.area_total / (4 * PI));
         sim_data.u = parameter.adhesion_strength;
         sim_data.U = (sim_data.Kb * sim_data.u) / (sim_data.Rp * sim_data.Rp);

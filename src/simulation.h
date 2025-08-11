@@ -33,7 +33,7 @@ struct SimulationData {
     double EnergyParticleKinetic, EnergyParticleKineticTranslation, EnergyParticleKineticRotation;
 
     // Physical Membrane properties
-    double gamma, mass, kbT, Kb, Kv, Ka, Rv, area_target, volume_target, rVol;
+    double gamma, mass, kbT, Kb, Kv, Ka, Rv, area_target, volume_target, rVol,C_0;
     double Rp, u, U, rho, rc, r_equilibrium;
     double mass_particle, total_mass_particle,gamma_particle,total_gamma_particle;
     double force_residual, distance_threshold;
@@ -58,6 +58,7 @@ struct SimulationData {
     int particle_position;
     double Ew_t, Kw;  // Energy and strength for wrapping
     double forced_wrapping_fraction;
+     double particle_radius;
     
 
     // Mesh regularization properties

@@ -24,7 +24,7 @@ const double EPS=1.0e-10;
 class Energy {
  public:
  
-  void compute_bendingenergy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, double Kb, Eigen::MatrixXd& Force_Bending, double& bending_energy, Mesh m);
+  void compute_bendingenergy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, double Kb,double C_0, Eigen::MatrixXd& Force_Bending, double& bending_energy, Mesh m);
   void compute_areaenergy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, double Ka, double area_target, Eigen::MatrixXd& Force_Area, double& area_energy, Mesh m);
   void compute_volumeenergy_force(Eigen::MatrixXd V, Eigen::MatrixXi F, double Kv, double volume_target, Eigen::MatrixXd& Force_Volume, double& volume_energy, Mesh m);
   
